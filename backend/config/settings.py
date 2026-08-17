@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = 'django-insecure-erp-v2-generic-architecture-key-secret-2026'
 
@@ -62,50 +64,65 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database Configuration
+# -------------------------------------------------------------------
+# Database Configuration (PostgreSQL with SQLite automatic fallback)
+# -------------------------------------------------------------------
+DB_NAME = os.environ.get('DB_NAME', 'idhayam_erp')
+DB_USER = os.environ.get('DB_USER', os.environ.get('POSTGRES_USER', 'postgres'))
+DB_PASSWORD = os.environ.get('DB_PASSWORD', os.environ.get('POSTGRES_PASSWORD', 'postgres'))
+DB_HOST = os.environ.get('DB_HOST', os.environ.get('POSTGRES_HOST', '127.0.0.1'))
+DB_PORT = os.environ.get('DB_PORT', os.environ.get('POSTGRES_PORT', '5432'))
 
-# -------------------------------------------------------------------
-# Option 1: PostgreSQL (Commented Out)
-# -------------------------------------------------------------------
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'erp_v2_db',
-#         'USER': 'postgres',
-#         'PASSWORD': 'postgres',
-#         'HOST': '127.0.0.1',
-#         'PORT': '5432',
-#     }
-# }
-
-# -------------------------------------------------------------------
-# Database Configuration (MySQL with SQLite automatic fallback)
-# -------------------------------------------------------------------
 try:
-    import pymysql
-    conn = pymysql.connect(host='127.0.0.1', user='root', password='', port=3306, connect_timeout=1)
+    import psycopg2
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT,
+        connect_timeout=2
+    )
     conn.close()
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'erp_v2_db',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': '127.0.0.1',
-            'PORT': '3306',
-            'OPTIONS': {
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-                'charset': 'utf8mb4',
-            },
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST': DB_HOST,
+            'PORT': DB_PORT,
         }
     }
 except Exception:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    try:
+        import psycopg2
+        conn = psycopg2.connect(
+            dbname='postgres',
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            connect_timeout=2
+        )
+        conn.close()
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': DB_NAME,
+                'USER': DB_USER,
+                'PASSWORD': DB_PASSWORD,
+                'HOST': DB_HOST,
+                'PORT': DB_PORT,
+            }
         }
-    }
+    except Exception:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 AUTH_PASSWORD_VALIDATORS = []
 
@@ -119,7 +136,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'apps.core.permissions.ERPModulePermission',
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',

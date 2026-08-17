@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Layout, Plus, Edit3, Trash2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Layout, Plus, Edit3, Trash2, CheckCircle2, RefreshCw, Network } from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
+import WhereUsedModal from '../components/ui/WhereUsedModal';
 
 export default function NavbarManagement() {
   const [navbars, setNavbars] = useState([]);
@@ -10,6 +11,7 @@ export default function NavbarManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [notification, setNotification] = useState('');
+  const [whereUsedState, setWhereUsedState] = useState({ isOpen: false, itemId: '', itemName: '' });
 
   const [formData, setFormData] = useState({
     page_name: '',
@@ -188,6 +190,13 @@ export default function NavbarManagement() {
                       <td className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => setWhereUsedState({ isOpen: true, itemId: n.id, itemName: n.title })}
+                            className="btn-action-view"
+                            title="View Impact & Where Used"
+                          >
+                            <Network className="w-3.5 h-3.5" /> Impact
+                          </button>
+                          <button
                             onClick={() => handleOpenEdit(n)}
                             className="btn-action-edit"
                             title="Edit Navbar Config"
@@ -302,6 +311,13 @@ export default function NavbarManagement() {
           </div>
         </form>
       </Modal>
+      <WhereUsedModal
+        isOpen={whereUsedState.isOpen}
+        onClose={() => setWhereUsedState({ ...whereUsedState, isOpen: false })}
+        configType="navbar"
+        itemId={whereUsedState.itemId}
+        itemName={whereUsedState.itemName}
+      />
     </div>
   );
 }

@@ -5,11 +5,14 @@
   --secondary: #9C9D9E;
   --background: #F5F7FA;
   --surface: #FFFFFF;
+  --surface-muted: #F8FAFC;
+  --surface-subtle: #F1F5F9;
 
   /* Typography Colors */
   --text-primary: #1F2937;
   --text-secondary: #6B7280;
   --border: #E5E7EB;
+  --border-strong: #CBD5E1;
 
   /* Status Colors */
   --success: #16A34A;
@@ -17,6 +20,37 @@
   --warning-text: #854D0E;
   --danger: #DC2626;
   --info: #2563EB;
+  --sidebar-text: #FFFFFF;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.18);
+  --sidebar-active-text: #FFFFFF;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.10);
+  --sidebar-hover-text: #FFFFFF;
+  --sidebar-icon: #DBEAFE;
+  --sidebar-active-icon: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --navbar-text: #0F172A;
+  --navbar-border: #E2E8F0;
+  --navbar-icon: #475569;
+  --login-background: #F8FAFC;
+  --login-card: #FFFFFF;
+  --input-background: #FFFFFF;
+  --input-border: #D1D5DB;
+  --input-text: #1F2937;
+  --table-header: #F8FAFC;
+  --table-row: #FFFFFF;
+  --menu-spacing: 4px;
+  --theme-shadow: 0 2px 8px rgba(15,23,42,0.08);
+
+  /* Shared 4px Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
 
   /* Radii */
   --radius-sm: 6px;
@@ -26,12 +60,14 @@
   /* Heights & Layout Dimensions */
   --sidebar-width: 250px;
   --navbar-height: 64px;
-  --input-height: 40px;
-  --button-height: 38px;
+  --input-height: 44px;
+  --button-height: 40px;
   --button-sm-height: 32px;
   --icon-btn-size: 32px;
 
   /* Focus & Shadow Specs */
-  --focus-ring: 0 0 0 2px rgba(27, 78, 155, 0.12);
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 28px rgba(15, 23, 42, 0.10);
 }

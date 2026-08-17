@@ -1,0 +1,821 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/MenuManagement.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=36603bcd"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=36603bcd"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useState = __vite__cjsImport3_react["useState"]; const useEffect = __vite__cjsImport3_react["useEffect"];
+import axios from "/node_modules/.vite/deps/axios.js?v=36603bcd";
+import { Menu, Plus, Edit3, Trash2, CheckCircle2, Eye, EyeOff, RefreshCw, Network } from "/node_modules/.vite/deps/lucide-react.js?v=36603bcd";
+import Modal from "/src/components/Modal.jsx";
+import SkeletonLoader from "/src/components/SkeletonLoader.jsx";
+import PageHeader from "/src/components/ui/PageHeader.jsx";
+import Button from "/src/components/ui/Button.jsx";
+import IconButton from "/src/components/ui/IconButton.jsx";
+import Table from "/src/components/ui/Table.jsx";
+import Badge from "/src/components/ui/Badge.jsx";
+import EmptyState from "/src/components/ui/EmptyState.jsx";
+import WhereUsedModal from "/src/components/ui/WhereUsedModal.jsx";
+export default function MenuManagement() {
+  _s();
+  const [menus, setMenus] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [notification, setNotification] = useState("");
+  const [whereUsedState, setWhereUsedState] = useState({ isOpen: false, itemId: "", itemName: "" });
+  const [formData, setFormData] = useState({
+    menu_name: "",
+    menu_path: "",
+    module_code: "core",
+    page_key: "dashboard",
+    menu_icon: "LayoutDashboard",
+    parent_menu: "",
+    display_order: 1,
+    active: true
+  });
+  const fetchMenus = () => {
+    setLoading(true);
+    axios.get("http://127.0.0.1:8000/api/core/ui-menus/").then((res) => setMenus(res.data?.results || res.data || [])).catch((err) => console.error("Error fetching UI menus:", err)).finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    fetchMenus();
+  }, []);
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setFormData({
+      menu_name: "",
+      menu_path: "",
+      module_code: "core",
+      page_key: "dashboard",
+      menu_icon: "LayoutDashboard",
+      parent_menu: "",
+      display_order: menus.length + 1,
+      active: true
+    });
+    setIsModalOpen(true);
+  };
+  const handleOpenEdit = (item) => {
+    setEditingId(item.id);
+    setFormData({
+      menu_name: item.menu_name,
+      menu_path: item.menu_path,
+      module_code: item.module_code,
+      page_key: item.page_key || item.module_code,
+      menu_icon: item.menu_icon || "LayoutDashboard",
+      parent_menu: item.parent_menu || "",
+      display_order: item.display_order || 0,
+      active: item.active !== false
+    });
+    setIsModalOpen(true);
+  };
+  const handleDelete = (id) => {
+    if (window.confirm("Delete this sidebar menu item?")) {
+      axios.delete(`http://127.0.0.1:8000/api/core/ui-menus/${id}/`).then(() => {
+        window.dispatchEvent(new Event("erp_ui_metadata_updated"));
+        setNotification("Menu item deleted.");
+        fetchMenus();
+        setTimeout(() => setNotification(""), 3e3);
+      }).catch((err) => alert("Delete failed: " + err.message));
+    }
+  };
+  const handleToggleActive = (item) => {
+    axios.patch(`http://127.0.0.1:8000/api/core/ui-menus/${item.id}/`, {
+      active: !item.active
+    }).then(() => {
+      window.dispatchEvent(new Event("erp_ui_metadata_updated"));
+      setNotification(`Menu '${item.menu_name}' ${!item.active ? "Activated" : "Deactivated"}.`);
+      fetchMenus();
+      setTimeout(() => setNotification(""), 3e3);
+    }).catch((err) => alert("Toggle failed: " + err.message));
+  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...formData,
+      parent_menu: formData.parent_menu || null
+    };
+    if (editingId) {
+      axios.put(`http://127.0.0.1:8000/api/core/ui-menus/${editingId}/`, payload).then(() => {
+        window.dispatchEvent(new Event("erp_ui_metadata_updated"));
+        setNotification("Menu configuration updated.");
+        setIsModalOpen(false);
+        fetchMenus();
+        setTimeout(() => setNotification(""), 3e3);
+      }).catch((err) => alert("Update failed: " + err.message));
+    } else {
+      axios.post("http://127.0.0.1:8000/api/core/ui-menus/", payload).then(() => {
+        window.dispatchEvent(new Event("erp_ui_metadata_updated"));
+        setNotification("New menu configuration created.");
+        setIsModalOpen(false);
+        fetchMenus();
+        setTimeout(() => setNotification(""), 3e3);
+      }).catch((err) => alert("Creation failed: " + err.message));
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "space-y-6 font-sans", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "standard-card flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]", children: /* @__PURE__ */ jsxDEV(Menu, { className: "w-5 h-5" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 159,
+            columnNumber: 15
+          }, this) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 158,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("h1", { className: "page-title", children: "Dynamic Sidebar Menu Management" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 161,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 157,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280] mt-1", children: "Configure navigation menus, ordering, visibility, icons and submenus without altering React source code." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 163,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 156,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxDEV(Button, { variant: "secondary", icon: RefreshCw, onClick: fetchMenus, children: "Refresh" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 168,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(Button, { variant: "primary", icon: Plus, onClick: handleOpenAdd, children: "Create New Menu" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 171,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 167,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 155,
+      columnNumber: 7
+    }, this),
+    notification && /* @__PURE__ */ jsxDEV("div", { className: "p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2", children: [
+      /* @__PURE__ */ jsxDEV(CheckCircle2, { className: "w-4 h-4 text-[#16A34A]" }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 179,
+        columnNumber: 11
+      }, this),
+      notification
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 178,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "table-container", children: loading ? /* @__PURE__ */ jsxDEV(SkeletonLoader, { rows: 6, columns: 7 }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 187,
+      columnNumber: 9
+    }, this) : menus.length === 0 ? /* @__PURE__ */ jsxDEV(
+      EmptyState,
+      {
+        title: "No Dynamic Menus Found",
+        description: "Initialize your navigation structure by creating your first dynamic menu.",
+        actionText: "Create Menu",
+        onAction: handleOpenAdd
+      },
+      void 0,
+      false,
+      {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 189,
+        columnNumber: 9
+      },
+      this
+    ) : /* @__PURE__ */ jsxDEV(Table, { children: [
+      /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Order" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 199,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Menu Name" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 200,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Path Route" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 201,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Module Code" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 202,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "ERP Page" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 203,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Icon Name" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 204,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Parent Menu" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 205,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell", children: "Status" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 206,
+          columnNumber: 17
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "th-cell text-right", children: "Actions" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 207,
+          columnNumber: 17
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 198,
+        columnNumber: 15
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 197,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("tbody", { className: "divide-y divide-[#F3F4F6]", children: menus.map(
+        (item) => /* @__PURE__ */ jsxDEV("tr", { className: "table-row-hover", children: [
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell font-mono text-[#4B5563] text-xs", children: [
+            "#",
+            item.display_order
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 213,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell font-semibold text-[#1F2937]", children: item.menu_name }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 214,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell text-xs font-mono text-[#2563EB]", children: item.menu_path }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 215,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell", children: /* @__PURE__ */ jsxDEV("span", { className: "px-2 py-0.5 rounded text-[11px] font-mono bg-[#F3F4F6] text-[#374151]", children: item.module_code }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 217,
+            columnNumber: 21
+          }, this) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 216,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell text-xs font-mono text-[#6B7280]", children: item.page_key || item.module_code }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 221,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell text-xs text-[#6B7280] font-mono", children: item.menu_icon || "LayoutDashboard" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 222,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell text-xs text-[#6B7280]", children: item.parent_menu ? menus.find((m) => m.id === item.parent_menu)?.menu_name || "Submenu" : "Top-Level" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 223,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell", children: /* @__PURE__ */ jsxDEV("button", { onClick: () => handleToggleActive(item), title: "Click to toggle status", children: item.active ? /* @__PURE__ */ jsxDEV(Badge, { variant: "success", icon: Eye, children: "Active" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 229,
+            columnNumber: 19
+          }, this) : /* @__PURE__ */ jsxDEV(Badge, { variant: "danger", icon: EyeOff, children: "Disabled" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 231,
+            columnNumber: 19
+          }, this) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 227,
+            columnNumber: 21
+          }, this) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 226,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("td", { className: "td-cell text-right", children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-end gap-1", children: [
+            /* @__PURE__ */ jsxDEV(
+              IconButton,
+              {
+                icon: Network,
+                variant: "secondary",
+                size: "sm",
+                title: "Where Used & Impact",
+                onClick: () => setWhereUsedState({ isOpen: true, itemId: item.id, itemName: item.menu_name })
+              },
+              void 0,
+              false,
+              {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                lineNumber: 237,
+                columnNumber: 23
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV(
+              IconButton,
+              {
+                icon: Edit3,
+                variant: "primary",
+                size: "sm",
+                title: "Edit Menu",
+                onClick: () => handleOpenEdit(item)
+              },
+              void 0,
+              false,
+              {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                lineNumber: 244,
+                columnNumber: 23
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV(
+              IconButton,
+              {
+                icon: Trash2,
+                variant: "danger",
+                size: "sm",
+                title: "Delete Menu",
+                onClick: () => handleDelete(item.id)
+              },
+              void 0,
+              false,
+              {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                lineNumber: 251,
+                columnNumber: 23
+              },
+              this
+            )
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 236,
+            columnNumber: 21
+          }, this) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 235,
+            columnNumber: 19
+          }, this)
+        ] }, item.id, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 212,
+          columnNumber: 13
+        }, this)
+      ) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 210,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 196,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 185,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: isModalOpen, onClose: () => setIsModalOpen(false), size: "md", title: editingId ? "Edit Sidebar Menu" : "Create Sidebar Menu", children: /* @__PURE__ */ jsxDEV("form", { onSubmit: handleSubmit, className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Menu Name *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 272,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "text",
+              value: formData.menu_name,
+              onChange: (e) => setFormData({ ...formData, menu_name: e.target.value }),
+              className: "form-input",
+              required: true,
+              placeholder: "e.g., Inventory Ledger"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 273,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 271,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Menu Path (Route) *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 283,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "text",
+              value: formData.menu_path,
+              onChange: (e) => setFormData({ ...formData, menu_path: e.target.value }),
+              className: "form-input",
+              required: true,
+              placeholder: "e.g., /inventory-ledger"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 284,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 282,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 270,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Module Code *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 297,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "text",
+              value: formData.module_code,
+              onChange: (e) => setFormData({ ...formData, module_code: e.target.value }),
+              className: "form-input",
+              required: true,
+              placeholder: "e.g., process_engine"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 298,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 296,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Actual ERP Page *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 308,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "select",
+            {
+              value: formData.page_key,
+              onChange: (e) => setFormData({ ...formData, page_key: e.target.value }),
+              className: "form-input",
+              required: true,
+              children: [
+                /* @__PURE__ */ jsxDEV("option", { value: "dashboard", children: "Executive Dashboard" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 315,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "user_page", children: "User Portal" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 316,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "admin", children: "Admin Console" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 317,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "structural_masters", children: "Structural Masters" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 318,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "dynamic_masters", children: "Dynamic Masters (EAV)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 319,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "process_engine", children: "Process Engine" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 320,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "workflow", children: "Workflow & Approvals" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 321,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "journal", children: "Journal & Stock Ledger" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 322,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "process_attribute_values", children: "Process Attribute Values" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 323,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "process_links", children: "Process Links" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 324,
+                  columnNumber: 17
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 309,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 307,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 295,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Lucide Icon Name" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 331,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "text",
+              value: formData.menu_icon,
+              onChange: (e) => setFormData({ ...formData, menu_icon: e.target.value }),
+              className: "form-input",
+              placeholder: "e.g., Cpu, Layers, Building2"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 332,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 330,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("p", { className: "form-label", children: "Routing Behavior" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 341,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280] pt-2", children: "The route can change freely; this page binding keeps the same real ERP screen connected." }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 342,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 340,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 329,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Display Order *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 348,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "number",
+              min: "1",
+              value: formData.display_order,
+              onChange: (e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 1 }),
+              className: "form-input",
+              required: true
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 349,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 347,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Parent Menu" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 359,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "select",
+            {
+              value: formData.parent_menu,
+              onChange: (e) => setFormData({ ...formData, parent_menu: e.target.value }),
+              className: "form-input",
+              children: [
+                /* @__PURE__ */ jsxDEV("option", { value: "", children: "None (Top-Level Menu)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                  lineNumber: 365,
+                  columnNumber: 17
+                }, this),
+                menus.filter((m) => m.id !== editingId).map(
+                  (m) => /* @__PURE__ */ jsxDEV("option", { value: m.id, children: m.menu_name }, m.id, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+                    lineNumber: 367,
+                    columnNumber: 17
+                  }, this)
+                )
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+              lineNumber: 360,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 358,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 346,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2 pt-2", children: [
+        /* @__PURE__ */ jsxDEV(
+          "input",
+          {
+            type: "checkbox",
+            id: "activeMenuCheck",
+            checked: formData.active,
+            onChange: (e) => setFormData({ ...formData, active: e.target.checked }),
+            className: "w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+            lineNumber: 374,
+            columnNumber: 13
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV("label", { htmlFor: "activeMenuCheck", className: "text-xs text-[#374151] cursor-pointer font-semibold", children: "Enable menu in Sidebar navigation" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 381,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 373,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "modal-footer", children: [
+        /* @__PURE__ */ jsxDEV(Button, { type: "button", variant: "secondary", onClick: () => setIsModalOpen(false), children: "Cancel" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 387,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV(Button, { type: "submit", variant: "primary", children: editingId ? "Update Menu" : "Create Menu" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+          lineNumber: 390,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 386,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 269,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+      lineNumber: 268,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(
+      WhereUsedModal,
+      {
+        isOpen: whereUsedState.isOpen,
+        onClose: () => setWhereUsedState({ ...whereUsedState, isOpen: false }),
+        configType: "menu",
+        itemId: whereUsedState.itemId,
+        itemName: whereUsedState.itemName
+      },
+      void 0,
+      false,
+      {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+        lineNumber: 398,
+        columnNumber: 7
+      },
+      this
+    )
+  ] }, void 0, true, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx",
+    lineNumber: 153,
+    columnNumber: 5
+  }, this);
+}
+_s(MenuManagement, "yKsTS8CLPKquAtGHTMQedvHbMe8=");
+_c = MenuManagement;
+var _c;
+$RefreshReg$(_c, "MenuManagement");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/ERP/Idhayam-ERP/frontend/src/pages/MenuManagement.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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TUQsa0JBQWtCLEVBQUUsR0FBR0QsZ0JBQWdCRSxRQUFRLE1BQU0sQ0FBQztBQUFBLFFBQ3JFLFlBQVc7QUFBQSxRQUNYLFFBQVFGLGVBQWVHO0FBQUFBLFFBQ3ZCLFVBQVVILGVBQWVJO0FBQUFBO0FBQUFBLE1BTDNCO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxJQUtvQztBQUFBLE9BMVB0QztBQUFBO0FBQUE7QUFBQTtBQUFBLFNBNFBBO0FBRUo7QUFBQ2YsR0F0WHVCRCxnQkFBYztBQUFBLEtBQWRBO0FBQWMsSUFBQW9FO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbIlJlYWN0IiwidXNlU3RhdGUiLCJ1c2VFZmZlY3QiLCJheGlvcyIsIk1lbnUiLCJQbHVzIiwiRWRpdDMiLCJUcmFzaDIiLCJDaGVja0NpcmNsZTIiLCJFeWUiLCJFeWVPZmYiLCJSZWZyZXNoQ3ciLCJOZXR3b3JrIiwiTW9kYWwiLCJTa2VsZXRvbkxvYWRlciIsIlBhZ2VIZWFkZXIiLCJCdXR0b24iLCJJY29uQnV0dG9uIiwiVGFibGUiLCJCYWRnZSIsIkVtcHR5U3RhdGUiLCJXaGVyZVVzZWRNb2RhbCIsIk1lbnVNYW5hZ2VtZW50IiwiX3MiLCJtZW51cyIsInNldE1lbnVzIiwibG9hZGluZyIsInNldExvYWRpbmciLCJpc01vZGFsT3BlbiIsInNldElzTW9kYWxPcGVuIiwiZWRpdGluZ0lkIiwic2V0RWRpdGluZ0lkIiwibm90aWZpY2F0aW9uIiwic2V0Tm90aWZpY2F0aW9uIiwid2hlcmVVc2VkU3RhdGUiLCJzZXRXaGVyZVVzZWRTdGF0ZSIsImlzT3BlbiIsIml0ZW1JZCIsIml0ZW1OYW1lIiwiZm9ybURhdGEiLCJzZXRGb3JtRGF0YSIsIm1lbnVfbmFtZSIsIm1lbnVfcGF0aCIsIm1vZHVsZV9jb2RlIiwicGFnZV9rZXkiLCJtZW51X2ljb24iLCJwYXJlbnRfbWVudSIsImRpc3BsYXlfb3JkZXIiLCJhY3RpdmUiLCJmZXRjaE1lbnVzIiwiZ2V0IiwidGhlbiIsInJlcyIsImRhdGEiLCJyZXN1bHRzIiwiY2F0Y2giLCJlcnIiLCJjb25zb2xlIiwiZXJyb3IiLCJmaW5hbGx5IiwiaGFuZGxlT3BlbkFkZCIsImxlbmd0aCIsImhhbmRsZU9wZW5FZGl0IiwiaXRlbSIsImlkIiwiaGFuZGxlRGVsZXRlIiwid2luZG93IiwiY29uZmlybSIsImRlbGV0ZSIsImRpc3BhdGNoRXZlbnQiLCJFdmVudCIsInNldFRpbWVvdXQiLCJhbGVydCIsIm1lc3NhZ2UiLCJoYW5kbGVUb2dnbGVBY3RpdmUiLCJwYXRjaCIsImhhbmRsZVN1Ym1pdCIsImUiLCJwcmV2ZW50RGVmYXVsdCIsInBheWxvYWQiLCJwdXQiLCJwb3N0IiwibWFwIiwiZmluZCIsIm0iLCJ0YXJnZXQiLCJ2YWx1ZSIsInBhcnNlSW50IiwiZmlsdGVyIiwiY2hlY2tlZCIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIk1lbnVNYW5hZ2VtZW50LmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgdXNlU3RhdGUsIHVzZUVmZmVjdCB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCBheGlvcyBmcm9tICdheGlvcyc7XG5pbXBvcnQgeyBNZW51LCBQbHVzLCBFZGl0MywgVHJhc2gyLCBDaGVja0NpcmNsZTIsIEV5ZSwgRXllT2ZmLCBSZWZyZXNoQ3csIE5ldHdvcmsgfSBmcm9tICdsdWNpZGUtcmVhY3QnO1xuaW1wb3J0IE1vZGFsIGZyb20gJy4uL2NvbXBvbmVudHMvTW9kYWwnO1xuaW1wb3J0IFNrZWxldG9uTG9hZGVyIGZyb20gJy4uL2NvbXBvbmVudHMvU2tlbGV0b25Mb2FkZXInO1xuaW1wb3J0IFBhZ2VIZWFkZXIgZnJvbSAnLi4vY29tcG9uZW50cy91aS9QYWdlSGVhZGVyJztcbmltcG9ydCBCdXR0b24gZnJvbSAnLi4vY29tcG9uZW50cy91aS9CdXR0b24nO1xuaW1wb3J0IEljb25CdXR0b24gZnJvbSAnLi4vY29tcG9uZW50cy91aS9JY29uQnV0dG9uJztcbmltcG9ydCBUYWJsZSBmcm9tICcuLi9jb21wb25lbnRzL3VpL1RhYmxlJztcbmltcG9ydCBCYWRnZSBmcm9tICcuLi9jb21wb25lbnRzL3VpL0JhZGdlJztcbmltcG9ydCBFbXB0eVN0YXRlIGZyb20gJy4uL2NvbXBvbmVudHMvdWkvRW1wdHlTdGF0ZSc7XG5pbXBvcnQgV2hlcmVVc2VkTW9kYWwgZnJvbSAnLi4vY29tcG9uZW50cy91aS9XaGVyZVVzZWRNb2RhbCc7XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIE1lbnVNYW5hZ2VtZW50KCkge1xuICBjb25zdCBbbWVudXMsIHNldE1lbnVzXSA9IHVzZVN0YXRlKFtdKTtcbiAgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSk7XG4gIGNvbnN0IFtpc01vZGFsT3Blbiwgc2V0SXNNb2RhbE9wZW5dID0gdXNlU3RhdGUoZmFsc2UpO1xuICBjb25zdCBbZWRpdGluZ0lkLCBzZXRFZGl0aW5nSWRdID0gdXNlU3RhdGUobnVsbCk7XG4gIGNvbnN0IFtub3RpZmljYXRpb24sIHNldE5vdGlmaWNhdGlvbl0gPSB1c2VTdGF0ZSgnJyk7XG5cbiAgLy8gV2hlcmUgVXNlZCBNb2RhbCBzdGF0ZVxuICBjb25zdCBbd2hlcmVVc2VkU3RhdGUsIHNldFdoZXJlVXNlZFN0YXRlXSA9IHVzZVN0YXRlKHsgaXNPcGVuOiBmYWxzZSwgaXRlbUlkOiAnJywgaXRlbU5hbWU6ICcnIH0pO1xuXG4gIGNvbnN0IFtmb3JtRGF0YSwgc2V0Rm9ybURhdGFdID0gdXNlU3RhdGUoe1xuICAgIG1lbnVfbmFtZTogJycsXG4gICAgbWVudV9wYXRoOiAnJyxcbiAgICBtb2R1bGVfY29kZTogJ2NvcmUnLFxuICAgIHBhZ2Vfa2V5OiAnZGFzaGJvYXJkJyxcbiAgICBtZW51X2ljb246ICdMYXlvdXREYXNoYm9hcmQnLFxuICAgIHBhcmVudF9tZW51OiAnJyxcbiAgICBkaXNwbGF5X29yZGVyOiAxLFxuICAgIGFjdGl2ZTogdHJ1ZSxcbiAgfSk7XG5cbiAgY29uc3QgZmV0Y2hNZW51cyA9ICgpID0+IHtcbiAgICBzZXRMb2FkaW5nKHRydWUpO1xuICAgIGF4aW9zLmdldCgnaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3VpLW1lbnVzLycpXG4gICAgICAudGhlbihyZXMgPT4gc2V0TWVudXMocmVzLmRhdGE/LnJlc3VsdHMgfHwgcmVzLmRhdGEgfHwgW10pKVxuICAgICAgLmNhdGNoKGVyciA9PiBjb25zb2xlLmVycm9yKFwiRXJyb3IgZmV0Y2hpbmcgVUkgbWVudXM6XCIsIGVycikpXG4gICAgICAuZmluYWxseSgoKSA9PiBzZXRMb2FkaW5nKGZhbHNlKSk7XG4gIH07XG5cbiAgdXNlRWZmZWN0KCgpID0+IHtcbiAgICBmZXRjaE1lbnVzKCk7XG4gIH0sIFtdKTtcblxuICBjb25zdCBoYW5kbGVPcGVuQWRkID0gKCkgPT4ge1xuICAgIHNldEVkaXRpbmdJZChudWxsKTtcbiAgICBzZXRGb3JtRGF0YSh7XG4gICAgICBtZW51X25hbWU6ICcnLFxuICAgICAgbWVudV9wYXRoOiAnJyxcbiAgICAgIG1vZHVsZV9jb2RlOiAnY29yZScsXG4gICAgICBwYWdlX2tleTogJ2Rhc2hib2FyZCcsXG4gICAgICBtZW51X2ljb246ICdMYXlvdXREYXNoYm9hcmQnLFxuICAgICAgcGFyZW50X21lbnU6ICcnLFxuICAgICAgZGlzcGxheV9vcmRlcjogbWVudXMubGVuZ3RoICsgMSxcbiAgICAgIGFjdGl2ZTogdHJ1ZSxcbiAgICB9KTtcbiAgICBzZXRJc01vZGFsT3Blbih0cnVlKTtcbiAgfTtcblxuICBjb25zdCBoYW5kbGVPcGVuRWRpdCA9IChpdGVtKSA9PiB7XG4gICAgc2V0RWRpdGluZ0lkKGl0ZW0uaWQpO1xuICAgIHNldEZvcm1EYXRhKHtcbiAgICAgIG1lbnVfbmFtZTogaXRlbS5tZW51X25hbWUsXG4gICAgICBtZW51X3BhdGg6IGl0ZW0ubWVudV9wYXRoLFxuICAgICAgbW9kdWxlX2NvZGU6IGl0ZW0ubW9kdWxlX2NvZGUsXG4gICAgICBwYWdlX2tleTogaXRlbS5wYWdlX2tleSB8fCBpdGVtLm1vZHVsZV9jb2RlLFxuICAgICAgbWVudV9pY29uOiBpdGVtLm1lbnVfaWNvbiB8fCAnTGF5b3V0RGFzaGJvYXJkJyxcbiAgICAgIHBhcmVudF9tZW51OiBpdGVtLnBhcmVudF9tZW51IHx8ICcnLFxuICAgICAgZGlzcGxheV9vcmRlcjogaXRlbS5kaXNwbGF5X29yZGVyIHx8IDAsXG4gICAgICBhY3RpdmU6IGl0ZW0uYWN0aXZlICE9PSBmYWxzZSxcbiAgICB9KTtcbiAgICBzZXRJc01vZGFsT3Blbih0cnVlKTtcbiAgfTtcblxuICBjb25zdCBoYW5kbGVEZWxldGUgPSAoaWQpID0+IHtcbiAgICBpZiAod2luZG93LmNvbmZpcm0oXCJEZWxldGUgdGhpcyBzaWRlYmFyIG1lbnUgaXRlbT9cIikpIHtcbiAgICAgIGF4aW9zLmRlbGV0ZShgaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3VpLW1lbnVzLyR7aWR9L2ApXG4gICAgICAgIC50aGVuKCgpID0+IHtcbiAgICAgICAgICB3aW5kb3cuZGlzcGF0Y2hFdmVudChuZXcgRXZlbnQoJ2VycF91aV9tZXRhZGF0YV91cGRhdGVkJykpO1xuICAgICAgICAgIHNldE5vdGlmaWNhdGlvbihcIk1lbnUgaXRlbSBkZWxldGVkLlwiKTtcbiAgICAgICAgICBmZXRjaE1lbnVzKCk7XG4gICAgICAgICAgc2V0VGltZW91dCgoKSA9PiBzZXROb3RpZmljYXRpb24oJycpLCAzMDAwKTtcbiAgICAgICAgfSlcbiAgICAgICAgLmNhdGNoKGVyciA9PiBhbGVydChcIkRlbGV0ZSBmYWlsZWQ6IFwiICsgZXJyLm1lc3NhZ2UpKTtcbiAgICB9XG4gIH07XG5cbiAgY29uc3QgaGFuZGxlVG9nZ2xlQWN0aXZlID0gKGl0ZW0pID0+IHtcbiAgICBheGlvcy5wYXRjaChgaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3VpLW1lbnVzLyR7aXRlbS5pZH0vYCwge1xuICAgICAgYWN0aXZlOiAhaXRlbS5hY3RpdmVcbiAgICB9KVxuICAgICAgLnRoZW4oKCkgPT4ge1xuICAgICAgICB3aW5kb3cuZGlzcGF0Y2hFdmVudChuZXcgRXZlbnQoJ2VycF91aV9tZXRhZGF0YV91cGRhdGVkJykpO1xuICAgICAgICBzZXROb3RpZmljYXRpb24oYE1lbnUgJyR7aXRlbS5tZW51X25hbWV9JyAkeyFpdGVtLmFjdGl2ZSA/ICdBY3RpdmF0ZWQnIDogJ0RlYWN0aXZhdGVkJ30uYCk7XG4gICAgICAgIGZldGNoTWVudXMoKTtcbiAgICAgICAgc2V0VGltZW91dCgoKSA9PiBzZXROb3RpZmljYXRpb24oJycpLCAzMDAwKTtcbiAgICAgIH0pXG4gICAgICAuY2F0Y2goZXJyID0+IGFsZXJ0KFwiVG9nZ2xlIGZhaWxlZDogXCIgKyBlcnIubWVzc2FnZSkpO1xuICB9O1xuXG4gIGNvbnN0IGhhbmRsZVN1Ym1pdCA9IChlKSA9PiB7XG4gICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xuICAgIGNvbnN0IHBheWxvYWQgPSB7XG4gICAgICAuLi5mb3JtRGF0YSxcbiAgICAgIHBhcmVudF9tZW51OiBmb3JtRGF0YS5wYXJlbnRfbWVudSB8fCBudWxsXG4gICAgfTtcblxuICAgIGlmIChlZGl0aW5nSWQpIHtcbiAgICAgIGF4aW9zLnB1dChgaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3VpLW1lbnVzLyR7ZWRpdGluZ0lkfS9gLCBwYXlsb2FkKVxuICAgICAgICAudGhlbigoKSA9PiB7XG4gICAgICAgICAgd2luZG93LmRpc3BhdGNoRXZlbnQobmV3IEV2ZW50KCdlcnBfdWlfbWV0YWRhdGFfdXBkYXRlZCcpKTtcbiAgICAgICAgICBzZXROb3RpZmljYXRpb24oXCJNZW51IGNvbmZpZ3VyYXRpb24gdXBkYXRlZC5cIik7XG4gICAgICAgICAgc2V0SXNNb2RhbE9wZW4oZmFsc2UpO1xuICAgICAgICAgIGZldGNoTWVudXMoKTtcbiAgICAgICAgICBzZXRUaW1lb3V0KCgpID0+IHNldE5vdGlmaWNhdGlvbignJyksIDMwMDApO1xuICAgICAgICB9KVxuICAgICAgICAuY2F0Y2goZXJyID0+IGFsZXJ0KFwiVXBkYXRlIGZhaWxlZDogXCIgKyBlcnIubWVzc2FnZSkpO1xuICAgIH0gZWxzZSB7XG4gICAgICBheGlvcy5wb3N0KCdodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2NvcmUvdWktbWVudXMvJywgcGF5bG9hZClcbiAgICAgICAgLnRoZW4oKCkgPT4ge1xuICAgICAgICAgIHdpbmRvdy5kaXNwYXRjaEV2ZW50KG5ldyBFdmVudCgnZXJwX3VpX21ldGFkYXRhX3VwZGF0ZWQnKSk7XG4gICAgICAgICAgc2V0Tm90aWZpY2F0aW9uKFwiTmV3IG1lbnUgY29uZmlndXJhdGlvbiBjcmVhdGVkLlwiKTtcbiAgICAgICAgICBzZXRJc01vZGFsT3BlbihmYWxzZSk7XG4gICAgICAgICAgZmV0Y2hNZW51cygpO1xuICAgICAgICAgIHNldFRpbWVvdXQoKCkgPT4gc2V0Tm90aWZpY2F0aW9uKCcnKSwgMzAwMCk7XG4gICAgICAgIH0pXG4gICAgICAgIC5jYXRjaChlcnIgPT4gYWxlcnQoXCJDcmVhdGlvbiBmYWlsZWQ6IFwiICsgZXJyLm1lc3NhZ2UpKTtcbiAgICB9XG4gIH07XG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktNiBmb250LXNhbnNcIj5cbiAgICAgIHsvKiBIZWFkZXIgQ29udGFpbmVyICovfVxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJzdGFuZGFyZC1jYXJkIGZsZXggZmxleC1jb2wgbWQ6ZmxleC1yb3cgbWQ6aXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBnYXAtNFwiPlxuICAgICAgICA8ZGl2PlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTJcIj5cbiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInAtMiByb3VuZGVkLWxnIGJnLVsjRUZGNkZGXSB0ZXh0LVsjMUI0RTlCXVwiPlxuICAgICAgICAgICAgICA8TWVudSBjbGFzc05hbWU9XCJ3LTUgaC01XCIgLz5cbiAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgIDxoMSBjbGFzc05hbWU9XCJwYWdlLXRpdGxlXCI+RHluYW1pYyBTaWRlYmFyIE1lbnUgTWFuYWdlbWVudDwvaDE+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjNkI3MjgwXSBtdC0xXCI+XG4gICAgICAgICAgICBDb25maWd1cmUgbmF2aWdhdGlvbiBtZW51cywgb3JkZXJpbmcsIHZpc2liaWxpdHksIGljb25zIGFuZCBzdWJtZW51cyB3aXRob3V0IGFsdGVyaW5nIFJlYWN0IHNvdXJjZSBjb2RlLlxuICAgICAgICAgIDwvcD5cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTJcIj5cbiAgICAgICAgICA8QnV0dG9uIHZhcmlhbnQ9XCJzZWNvbmRhcnlcIiBpY29uPXtSZWZyZXNoQ3d9IG9uQ2xpY2s9e2ZldGNoTWVudXN9PlxuICAgICAgICAgICAgUmVmcmVzaFxuICAgICAgICAgIDwvQnV0dG9uPlxuICAgICAgICAgIDxCdXR0b24gdmFyaWFudD1cInByaW1hcnlcIiBpY29uPXtQbHVzfSBvbkNsaWNrPXtoYW5kbGVPcGVuQWRkfT5cbiAgICAgICAgICAgIENyZWF0ZSBOZXcgTWVudVxuICAgICAgICAgIDwvQnV0dG9uPlxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICB7bm90aWZpY2F0aW9uICYmIChcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJwLTQgcm91bmRlZC1sZyBiZy1bI0RDRkNFN10gYm9yZGVyIGJvcmRlci1bI0JCRjdEMF0gdGV4dC1bIzE2QTM0QV0gdGV4dC14cyBmb250LXNlbWlib2xkIGZsZXggaXRlbXMtY2VudGVyIGdhcC0yXCI+XG4gICAgICAgICAgPENoZWNrQ2lyY2xlMiBjbGFzc05hbWU9XCJ3LTQgaC00IHRleHQtWyMxNkEzNEFdXCIgLz5cbiAgICAgICAgICB7bm90aWZpY2F0aW9ufVxuICAgICAgICA8L2Rpdj5cbiAgICAgICl9XG5cbiAgICAgIHsvKiBNYWluIFRhYmxlIENvbnRlbnQgKi99XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInRhYmxlLWNvbnRhaW5lclwiPlxuICAgICAgICB7bG9hZGluZyA/IChcbiAgICAgICAgICA8U2tlbGV0b25Mb2FkZXIgcm93cz17Nn0gY29sdW1ucz17N30gLz5cbiAgICAgICAgKSA6IG1lbnVzLmxlbmd0aCA9PT0gMCA/IChcbiAgICAgICAgICA8RW1wdHlTdGF0ZVxuICAgICAgICAgICAgdGl0bGU9XCJObyBEeW5hbWljIE1lbnVzIEZvdW5kXCJcbiAgICAgICAgICAgIGRlc2NyaXB0aW9uPVwiSW5pdGlhbGl6ZSB5b3VyIG5hdmlnYXRpb24gc3RydWN0dXJlIGJ5IGNyZWF0aW5nIHlvdXIgZmlyc3QgZHluYW1pYyBtZW51LlwiXG4gICAgICAgICAgICBhY3Rpb25UZXh0PVwiQ3JlYXRlIE1lbnVcIlxuICAgICAgICAgICAgb25BY3Rpb249e2hhbmRsZU9wZW5BZGR9XG4gICAgICAgICAgLz5cbiAgICAgICAgKSA6IChcbiAgICAgICAgICA8VGFibGU+XG4gICAgICAgICAgICA8dGhlYWQ+XG4gICAgICAgICAgICAgIDx0cj5cbiAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwidGgtY2VsbFwiPk9yZGVyPC90aD5cbiAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwidGgtY2VsbFwiPk1lbnUgTmFtZTwvdGg+XG4gICAgICAgICAgICAgICAgPHRoIGNsYXNzTmFtZT1cInRoLWNlbGxcIj5QYXRoIFJvdXRlPC90aD5cbiAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwidGgtY2VsbFwiPk1vZHVsZSBDb2RlPC90aD5cbiAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwidGgtY2VsbFwiPkVSUCBQYWdlPC90aD5cbiAgICAgICAgICAgICAgICA8dGggY2xhc3NOYW1lPVwidGgtY2VsbFwiPkljb24gTmFtZTwvdGg+XG4gICAgICAgICAgICAgICAgPHRoIGNsYXNzTmFtZT1cInRoLWNlbGxcIj5QYXJlbnQgTWVudTwvdGg+XG4gICAgICAgICAgICAgICAgPHRoIGNsYXNzTmFtZT1cInRoLWNlbGxcIj5TdGF0dXM8L3RoPlxuICAgICAgICAgICAgICAgIDx0aCBjbGFzc05hbWU9XCJ0aC1jZWxsIHRleHQtcmlnaHRcIj5BY3Rpb25zPC90aD5cbiAgICAgICAgICAgICAgPC90cj5cbiAgICAgICAgICAgIDwvdGhlYWQ+XG4gICAgICAgICAgICA8dGJvZHkgY2xhc3NOYW1lPVwiZGl2aWRlLXkgZGl2aWRlLVsjRjNGNEY2XVwiPlxuICAgICAgICAgICAgICB7bWVudXMubWFwKChpdGVtKSA9PiAoXG4gICAgICAgICAgICAgICAgPHRyIGtleT17aXRlbS5pZH0gY2xhc3NOYW1lPVwidGFibGUtcm93LWhvdmVyXCI+XG4gICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGQtY2VsbCBmb250LW1vbm8gdGV4dC1bIzRCNTU2M10gdGV4dC14c1wiPiN7aXRlbS5kaXNwbGF5X29yZGVyfTwvdGQ+XG4gICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGQtY2VsbCBmb250LXNlbWlib2xkIHRleHQtWyMxRjI5MzddXCI+e2l0ZW0ubWVudV9uYW1lfTwvdGQ+XG4gICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGQtY2VsbCB0ZXh0LXhzIGZvbnQtbW9ubyB0ZXh0LVsjMjU2M0VCXVwiPntpdGVtLm1lbnVfcGF0aH08L3RkPlxuICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT1cInRkLWNlbGxcIj5cbiAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwicHgtMiBweS0wLjUgcm91bmRlZCB0ZXh0LVsxMXB4XSBmb250LW1vbm8gYmctWyNGM0Y0RjZdIHRleHQtWyMzNzQxNTFdXCI+XG4gICAgICAgICAgICAgICAgICAgICAge2l0ZW0ubW9kdWxlX2NvZGV9XG4gICAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICAgICAgICAgIDwvdGQ+XG4gICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGQtY2VsbCB0ZXh0LXhzIGZvbnQtbW9ubyB0ZXh0LVsjNkI3MjgwXVwiPntpdGVtLnBhZ2Vfa2V5IHx8IGl0ZW0ubW9kdWxlX2NvZGV9PC90ZD5cbiAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJ0ZC1jZWxsIHRleHQteHMgdGV4dC1bIzZCNzI4MF0gZm9udC1tb25vXCI+e2l0ZW0ubWVudV9pY29uIHx8ICdMYXlvdXREYXNoYm9hcmQnfTwvdGQ+XG4gICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGQtY2VsbCB0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+XG4gICAgICAgICAgICAgICAgICAgIHtpdGVtLnBhcmVudF9tZW51ID8gbWVudXMuZmluZChtID0+IG0uaWQgPT09IGl0ZW0ucGFyZW50X21lbnUpPy5tZW51X25hbWUgfHwgJ1N1Ym1lbnUnIDogJ1RvcC1MZXZlbCd9XG4gICAgICAgICAgICAgICAgICA8L3RkPlxuICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT1cInRkLWNlbGxcIj5cbiAgICAgICAgICAgICAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBoYW5kbGVUb2dnbGVBY3RpdmUoaXRlbSl9IHRpdGxlPVwiQ2xpY2sgdG8gdG9nZ2xlIHN0YXR1c1wiPlxuICAgICAgICAgICAgICAgICAgICAgIHtpdGVtLmFjdGl2ZSA/IChcbiAgICAgICAgICAgICAgICAgICAgICAgIDxCYWRnZSB2YXJpYW50PVwic3VjY2Vzc1wiIGljb249e0V5ZX0+QWN0aXZlPC9CYWRnZT5cbiAgICAgICAgICAgICAgICAgICAgICApIDogKFxuICAgICAgICAgICAgICAgICAgICAgICAgPEJhZGdlIHZhcmlhbnQ9XCJkYW5nZXJcIiBpY29uPXtFeWVPZmZ9PkRpc2FibGVkPC9CYWRnZT5cbiAgICAgICAgICAgICAgICAgICAgICApfVxuICAgICAgICAgICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICAgICAgICAgIDwvdGQ+XG4gICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGQtY2VsbCB0ZXh0LXJpZ2h0XCI+XG4gICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1lbmQgZ2FwLTFcIj5cbiAgICAgICAgICAgICAgICAgICAgICA8SWNvbkJ1dHRvblxuICAgICAgICAgICAgICAgICAgICAgICAgaWNvbj17TmV0d29ya31cbiAgICAgICAgICAgICAgICAgICAgICAgIHZhcmlhbnQ9XCJzZWNvbmRhcnlcIlxuICAgICAgICAgICAgICAgICAgICAgICAgc2l6ZT1cInNtXCJcbiAgICAgICAgICAgICAgICAgICAgICAgIHRpdGxlPVwiV2hlcmUgVXNlZCAmIEltcGFjdFwiXG4gICAgICAgICAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRXaGVyZVVzZWRTdGF0ZSh7IGlzT3BlbjogdHJ1ZSwgaXRlbUlkOiBpdGVtLmlkLCBpdGVtTmFtZTogaXRlbS5tZW51X25hbWUgfSl9XG4gICAgICAgICAgICAgICAgICAgICAgLz5cbiAgICAgICAgICAgICAgICAgICAgICA8SWNvbkJ1dHRvblxuICAgICAgICAgICAgICAgICAgICAgICAgaWNvbj17RWRpdDN9XG4gICAgICAgICAgICAgICAgICAgICAgICB2YXJpYW50PVwicHJpbWFyeVwiXG4gICAgICAgICAgICAgICAgICAgICAgICBzaXplPVwic21cIlxuICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU9XCJFZGl0IE1lbnVcIlxuICAgICAgICAgICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gaGFuZGxlT3BlbkVkaXQoaXRlbSl9XG4gICAgICAgICAgICAgICAgICAgICAgLz5cbiAgICAgICAgICAgICAgICAgICAgICA8SWNvbkJ1dHRvblxuICAgICAgICAgICAgICAgICAgICAgICAgaWNvbj17VHJhc2gyfVxuICAgICAgICAgICAgICAgICAgICAgICAgdmFyaWFudD1cImRhbmdlclwiXG4gICAgICAgICAgICAgICAgICAgICAgICBzaXplPVwic21cIlxuICAgICAgICAgICAgICAgICAgICAgICAgdGl0bGU9XCJEZWxldGUgTWVudVwiXG4gICAgICAgICAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBoYW5kbGVEZWxldGUoaXRlbS5pZCl9XG4gICAgICAgICAgICAgICAgICAgICAgLz5cbiAgICAgICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgICA8L3RkPlxuICAgICAgICAgICAgICAgIDwvdHI+XG4gICAgICAgICAgICAgICkpfVxuICAgICAgICAgICAgPC90Ym9keT5cbiAgICAgICAgICA8L1RhYmxlPlxuICAgICAgICApfVxuICAgICAgPC9kaXY+XG5cbiAgICAgIHsvKiBBZGQgLyBFZGl0IE1lbnUgTW9kYWwgKi99XG4gICAgICA8TW9kYWwgaXNPcGVuPXtpc01vZGFsT3Blbn0gb25DbG9zZT17KCkgPT4gc2V0SXNNb2RhbE9wZW4oZmFsc2UpfSBzaXplPVwibWRcIiB0aXRsZT17ZWRpdGluZ0lkID8gXCJFZGl0IFNpZGViYXIgTWVudVwiIDogXCJDcmVhdGUgU2lkZWJhciBNZW51XCJ9PlxuICAgICAgICA8Zm9ybSBvblN1Ym1pdD17aGFuZGxlU3VibWl0fSBjbGFzc05hbWU9XCJzcGFjZS15LTRcIj5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTIgZ2FwLTRcIj5cbiAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+TWVudSBOYW1lICo8L2xhYmVsPlxuICAgICAgICAgICAgICA8aW5wdXRcbiAgICAgICAgICAgICAgICB0eXBlPVwidGV4dFwiXG4gICAgICAgICAgICAgICAgdmFsdWU9e2Zvcm1EYXRhLm1lbnVfbmFtZX1cbiAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldEZvcm1EYXRhKHsgLi4uZm9ybURhdGEsIG1lbnVfbmFtZTogZS50YXJnZXQudmFsdWUgfSl9XG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiXG4gICAgICAgICAgICAgICAgcmVxdWlyZWRcbiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj1cImUuZy4sIEludmVudG9yeSBMZWRnZXJcIlxuICAgICAgICAgICAgICAvPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPk1lbnUgUGF0aCAoUm91dGUpICo8L2xhYmVsPlxuICAgICAgICAgICAgICA8aW5wdXRcbiAgICAgICAgICAgICAgICB0eXBlPVwidGV4dFwiXG4gICAgICAgICAgICAgICAgdmFsdWU9e2Zvcm1EYXRhLm1lbnVfcGF0aH1cbiAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldEZvcm1EYXRhKHsgLi4uZm9ybURhdGEsIG1lbnVfcGF0aDogZS50YXJnZXQudmFsdWUgfSl9XG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiXG4gICAgICAgICAgICAgICAgcmVxdWlyZWRcbiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj1cImUuZy4sIC9pbnZlbnRvcnktbGVkZ2VyXCJcbiAgICAgICAgICAgICAgLz5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvZGl2PlxuXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJncmlkIGdyaWQtY29scy0yIGdhcC00XCI+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPk1vZHVsZSBDb2RlICo8L2xhYmVsPlxuICAgICAgICAgICAgICA8aW5wdXRcbiAgICAgICAgICAgICAgICB0eXBlPVwidGV4dFwiXG4gICAgICAgICAgICAgICAgdmFsdWU9e2Zvcm1EYXRhLm1vZHVsZV9jb2RlfVxuICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0Rm9ybURhdGEoeyAuLi5mb3JtRGF0YSwgbW9kdWxlX2NvZGU6IGUudGFyZ2V0LnZhbHVlIH0pfVxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIlxuICAgICAgICAgICAgICAgIHJlcXVpcmVkXG4gICAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9XCJlLmcuLCBwcm9jZXNzX2VuZ2luZVwiXG4gICAgICAgICAgICAgIC8+XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+QWN0dWFsIEVSUCBQYWdlICo8L2xhYmVsPlxuICAgICAgICAgICAgICA8c2VsZWN0XG4gICAgICAgICAgICAgICAgdmFsdWU9e2Zvcm1EYXRhLnBhZ2Vfa2V5fVxuICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0Rm9ybURhdGEoeyAuLi5mb3JtRGF0YSwgcGFnZV9rZXk6IGUudGFyZ2V0LnZhbHVlIH0pfVxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIlxuICAgICAgICAgICAgICAgIHJlcXVpcmVkXG4gICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiZGFzaGJvYXJkXCI+RXhlY3V0aXZlIERhc2hib2FyZDwvb3B0aW9uPlxuICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJ1c2VyX3BhZ2VcIj5Vc2VyIFBvcnRhbDwvb3B0aW9uPlxuICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJhZG1pblwiPkFkbWluIENvbnNvbGU8L29wdGlvbj5cbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwic3RydWN0dXJhbF9tYXN0ZXJzXCI+U3RydWN0dXJhbCBNYXN0ZXJzPC9vcHRpb24+XG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cImR5bmFtaWNfbWFzdGVyc1wiPkR5bmFtaWMgTWFzdGVycyAoRUFWKTwvb3B0aW9uPlxuICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJwcm9jZXNzX2VuZ2luZVwiPlByb2Nlc3MgRW5naW5lPC9vcHRpb24+XG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cIndvcmtmbG93XCI+V29ya2Zsb3cgJiBBcHByb3ZhbHM8L29wdGlvbj5cbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiam91cm5hbFwiPkpvdXJuYWwgJiBTdG9jayBMZWRnZXI8L29wdGlvbj5cbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwicHJvY2Vzc19hdHRyaWJ1dGVfdmFsdWVzXCI+UHJvY2VzcyBBdHRyaWJ1dGUgVmFsdWVzPC9vcHRpb24+XG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cInByb2Nlc3NfbGlua3NcIj5Qcm9jZXNzIExpbmtzPC9vcHRpb24+XG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTIgZ2FwLTRcIj5cbiAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+THVjaWRlIEljb24gTmFtZTwvbGFiZWw+XG4gICAgICAgICAgICAgIDxpbnB1dFxuICAgICAgICAgICAgICAgIHR5cGU9XCJ0ZXh0XCJcbiAgICAgICAgICAgICAgICB2YWx1ZT17Zm9ybURhdGEubWVudV9pY29ufVxuICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0Rm9ybURhdGEoeyAuLi5mb3JtRGF0YSwgbWVudV9pY29uOiBlLnRhcmdldC52YWx1ZSB9KX1cbiAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJmb3JtLWlucHV0XCJcbiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj1cImUuZy4sIENwdSwgTGF5ZXJzLCBCdWlsZGluZzJcIlxuICAgICAgICAgICAgICAvPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+Um91dGluZyBCZWhhdmlvcjwvcD5cbiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjNkI3MjgwXSBwdC0yXCI+VGhlIHJvdXRlIGNhbiBjaGFuZ2UgZnJlZWx5OyB0aGlzIHBhZ2UgYmluZGluZyBrZWVwcyB0aGUgc2FtZSByZWFsIEVSUCBzY3JlZW4gY29ubmVjdGVkLjwvcD5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvZGl2PlxuXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJncmlkIGdyaWQtY29scy0yIGdhcC00XCI+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPkRpc3BsYXkgT3JkZXIgKjwvbGFiZWw+XG4gICAgICAgICAgICAgIDxpbnB1dFxuICAgICAgICAgICAgICAgIHR5cGU9XCJudW1iZXJcIlxuICAgICAgICAgICAgICAgIG1pbj1cIjFcIlxuICAgICAgICAgICAgICAgIHZhbHVlPXtmb3JtRGF0YS5kaXNwbGF5X29yZGVyfVxuICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0Rm9ybURhdGEoeyAuLi5mb3JtRGF0YSwgZGlzcGxheV9vcmRlcjogcGFyc2VJbnQoZS50YXJnZXQudmFsdWUpIHx8IDEgfSl9XG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiXG4gICAgICAgICAgICAgICAgcmVxdWlyZWRcbiAgICAgICAgICAgICAgLz5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5QYXJlbnQgTWVudTwvbGFiZWw+XG4gICAgICAgICAgICAgIDxzZWxlY3RcbiAgICAgICAgICAgICAgICB2YWx1ZT17Zm9ybURhdGEucGFyZW50X21lbnV9XG4gICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRGb3JtRGF0YSh7IC4uLmZvcm1EYXRhLCBwYXJlbnRfbWVudTogZS50YXJnZXQudmFsdWUgfSl9XG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiXG4gICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiXCI+Tm9uZSAoVG9wLUxldmVsIE1lbnUpPC9vcHRpb24+XG4gICAgICAgICAgICAgICAge21lbnVzLmZpbHRlcihtID0+IG0uaWQgIT09IGVkaXRpbmdJZCkubWFwKG0gPT4gKFxuICAgICAgICAgICAgICAgICAgPG9wdGlvbiBrZXk9e20uaWR9IHZhbHVlPXttLmlkfT57bS5tZW51X25hbWV9PC9vcHRpb24+XG4gICAgICAgICAgICAgICAgKSl9XG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIHB0LTJcIj5cbiAgICAgICAgICAgIDxpbnB1dFxuICAgICAgICAgICAgICB0eXBlPVwiY2hlY2tib3hcIlxuICAgICAgICAgICAgICBpZD1cImFjdGl2ZU1lbnVDaGVja1wiXG4gICAgICAgICAgICAgIGNoZWNrZWQ9e2Zvcm1EYXRhLmFjdGl2ZX1cbiAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRGb3JtRGF0YSh7IC4uLmZvcm1EYXRhLCBhY3RpdmU6IGUudGFyZ2V0LmNoZWNrZWQgfSl9XG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cInctNCBoLTQgcm91bmRlZCB0ZXh0LVsjMUI0RTlCXSBib3JkZXItWyNEMUQ1REJdXCJcbiAgICAgICAgICAgIC8+XG4gICAgICAgICAgICA8bGFiZWwgaHRtbEZvcj1cImFjdGl2ZU1lbnVDaGVja1wiIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzM3NDE1MV0gY3Vyc29yLXBvaW50ZXIgZm9udC1zZW1pYm9sZFwiPlxuICAgICAgICAgICAgICBFbmFibGUgbWVudSBpbiBTaWRlYmFyIG5hdmlnYXRpb25cbiAgICAgICAgICAgIDwvbGFiZWw+XG4gICAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1vZGFsLWZvb3RlclwiPlxuICAgICAgICAgICAgPEJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgdmFyaWFudD1cInNlY29uZGFyeVwiIG9uQ2xpY2s9eygpID0+IHNldElzTW9kYWxPcGVuKGZhbHNlKX0+XG4gICAgICAgICAgICAgIENhbmNlbFxuICAgICAgICAgICAgPC9CdXR0b24+XG4gICAgICAgICAgICA8QnV0dG9uIHR5cGU9XCJzdWJtaXRcIiB2YXJpYW50PVwicHJpbWFyeVwiPlxuICAgICAgICAgICAgICB7ZWRpdGluZ0lkID8gXCJVcGRhdGUgTWVudVwiIDogXCJDcmVhdGUgTWVudVwifVxuICAgICAgICAgICAgPC9CdXR0b24+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZm9ybT5cbiAgICAgIDwvTW9kYWw+XG5cbiAgICAgIHsvKiBXaGVyZSBVc2VkIE1vZGFsICovfVxuICAgICAgPFdoZXJlVXNlZE1vZGFsXG4gICAgICAgIGlzT3Blbj17d2hlcmVVc2VkU3RhdGUuaXNPcGVufVxuICAgICAgICBvbkNsb3NlPXsoKSA9PiBzZXRXaGVyZVVzZWRTdGF0ZSh7IC4uLndoZXJlVXNlZFN0YXRlLCBpc09wZW46IGZhbHNlIH0pfVxuICAgICAgICBjb25maWdUeXBlPVwibWVudVwiXG4gICAgICAgIGl0ZW1JZD17d2hlcmVVc2VkU3RhdGUuaXRlbUlkfVxuICAgICAgICBpdGVtTmFtZT17d2hlcmVVc2VkU3RhdGUuaXRlbU5hbWV9XG4gICAgICAvPlxuICAgIDwvZGl2PlxuICApO1xufVxuIl0sImZpbGUiOiJEOi9FUlAvSWRoYXlhbS1FUlAvZnJvbnRlbmQvc3JjL3BhZ2VzL01lbnVNYW5hZ2VtZW50LmpzeCJ9

@@ -14,6 +14,17 @@ client = Client()
 errors = []
 uid = uuid.uuid4().hex[:6]
 
+# Exercise all endpoints through the same signed SuperAdmin session used by the UI.
+login_response = client.post(
+    '/api/core/login/',
+    data=json.dumps({'username': 'superadmin', 'password': 'SuperAdminPassword123!'}),
+    content_type='application/json',
+)
+login_payload = login_response.json()
+if login_response.status_code != 200 or not login_payload.get('token'):
+    raise RuntimeError(f"Could not authenticate endpoint tests: {login_response.content!r}")
+client.defaults['HTTP_AUTHORIZATION'] = f"Bearer {login_payload['token']}"
+
 def test_endpoint(method, url, data=None):
     try:
         if method == 'GET':

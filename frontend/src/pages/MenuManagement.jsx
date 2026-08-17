@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Menu, Plus, Edit3, Trash2, CheckCircle2, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Menu, Plus, Edit3, Trash2, CheckCircle2, Eye, EyeOff, RefreshCw, Network } from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
 import PageHeader from '../components/ui/PageHeader';
@@ -9,6 +9,7 @@ import IconButton from '../components/ui/IconButton';
 import Table from '../components/ui/Table';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
+import WhereUsedModal from '../components/ui/WhereUsedModal';
 
 export default function MenuManagement() {
   const [menus, setMenus] = useState([]);
@@ -17,10 +18,14 @@ export default function MenuManagement() {
   const [editingId, setEditingId] = useState(null);
   const [notification, setNotification] = useState('');
 
+  // Where Used Modal state
+  const [whereUsedState, setWhereUsedState] = useState({ isOpen: false, itemId: '', itemName: '' });
+
   const [formData, setFormData] = useState({
     menu_name: '',
     menu_path: '',
     module_code: 'core',
+    page_key: 'dashboard',
     menu_icon: 'LayoutDashboard',
     parent_menu: '',
     display_order: 1,
@@ -45,6 +50,7 @@ export default function MenuManagement() {
       menu_name: '',
       menu_path: '',
       module_code: 'core',
+      page_key: 'dashboard',
       menu_icon: 'LayoutDashboard',
       parent_menu: '',
       display_order: menus.length + 1,
@@ -59,6 +65,7 @@ export default function MenuManagement() {
       menu_name: item.menu_name,
       menu_path: item.menu_path,
       module_code: item.module_code,
+      page_key: item.page_key || item.module_code,
       menu_icon: item.menu_icon || 'LayoutDashboard',
       parent_menu: item.parent_menu || '',
       display_order: item.display_order || 0,
@@ -104,7 +111,7 @@ export default function MenuManagement() {
       axios.put(`http://127.0.0.1:8000/api/core/ui-menus/${editingId}/`, payload)
         .then(() => {
           window.dispatchEvent(new Event('erp_ui_metadata_updated'));
-          setNotification("Menu updated.");
+          setNotification("Menu configuration updated.");
           setIsModalOpen(false);
           fetchMenus();
           setTimeout(() => setNotification(''), 3000);
@@ -114,7 +121,7 @@ export default function MenuManagement() {
       axios.post('http://127.0.0.1:8000/api/core/ui-menus/', payload)
         .then(() => {
           window.dispatchEvent(new Event('erp_ui_metadata_updated'));
-          setNotification("New menu created.");
+          setNotification("New menu configuration created.");
           setIsModalOpen(false);
           fetchMenus();
           setTimeout(() => setNotification(''), 3000);
@@ -125,25 +132,28 @@ export default function MenuManagement() {
 
   return (
     <div className="space-y-6 font-sans">
-      <PageHeader
-        title="Dynamic Sidebar Menu Management"
-        description="Configure navigation menus, ordering, visibility, icons and submenus without altering React source code."
-        icon={Menu}
-        breadcrumbItems={[
-          { label: 'Admin Console', path: '/admin-console' },
-          { label: 'Menu Management', path: '#' }
-        ]}
-        actions={
-          <>
-            <Button variant="secondary" icon={RefreshCw} onClick={fetchMenus}>
-              Refresh
-            </Button>
-            <Button variant="primary" icon={Plus} onClick={handleOpenAdd}>
-              Create New Menu
-            </Button>
-          </>
-        }
-      />
+      {/* Header Container */}
+      <div className="standard-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]">
+              <Menu className="w-5 h-5" />
+            </span>
+            <h1 className="page-title">Dynamic Sidebar Menu Management</h1>
+          </div>
+          <p className="text-xs text-[#6B7280] mt-1">
+            Configure navigation menus, ordering, visibility, icons and submenus without altering React source code.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" icon={RefreshCw} onClick={fetchMenus}>
+            Refresh
+          </Button>
+          <Button variant="primary" icon={Plus} onClick={handleOpenAdd}>
+            Create New Menu
+          </Button>
+        </div>
+      </div>
 
       {notification && (
         <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
@@ -152,47 +162,85 @@ export default function MenuManagement() {
         </div>
       )}
 
-      {/* Dynamic Menus Table */}
-      <div className="standard-card p-0 overflow-hidden">
+      {/* Main Table Content */}
+      <div className="table-container">
         {loading ? (
-          <div className="p-6">
-            <SkeletonLoader rows={5} columns={6} />
-          </div>
+          <SkeletonLoader rows={6} columns={7} />
+        ) : menus.length === 0 ? (
+          <EmptyState
+            title="No Dynamic Menus Found"
+            description="Initialize your navigation structure by creating your first dynamic menu."
+            actionText="Create Menu"
+            onAction={handleOpenAdd}
+          />
         ) : (
-          <Table headers={['Order', 'Menu Name', 'Path Route', 'Module Code', 'Icon Name', 'Parent Menu', 'Status', { label: 'Actions', align: 'right' }]}>
-            {menus.length === 0 ? (
+          <Table>
+            <thead>
               <tr>
-                <td colSpan="8">
-                  <EmptyState title="No sidebar menus registered" message="Click 'Create New Menu' to add navigation items." />
-                </td>
+                <th className="th-cell">Order</th>
+                <th className="th-cell">Menu Name</th>
+                <th className="th-cell">Path Route</th>
+                <th className="th-cell">Module Code</th>
+                <th className="th-cell">ERP Page</th>
+                <th className="th-cell">Icon Name</th>
+                <th className="th-cell">Parent Menu</th>
+                <th className="th-cell">Status</th>
+                <th className="th-cell text-right">Actions</th>
               </tr>
-            ) : (
-              menus.map((m) => (
-                <tr key={m.id}>
-                  <td className="font-mono font-bold text-[#1B4E9B]">#{m.display_order}</td>
-                  <td className="font-bold text-[#1F2937]">{m.menu_name}</td>
-                  <td className="font-mono text-xs text-[#374151]">{m.menu_path}</td>
-                  <td><Badge variant="neutral">{m.module_code}</Badge></td>
-                  <td className="font-mono text-[#6B7280]">{m.menu_icon || 'LayoutDashboard'}</td>
-                  <td className="text-[#6B7280]">{m.parent_menu_name || 'Top-Level'}</td>
-                  <td>
-                    <button
-                      onClick={() => handleToggleActive(m)}
-                      className={`badge ${m.active ? 'badge-success' : 'badge-danger'} flex items-center gap-1 cursor-pointer`}
-                    >
-                      {m.active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                      {m.active ? 'Active' : 'Disabled'}
+            </thead>
+            <tbody className="divide-y divide-[#F3F4F6]">
+              {menus.map((item) => (
+                <tr key={item.id} className="table-row-hover">
+                  <td className="td-cell font-mono text-[#4B5563] text-xs">#{item.display_order}</td>
+                  <td className="td-cell font-semibold text-[#1F2937]">{item.menu_name}</td>
+                  <td className="td-cell text-xs font-mono text-[#2563EB]">{item.menu_path}</td>
+                  <td className="td-cell">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-[#F3F4F6] text-[#374151]">
+                      {item.module_code}
+                    </span>
+                  </td>
+                  <td className="td-cell text-xs font-mono text-[#6B7280]">{item.page_key || item.module_code}</td>
+                  <td className="td-cell text-xs text-[#6B7280] font-mono">{item.menu_icon || 'LayoutDashboard'}</td>
+                  <td className="td-cell text-xs text-[#6B7280]">
+                    {item.parent_menu ? menus.find(m => m.id === item.parent_menu)?.menu_name || 'Submenu' : 'Top-Level'}
+                  </td>
+                  <td className="td-cell">
+                    <button onClick={() => handleToggleActive(item)} title="Click to toggle status">
+                      {item.active ? (
+                        <Badge variant="success" icon={Eye}>Active</Badge>
+                      ) : (
+                        <Badge variant="danger" icon={EyeOff}>Disabled</Badge>
+                      )}
                     </button>
                   </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <IconButton variant="edit" icon={Edit3} onClick={() => handleOpenEdit(m)} title="Edit Menu" />
-                      <IconButton variant="delete" icon={Trash2} onClick={() => handleDelete(m.id)} title="Delete Menu" />
+                  <td className="td-cell text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <IconButton
+                        icon={Network}
+                        variant="secondary"
+                        size="sm"
+                        title="Where Used & Impact"
+                        onClick={() => setWhereUsedState({ isOpen: true, itemId: item.id, itemName: item.menu_name })}
+                      />
+                      <IconButton
+                        icon={Edit3}
+                        variant="primary"
+                        size="sm"
+                        title="Edit Menu"
+                        onClick={() => handleOpenEdit(item)}
+                      />
+                      <IconButton
+                        icon={Trash2}
+                        variant="danger"
+                        size="sm"
+                        title="Delete Menu"
+                        onClick={() => handleDelete(item.id)}
+                      />
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
+            </tbody>
           </Table>
         )}
       </div>
@@ -238,6 +286,29 @@ export default function MenuManagement() {
               />
             </div>
             <div>
+              <label className="form-label">Actual ERP Page *</label>
+              <select
+                value={formData.page_key}
+                onChange={(e) => setFormData({ ...formData, page_key: e.target.value })}
+                className="form-input"
+                required
+              >
+                <option value="dashboard">Executive Dashboard</option>
+                <option value="user_page">User Portal</option>
+                <option value="admin">Admin Console</option>
+                <option value="structural_masters">Structural Masters</option>
+                <option value="dynamic_masters">Dynamic Masters (EAV)</option>
+                <option value="process_engine">Process Engine</option>
+                <option value="workflow">Workflow & Approvals</option>
+                <option value="journal">Journal & Stock Ledger</option>
+                <option value="process_attribute_values">Process Attribute Values</option>
+                <option value="process_links">Process Links</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="form-label">Lucide Icon Name</label>
               <input
                 type="text"
@@ -246,6 +317,10 @@ export default function MenuManagement() {
                 className="form-input"
                 placeholder="e.g., Cpu, Layers, Building2"
               />
+            </div>
+            <div>
+              <p className="form-label">Routing Behavior</p>
+              <p className="text-xs text-[#6B7280] pt-2">The route can change freely; this page binding keeps the same real ERP screen connected.</p>
             </div>
           </div>
 
@@ -299,6 +374,15 @@ export default function MenuManagement() {
           </div>
         </form>
       </Modal>
+
+      {/* Where Used Modal */}
+      <WhereUsedModal
+        isOpen={whereUsedState.isOpen}
+        onClose={() => setWhereUsedState({ ...whereUsedState, isOpen: false })}
+        configType="menu"
+        itemId={whereUsedState.itemId}
+        itemName={whereUsedState.itemName}
+      />
     </div>
   );
 }

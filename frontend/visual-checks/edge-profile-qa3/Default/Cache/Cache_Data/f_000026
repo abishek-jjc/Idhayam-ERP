@@ -1,0 +1,365 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/ui/WhereUsedModal.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=36603bcd"; const Fragment = __vite__cjsImport0_react_jsxDevRuntime["Fragment"]; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=36603bcd"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import axios from "/node_modules/.vite/deps/axios.js?v=36603bcd";
+import { AlertTriangle, CheckCircle, Layers, Network } from "/node_modules/.vite/deps/lucide-react.js?v=36603bcd";
+import Modal from "/src/components/Modal.jsx";
+export default function WhereUsedModal({ isOpen, onClose, configType, itemId, itemName }) {
+  _s();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [impactData, setImpactData] = useState(null);
+  useEffect(() => {
+    if (!isOpen || !configType || !itemId) return;
+    setLoading(true);
+    Promise.all(
+      [
+        axios.get(`http://127.0.0.1:8000/api/core/ui-where-used/?config_type=${configType}&item_id=${itemId}`),
+        axios.get(`http://127.0.0.1:8000/api/core/ui-config-impact/?config_type=${configType}&item_id=${itemId}`)
+      ]
+    ).then(([usedResponse, impactResponse]) => {
+      setData(usedResponse.data);
+      setImpactData(impactResponse.data);
+    }).catch(() => {
+      setData(null);
+      setImpactData(null);
+    }).finally(() => setLoading(false));
+  }, [isOpen, configType, itemId]);
+  return /* @__PURE__ */ jsxDEV(Modal, { isOpen, onClose, size: "lg", title: "Where Used & Impact", children: /* @__PURE__ */ jsxDEV("div", { className: "dependency-dialog", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "dependency-heading", children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "page-header-icon", children: /* @__PURE__ */ jsxDEV(Network, {}, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 52,
+        columnNumber: 46
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 52,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("p", { className: "workspace-kicker", children: "Dependency analysis" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 54,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "helper-text", children: [
+          "Tracing live references for ",
+          itemName || itemId
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 55,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 53,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+      lineNumber: 51,
+      columnNumber: 9
+    }, this),
+    loading ? /* @__PURE__ */ jsxDEV("div", { className: "dependency-loading", children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "spinner", "aria-hidden": "true" }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 61,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { children: "Calculating dependencies and application impact..." }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 62,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+      lineNumber: 60,
+      columnNumber: 9
+    }, this) : /* @__PURE__ */ jsxDEV(Fragment, { children: [
+      /* @__PURE__ */ jsxDEV("section", { children: [
+        /* @__PURE__ */ jsxDEV("h4", { className: "dependency-section-title", children: [
+          /* @__PURE__ */ jsxDEV(Layers, {}, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 67,
+            columnNumber: 56
+          }, this),
+          " Configuration impact"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 67,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "dependency-stats", children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("small", { children: "Total impact" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 69,
+              columnNumber: 22
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: impactData?.total_impact || 0 }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 69,
+              columnNumber: 49
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: "components" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 69,
+              columnNumber: 97
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 69,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("small", { children: "Active references" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 70,
+              columnNumber: 22
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: data?.total_references || 0 }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 70,
+              columnNumber: 54
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: "links" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 70,
+              columnNumber: 100
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 70,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("small", { children: "Configuration type" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 71,
+              columnNumber: 22
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { className: "dependency-type", children: configType }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 71,
+              columnNumber: 55
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: "selected item" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 71,
+              columnNumber: 112
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 71,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 68,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 66,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("section", { children: [
+        /* @__PURE__ */ jsxDEV("h4", { className: "dependency-section-title", children: [
+          /* @__PURE__ */ jsxDEV(CheckCircle, {}, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 76,
+            columnNumber: 56
+          }, this),
+          " Direct dependencies"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 76,
+          columnNumber: 15
+        }, this),
+        data?.used_in?.length ? /* @__PURE__ */ jsxDEV("div", { className: "dependency-list", children: data.used_in.map(
+          (item, index) => /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "status-badge status-info", children: item.type }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 81,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: item.name }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 82,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("small", { children: [
+              "Module: ",
+              item.module
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 83,
+              columnNumber: 23
+            }, this)
+          ] }, `${item.type}-${item.name}-${index}`, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 80,
+            columnNumber: 15
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 78,
+          columnNumber: 13
+        }, this) : /* @__PURE__ */ jsxDEV("div", { className: "empty-state-compact", children: "No active dependencies found. This item is safe to modify or delete." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 87,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 75,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "dependency-panels", children: [
+        /* @__PURE__ */ jsxDEV("section", { children: [
+          /* @__PURE__ */ jsxDEV("h4", { children: "Affected real pages" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 92,
+            columnNumber: 17
+          }, this),
+          (impactData?.affected_pages || []).map((page) => /* @__PURE__ */ jsxDEV("p", { children: [
+            /* @__PURE__ */ jsxDEV(CheckCircle, {}, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 93,
+              columnNumber: 81
+            }, this),
+            " ",
+            page
+          ] }, page, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 93,
+            columnNumber: 67
+          }, this)),
+          !impactData?.affected_pages?.length && /* @__PURE__ */ jsxDEV("p", { className: "dependency-warning-text", children: "No real-page consumer is connected." }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 94,
+            columnNumber: 57
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 91,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("section", { children: [
+          /* @__PURE__ */ jsxDEV("h4", { children: "Affected components" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 97,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "dependency-tags", children: [
+            (impactData?.affected_components || []).map((component) => /* @__PURE__ */ jsxDEV("span", { children: component }, component, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 99,
+              columnNumber: 79
+            }, this)),
+            !impactData?.affected_components?.length && /* @__PURE__ */ jsxDEV("span", { children: "None detected" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+              lineNumber: 100,
+              columnNumber: 64
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 98,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 96,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 90,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: `dependency-notice ${impactData?.connected_to_live_pages ? "is-connected" : "is-warning"}`, children: [
+        /* @__PURE__ */ jsxDEV(AlertTriangle, {}, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 106,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("strong", { children: impactData?.connected_to_live_pages ? "Live configuration verified" : "Configuration warning" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 108,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: impactData?.connected_to_live_pages ? "This configuration is connected to the real pages and components listed above." : "This configuration has no real-page consumer. Connect it before treating the setting as active." }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+            lineNumber: 109,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+          lineNumber: 107,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+        lineNumber: 105,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+      lineNumber: 65,
+      columnNumber: 9
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "modal-footer dependency-footer", children: /* @__PURE__ */ jsxDEV("button", { type: "button", className: "btn-secondary", onClick: onClose, children: "Close" }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+      lineNumber: 117,
+      columnNumber: 57
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+      lineNumber: 117,
+      columnNumber: 9
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+    lineNumber: 50,
+    columnNumber: 7
+  }, this) }, void 0, false, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx",
+    lineNumber: 49,
+    columnNumber: 5
+  }, this);
+}
+_s(WhereUsedModal, "lQUGznuTGLxEGX2lz8S26JmrZGc=");
+_c = WhereUsedModal;
+var _c;
+$RefreshReg$(_c, "WhereUsedModal");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/ERP/Idhayam-ERP/frontend/src/components/ui/WhereUsedModal.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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SSxHQWhHdUJOLGdCQUFjO0FBQUEsS0FBZEE7QUFBYyxJQUFBb0M7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsiUmVhY3QiLCJ1c2VFZmZlY3QiLCJ1c2VTdGF0ZSIsImF4aW9zIiwiQWxlcnRUcmlhbmdsZSIsIkNoZWNrQ2lyY2xlIiwiTGF5ZXJzIiwiTmV0d29yayIsIk1vZGFsIiwiV2hlcmVVc2VkTW9kYWwiLCJpc09wZW4iLCJvbkNsb3NlIiwiY29uZmlnVHlwZSIsIml0ZW1JZCIsIml0ZW1OYW1lIiwiX3MiLCJsb2FkaW5nIiwic2V0TG9hZGluZyIsImRhdGEiLCJzZXREYXRhIiwiaW1wYWN0RGF0YSIsInNldEltcGFjdERhdGEiLCJQcm9taXNlIiwiYWxsIiwiZ2V0IiwidGhlbiIsInVzZWRSZXNwb25zZSIsImltcGFjdFJlc3BvbnNlIiwiY2F0Y2giLCJmaW5hbGx5IiwidG90YWxfaW1wYWN0IiwidG90YWxfcmVmZXJlbmNlcyIsInVzZWRfaW4iLCJsZW5ndGgiLCJtYXAiLCJpdGVtIiwiaW5kZXgiLCJ0eXBlIiwibmFtZSIsIm1vZHVsZSIsImFmZmVjdGVkX3BhZ2VzIiwicGFnZSIsImFmZmVjdGVkX2NvbXBvbmVudHMiLCJjb21wb25lbnQiLCJjb25uZWN0ZWRfdG9fbGl2ZV9wYWdlcyIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIldoZXJlVXNlZE1vZGFsLmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCBheGlvcyBmcm9tICdheGlvcyc7XG5pbXBvcnQgeyBBbGVydFRyaWFuZ2xlLCBDaGVja0NpcmNsZSwgTGF5ZXJzLCBOZXR3b3JrIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcbmltcG9ydCBNb2RhbCBmcm9tICcuLi9Nb2RhbCc7XG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFdoZXJlVXNlZE1vZGFsKHsgaXNPcGVuLCBvbkNsb3NlLCBjb25maWdUeXBlLCBpdGVtSWQsIGl0ZW1OYW1lIH0pIHtcbiAgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSk7XG4gIGNvbnN0IFtkYXRhLCBzZXREYXRhXSA9IHVzZVN0YXRlKG51bGwpO1xuICBjb25zdCBbaW1wYWN0RGF0YSwgc2V0SW1wYWN0RGF0YV0gPSB1c2VTdGF0ZShudWxsKTtcblxuICB1c2VFZmZlY3QoKCkgPT4ge1xuICAgIGlmICghaXNPcGVuIHx8ICFjb25maWdUeXBlIHx8ICFpdGVtSWQpIHJldHVybjtcbiAgICBzZXRMb2FkaW5nKHRydWUpO1xuICAgIFByb21pc2UuYWxsKFtcbiAgICAgIGF4aW9zLmdldChgaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3VpLXdoZXJlLXVzZWQvP2NvbmZpZ190eXBlPSR7Y29uZmlnVHlwZX0maXRlbV9pZD0ke2l0ZW1JZH1gKSxcbiAgICAgIGF4aW9zLmdldChgaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3VpLWNvbmZpZy1pbXBhY3QvP2NvbmZpZ190eXBlPSR7Y29uZmlnVHlwZX0maXRlbV9pZD0ke2l0ZW1JZH1gKVxuICAgIF0pXG4gICAgICAudGhlbigoW3VzZWRSZXNwb25zZSwgaW1wYWN0UmVzcG9uc2VdKSA9PiB7XG4gICAgICAgIHNldERhdGEodXNlZFJlc3BvbnNlLmRhdGEpO1xuICAgICAgICBzZXRJbXBhY3REYXRhKGltcGFjdFJlc3BvbnNlLmRhdGEpO1xuICAgICAgfSlcbiAgICAgIC5jYXRjaCgoKSA9PiB7XG4gICAgICAgIHNldERhdGEobnVsbCk7XG4gICAgICAgIHNldEltcGFjdERhdGEobnVsbCk7XG4gICAgICB9KVxuICAgICAgLmZpbmFsbHkoKCkgPT4gc2V0TG9hZGluZyhmYWxzZSkpO1xuICB9LCBbaXNPcGVuLCBjb25maWdUeXBlLCBpdGVtSWRdKTtcblxuICByZXR1cm4gKFxuICAgIDxNb2RhbCBpc09wZW49e2lzT3Blbn0gb25DbG9zZT17b25DbG9zZX0gc2l6ZT1cImxnXCIgdGl0bGU9XCJXaGVyZSBVc2VkICYgSW1wYWN0XCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImRlcGVuZGVuY3ktZGlhbG9nXCI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZGVwZW5kZW5jeS1oZWFkaW5nXCI+XG4gICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwicGFnZS1oZWFkZXItaWNvblwiPjxOZXR3b3JrIC8+PC9zcGFuPlxuICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ3b3Jrc3BhY2Uta2lja2VyXCI+RGVwZW5kZW5jeSBhbmFseXNpczwvcD5cbiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImhlbHBlci10ZXh0XCI+VHJhY2luZyBsaXZlIHJlZmVyZW5jZXMgZm9yIHtpdGVtTmFtZSB8fCBpdGVtSWR9PC9wPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L2Rpdj5cblxuICAgICAgICB7bG9hZGluZyA/IChcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImRlcGVuZGVuY3ktbG9hZGluZ1wiPlxuICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwic3Bpbm5lclwiIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIC8+XG4gICAgICAgICAgICA8cD5DYWxjdWxhdGluZyBkZXBlbmRlbmNpZXMgYW5kIGFwcGxpY2F0aW9uIGltcGFjdC4uLjwvcD5cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgKSA6IChcbiAgICAgICAgICA8PlxuICAgICAgICAgICAgPHNlY3Rpb24+XG4gICAgICAgICAgICAgIDxoNCBjbGFzc05hbWU9XCJkZXBlbmRlbmN5LXNlY3Rpb24tdGl0bGVcIj48TGF5ZXJzIC8+IENvbmZpZ3VyYXRpb24gaW1wYWN0PC9oND5cbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkZXBlbmRlbmN5LXN0YXRzXCI+XG4gICAgICAgICAgICAgICAgPGRpdj48c21hbGw+VG90YWwgaW1wYWN0PC9zbWFsbD48c3Ryb25nPntpbXBhY3REYXRhPy50b3RhbF9pbXBhY3QgfHwgMH08L3N0cm9uZz48c3Bhbj5jb21wb25lbnRzPC9zcGFuPjwvZGl2PlxuICAgICAgICAgICAgICAgIDxkaXY+PHNtYWxsPkFjdGl2ZSByZWZlcmVuY2VzPC9zbWFsbD48c3Ryb25nPntkYXRhPy50b3RhbF9yZWZlcmVuY2VzIHx8IDB9PC9zdHJvbmc+PHNwYW4+bGlua3M8L3NwYW4+PC9kaXY+XG4gICAgICAgICAgICAgICAgPGRpdj48c21hbGw+Q29uZmlndXJhdGlvbiB0eXBlPC9zbWFsbD48c3Ryb25nIGNsYXNzTmFtZT1cImRlcGVuZGVuY3ktdHlwZVwiPntjb25maWdUeXBlfTwvc3Ryb25nPjxzcGFuPnNlbGVjdGVkIGl0ZW08L3NwYW4+PC9kaXY+XG4gICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPC9zZWN0aW9uPlxuXG4gICAgICAgICAgICA8c2VjdGlvbj5cbiAgICAgICAgICAgICAgPGg0IGNsYXNzTmFtZT1cImRlcGVuZGVuY3ktc2VjdGlvbi10aXRsZVwiPjxDaGVja0NpcmNsZSAvPiBEaXJlY3QgZGVwZW5kZW5jaWVzPC9oND5cbiAgICAgICAgICAgICAge2RhdGE/LnVzZWRfaW4/Lmxlbmd0aCA/IChcbiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImRlcGVuZGVuY3ktbGlzdFwiPlxuICAgICAgICAgICAgICAgICAge2RhdGEudXNlZF9pbi5tYXAoKGl0ZW0sIGluZGV4KSA9PiAoXG4gICAgICAgICAgICAgICAgICAgIDxkaXYga2V5PXtgJHtpdGVtLnR5cGV9LSR7aXRlbS5uYW1lfS0ke2luZGV4fWB9PlxuICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInN0YXR1cy1iYWRnZSBzdGF0dXMtaW5mb1wiPntpdGVtLnR5cGV9PC9zcGFuPlxuICAgICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+e2l0ZW0ubmFtZX08L3N0cm9uZz5cbiAgICAgICAgICAgICAgICAgICAgICA8c21hbGw+TW9kdWxlOiB7aXRlbS5tb2R1bGV9PC9zbWFsbD5cbiAgICAgICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgICApKX1cbiAgICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgKSA6IDxkaXYgY2xhc3NOYW1lPVwiZW1wdHktc3RhdGUtY29tcGFjdFwiPk5vIGFjdGl2ZSBkZXBlbmRlbmNpZXMgZm91bmQuIFRoaXMgaXRlbSBpcyBzYWZlIHRvIG1vZGlmeSBvciBkZWxldGUuPC9kaXY+fVxuICAgICAgICAgICAgPC9zZWN0aW9uPlxuXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImRlcGVuZGVuY3ktcGFuZWxzXCI+XG4gICAgICAgICAgICAgIDxzZWN0aW9uPlxuICAgICAgICAgICAgICAgIDxoND5BZmZlY3RlZCByZWFsIHBhZ2VzPC9oND5cbiAgICAgICAgICAgICAgICB7KGltcGFjdERhdGE/LmFmZmVjdGVkX3BhZ2VzIHx8IFtdKS5tYXAoKHBhZ2UpID0+IDxwIGtleT17cGFnZX0+PENoZWNrQ2lyY2xlIC8+IHtwYWdlfTwvcD4pfVxuICAgICAgICAgICAgICAgIHshaW1wYWN0RGF0YT8uYWZmZWN0ZWRfcGFnZXM/Lmxlbmd0aCAmJiA8cCBjbGFzc05hbWU9XCJkZXBlbmRlbmN5LXdhcm5pbmctdGV4dFwiPk5vIHJlYWwtcGFnZSBjb25zdW1lciBpcyBjb25uZWN0ZWQuPC9wPn1cbiAgICAgICAgICAgICAgPC9zZWN0aW9uPlxuICAgICAgICAgICAgICA8c2VjdGlvbj5cbiAgICAgICAgICAgICAgICA8aDQ+QWZmZWN0ZWQgY29tcG9uZW50czwvaDQ+XG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkZXBlbmRlbmN5LXRhZ3NcIj5cbiAgICAgICAgICAgICAgICAgIHsoaW1wYWN0RGF0YT8uYWZmZWN0ZWRfY29tcG9uZW50cyB8fCBbXSkubWFwKChjb21wb25lbnQpID0+IDxzcGFuIGtleT17Y29tcG9uZW50fT57Y29tcG9uZW50fTwvc3Bhbj4pfVxuICAgICAgICAgICAgICAgICAgeyFpbXBhY3REYXRhPy5hZmZlY3RlZF9jb21wb25lbnRzPy5sZW5ndGggJiYgPHNwYW4+Tm9uZSBkZXRlY3RlZDwvc3Bhbj59XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIDwvc2VjdGlvbj5cbiAgICAgICAgICAgIDwvZGl2PlxuXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT17YGRlcGVuZGVuY3ktbm90aWNlICR7aW1wYWN0RGF0YT8uY29ubmVjdGVkX3RvX2xpdmVfcGFnZXMgPyAnaXMtY29ubmVjdGVkJyA6ICdpcy13YXJuaW5nJ31gfT5cbiAgICAgICAgICAgICAgPEFsZXJ0VHJpYW5nbGUgLz5cbiAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICA8c3Ryb25nPntpbXBhY3REYXRhPy5jb25uZWN0ZWRfdG9fbGl2ZV9wYWdlcyA/ICdMaXZlIGNvbmZpZ3VyYXRpb24gdmVyaWZpZWQnIDogJ0NvbmZpZ3VyYXRpb24gd2FybmluZyd9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgPHA+e2ltcGFjdERhdGE/LmNvbm5lY3RlZF90b19saXZlX3BhZ2VzXG4gICAgICAgICAgICAgICAgICA/ICdUaGlzIGNvbmZpZ3VyYXRpb24gaXMgY29ubmVjdGVkIHRvIHRoZSByZWFsIHBhZ2VzIGFuZCBjb21wb25lbnRzIGxpc3RlZCBhYm92ZS4nXG4gICAgICAgICAgICAgICAgICA6ICdUaGlzIGNvbmZpZ3VyYXRpb24gaGFzIG5vIHJlYWwtcGFnZSBjb25zdW1lci4gQ29ubmVjdCBpdCBiZWZvcmUgdHJlYXRpbmcgdGhlIHNldHRpbmcgYXMgYWN0aXZlLid9PC9wPlxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvPlxuICAgICAgICApfVxuXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibW9kYWwtZm9vdGVyIGRlcGVuZGVuY3ktZm9vdGVyXCI+PGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgY2xhc3NOYW1lPVwiYnRuLXNlY29uZGFyeVwiIG9uQ2xpY2s9e29uQ2xvc2V9PkNsb3NlPC9idXR0b24+PC9kaXY+XG4gICAgICA8L2Rpdj5cbiAgICA8L01vZGFsPlxuICApO1xufVxuIl0sImZpbGUiOiJEOi9FUlAvSWRoYXlhbS1FUlAvZnJvbnRlbmQvc3JjL2NvbXBvbmVudHMvdWkvV2hlcmVVc2VkTW9kYWwuanN4In0=

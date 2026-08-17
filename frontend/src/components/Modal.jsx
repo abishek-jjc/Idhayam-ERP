@@ -18,7 +18,7 @@ export default function Modal({ isOpen, onClose, title, width, size = 'md', heig
 
   const displayTitle = modalConfig?.title || title || 'Dialog Window';
   const modalSize = size || modalConfig?.size || (width && parseInt(width) <= 450 ? 'sm' : width && parseInt(width) >= 900 ? 'lg' : 'md');
-  const sizeClass = modalSize === 'sm' ? 'modal-sm' : modalSize === 'lg' ? 'modal-lg' : 'modal-md';
+  const sizeClass = modalSize === 'sm' ? 'modal-sm' : modalSize === 'xl' ? 'modal-xl' : modalSize === 'lg' ? 'modal-lg' : 'modal-md';
 
   const customWidth = modalConfig?.width || width;
   const customHeight = modalConfig?.height || height;
@@ -35,10 +35,10 @@ export default function Modal({ isOpen, onClose, title, width, size = 'md', heig
       >
         {/* Modal Header */}
         <div className="modal-header">
-          <h3 className="text-[18px] font-bold text-[#172033]">{displayTitle}</h3>
+          <h3 className="text-[18px] font-semibold text-[var(--text-primary)]">{displayTitle}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#64748B] hover:text-[#172033] hover:bg-[#F1F5F9] transition-all cursor-pointer"
+            className="btn-icon"
             title="Close modal"
             type="button"
           >

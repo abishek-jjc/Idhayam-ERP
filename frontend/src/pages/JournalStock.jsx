@@ -3,9 +3,15 @@ import { JournalAPI, CoreAPI, MastersAPI } from '../api';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
 import SearchInput from '../components/ui/SearchInput';
+import GenericFormRenderer from '../components/GenericFormRenderer';
+import { useConfiguration } from '../context/ConfigurationContext';
 import { BookOpenCheck, Boxes, Plus, Trash2, Eye } from 'lucide-react';
 
 export default function JournalStock() {
+  const { forms } = useConfiguration();
+  const journalForm = forms.find((form) => form.active && (
+    ['journal_entry_form', 'journal_form', 'stock_ledger_form'].includes(form.form_name) || form.module === 'journal'
+  ));
   const [activeTab, setActiveTab] = useState('journal');
   const [entries, setEntries] = useState([]);
   const [stocks, setStocks] = useState([]);
@@ -91,14 +97,16 @@ export default function JournalStock() {
     setModalOpen(true);
   };
 
-  const handleSaveEntry = async (e) => {
-    e.preventDefault();
+  const handleSaveEntry = async (eventOrValues) => {
+    const isEvent = typeof eventOrValues?.preventDefault === 'function';
+    if (isEvent) eventOrValues.preventDefault();
+    const submittedValues = isEvent ? formData : { ...formData, ...(eventOrValues || {}) };
     try {
       const payload = {
-        ...formData,
-        material_id: formData.material_id || masterItems[0]?.id || null,
-        from_department: formData.from_department || null,
-        to_department: formData.to_department || null,
+        ...submittedValues,
+        material_id: submittedValues.material_id || masterItems[0]?.id || null,
+        from_department: submittedValues.from_department || null,
+        to_department: submittedValues.to_department || null,
         posted_by: employees[0]?.id || null,
       };
 
@@ -296,6 +304,14 @@ export default function JournalStock() {
 
       {/* Modals */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} size="md" title="Post Universal Movement Entry">
+        {journalForm ? (
+          <GenericFormRenderer
+            formConfig={journalForm}
+            initialValues={formData}
+            onSubmit={handleSaveEntry}
+            onCancel={() => setModalOpen(false)}
+          />
+        ) : (
         <form onSubmit={handleSaveEntry} className="space-y-4">
           <div>
             <label className="form-label">Movement Type *</label>
@@ -371,6 +387,7 @@ export default function JournalStock() {
             <button type="submit" className="btn-primary">Post Entry</button>
           </div>
         </form>
+        )}
       </Modal>
 
       <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} size="md" title="Universal Journal Entry Inspection">

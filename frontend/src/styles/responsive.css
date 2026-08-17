@@ -13,6 +13,15 @@
   }
   .sidebar.open {
     left: 0;
+    box-shadow: 12px 0 30px rgba(15, 23, 42, 0.22);
+  }
+  .sidebar-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    border: 0;
+    background: rgba(15, 23, 42, 0.42);
   }
   .dashboard-kpi-grid {
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;

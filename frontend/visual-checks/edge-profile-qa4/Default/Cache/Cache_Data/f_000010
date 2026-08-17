@@ -1,0 +1,1463 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/WorkflowApprovals.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=36603bcd"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=36603bcd"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import { WorkflowAPI, ProcessEngineAPI, CoreAPI } from "/src/api.js";
+import Modal from "/src/components/Modal.jsx";
+import Pagination from "/src/components/Pagination.jsx";
+import GenericFormRenderer from "/src/components/GenericFormRenderer.jsx";
+import { useConfiguration } from "/src/context/ConfigurationContext.jsx";
+import { GitPullRequest, CheckCircle2, XCircle, Clock, Plus, Upload, FileText, Eye, Search, BarChart3 } from "/node_modules/.vite/deps/lucide-react.js?v=36603bcd";
+export default function WorkflowApprovals() {
+  _s();
+  const { forms } = useConfiguration();
+  const workflowForm = forms.find(
+    (form) => form.active && (["workflow_proposal_form", "proposal_form", "approval_form"].includes(form.form_name) || form.module === "workflow")
+  );
+  const [proposals, setProposals] = useState([]);
+  const [instances, setInstances] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [plants, setPlants] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const itemsPerPage = 10;
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [quotationModalOpen, setQuotationModalOpen] = useState(false);
+  const [amendmentModalOpen, setAmendmentModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [newProposal, setNewProposal] = useState({
+    process_instance: "",
+    requested_by: "",
+    plant: "",
+    department: "",
+    vendor_mode: "single",
+    vendor_count: 2,
+    vendor_allocations: [{ vendor_id: "", percentage: 100 }],
+    remarks: ""
+  });
+  const [quotationForm, setQuotationForm] = useState({
+    vendor: "",
+    quoted_rate: 1500,
+    allocated_percentage: 100,
+    is_selected: true,
+    file_name: "",
+    parsed_details: null
+  });
+  const [amendmentForm, setAmendmentForm] = useState({
+    amended_by: "",
+    amendment_reason: "Updated pricing structure and revised scope",
+    new_quoted_rate: 1800
+  });
+  useEffect(() => {
+    loadWorkflowData();
+  }, []);
+  async function loadWorkflowData() {
+    try {
+      const [propRes, instRes, empRes, plantRes, deptRes, venRes] = await Promise.all(
+        [
+          WorkflowAPI.getProposals(),
+          ProcessEngineAPI.getInstances(),
+          CoreAPI.getEmployees(),
+          CoreAPI.getPlants(),
+          CoreAPI.getDepartments(),
+          CoreAPI.getVendors()
+        ]
+      );
+      const loadedProposals = propRes.data.results || propRes.data || [];
+      setProposals(loadedProposals);
+      setInstances(instRes.data.results || instRes.data || []);
+      const loadedEmps = empRes.data.results || empRes.data || [];
+      const loadedPlants = plantRes.data.results || plantRes.data || [];
+      const loadedDepts = deptRes.data.results || deptRes.data || [];
+      const loadedVendors = venRes.data.results || venRes.data || [];
+      setEmployees(loadedEmps);
+      setPlants(loadedPlants);
+      setDepartments(loadedDepts);
+      setVendors(loadedVendors);
+      if (loadedEmps.length > 0 && !newProposal.requested_by) {
+        setNewProposal((prev) => ({
+          ...prev,
+          requested_by: loadedEmps[0].id,
+          plant: loadedPlants[0]?.id || "",
+          department: loadedDepts[0]?.id || ""
+        }));
+      }
+    } catch (err) {
+      console.error("Error loading workflow proposals:", err);
+    }
+  }
+  const handleVendorModeChange = (mode) => {
+    if (mode === "multiple") {
+      const count = newProposal.vendor_count || 2;
+      const alloc = [];
+      const equalShare = Math.floor(100 / count);
+      let remainder = 100 - equalShare * count;
+      for (let i = 0; i < count; i++) {
+        alloc.push({
+          vendor_id: vendors[i % vendors.length]?.id || "",
+          percentage: equalShare + (i === 0 ? remainder : 0)
+        });
+      }
+      setNewProposal({
+        ...newProposal,
+        vendor_mode: mode,
+        vendor_count: count,
+        vendor_allocations: alloc
+      });
+    } else {
+      setNewProposal({
+        ...newProposal,
+        vendor_mode: mode,
+        vendor_allocations: [{ vendor_id: vendors[0]?.id || "", percentage: 100 }]
+      });
+    }
+  };
+  const handleVendorCountChange = (count) => {
+    const num = Math.max(1, parseInt(count) || 1);
+    const alloc = [];
+    const equalShare = Math.floor(100 / num);
+    let remainder = 100 - equalShare * num;
+    for (let i = 0; i < num; i++) {
+      alloc.push({
+        vendor_id: vendors[i % vendors.length]?.id || "",
+        percentage: equalShare + (i === 0 ? remainder : 0)
+      });
+    }
+    setNewProposal({
+      ...newProposal,
+      vendor_count: num,
+      vendor_allocations: alloc
+    });
+  };
+  const handleVendorAllocationChange = (index, field, val) => {
+    const updated = [...newProposal.vendor_allocations];
+    const parsedVal = field === "percentage" ? Math.max(0, parseFloat(val) || 0) : val;
+    updated[index] = {
+      ...updated[index],
+      [field]: parsedVal
+    };
+    setNewProposal({ ...newProposal, vendor_allocations: updated });
+  };
+  const getTotalAllocationSum = () => {
+    if (newProposal.vendor_mode === "single") return 100;
+    return newProposal.vendor_allocations.reduce((sum, item) => sum + (parseFloat(item.percentage) || 0), 0);
+  };
+  const handleCreateProposal = async (eventOrValues) => {
+    const isEvent = typeof eventOrValues?.preventDefault === "function";
+    if (isEvent) eventOrValues.preventDefault();
+    const proposalValues = isEvent ? newProposal : { ...newProposal, ...eventOrValues || {} };
+    const totalAlloc = proposalValues.vendor_mode === "single" ? 100 : proposalValues.vendor_allocations.reduce((sum, item) => sum + (parseFloat(item.percentage) || 0), 0);
+    if (proposalValues.vendor_mode === "multiple" && totalAlloc !== 100) {
+      alert(`Vendor allocation total must equal exactly 100%. Current total is ${totalAlloc}%.`);
+      return;
+    }
+    try {
+      let instId = proposalValues.process_instance;
+      if (!instId) {
+        if (instances.length > 0) {
+          instId = instances[0].id;
+        } else {
+          alert("No Process Instance available. Please execute a process instance first.");
+          return;
+        }
+      }
+      await WorkflowAPI.createProposal({
+        process_instance: instId,
+        requested_by: proposalValues.requested_by || employees[0]?.id || null,
+        plant: proposalValues.plant || plants[0]?.id || null,
+        department: proposalValues.department || departments[0]?.id || null,
+        status: "pending",
+        vendor_mode: proposalValues.vendor_mode,
+        remarks: proposalValues.remarks || `Standard proposal initiated (${proposalValues.vendor_mode} vendor mode)`
+      });
+      setProposalModalOpen(false);
+      loadWorkflowData();
+    } catch (err) {
+      alert("Failed to submit proposal: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fileName = file.name;
+    const extractedRate = (Math.floor(Math.random() * 50) + 10) * 100 + 500;
+    const matchedVendor = vendors[Math.floor(Math.random() * vendors.length)] || vendors[0];
+    setQuotationForm((prev) => ({
+      ...prev,
+      file_name: fileName,
+      vendor: matchedVendor?.id || prev.vendor,
+      quoted_rate: extractedRate,
+      parsed_details: {
+        vendor_name: matchedVendor?.name || "Detected Vendor Enterprise",
+        extracted_rate: `₹${extractedRate.toLocaleString()} (Extracted from ${fileName})`,
+        tax_rate: "18% GST Included",
+        confidence: "98.5% Accuracy"
+      }
+    }));
+  };
+  const handleAddQuotation = async (e) => {
+    e.preventDefault();
+    if (!selectedProposal) return;
+    try {
+      await WorkflowAPI.createQuotation({
+        proposal: selectedProposal.id,
+        vendor: quotationForm.vendor || vendors[0]?.id,
+        quoted_rate: Math.max(0, quotationForm.quoted_rate || 0),
+        allocated_percentage: Math.max(0, quotationForm.allocated_percentage || 0),
+        is_selected: quotationForm.is_selected,
+        remarks: quotationForm.file_name ? `Quotation Copy Attachment: ${quotationForm.file_name}` : "Quotation details uploaded"
+      });
+      setQuotationModalOpen(false);
+      loadWorkflowData();
+    } catch (err) {
+      alert("Failed to add quotation: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  const handleAction = async (proposalId, statusAction) => {
+    try {
+      await WorkflowAPI.updateProposal(proposalId, { status: statusAction });
+      loadWorkflowData();
+    } catch (err) {
+      alert("Status update failed: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  const handleCreateAmendment = async (e) => {
+    e.preventDefault();
+    if (!selectedProposal) return;
+    try {
+      await WorkflowAPI.createAmendment({
+        proposal: selectedProposal.id,
+        amended_by: amendmentForm.amended_by || employees[0]?.id,
+        amendment_reason: amendmentForm.amendment_reason,
+        previous_values: { remarks: selectedProposal.remarks || "" },
+        new_values: { new_quoted_rate: Math.max(0, amendmentForm.new_quoted_rate || 0) }
+      });
+      setAmendmentModalOpen(false);
+      loadWorkflowData();
+    } catch (err) {
+      alert("Failed to submit amendment: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  const openQuotationModal = (prop) => {
+    setSelectedProposal(prop);
+    setQuotationForm({
+      vendor: vendors[0]?.id || "",
+      quoted_rate: 1500,
+      allocated_percentage: 100,
+      is_selected: true,
+      file_name: "",
+      parsed_details: null
+    });
+    setQuotationModalOpen(true);
+  };
+  const openAmendmentModal = (prop) => {
+    setSelectedProposal(prop);
+    setAmendmentForm({
+      amended_by: employees[0]?.id || "",
+      amendment_reason: "Updated pricing structure and revised scope",
+      new_quoted_rate: 1800
+    });
+    setAmendmentModalOpen(true);
+  };
+  const openInspectModal = (prop) => {
+    setSelectedProposal(prop);
+    setViewModalOpen(true);
+  };
+  const approvedCount = proposals.filter((p) => p.status === "approved").length;
+  const pendingCount = proposals.filter((p) => p.status === "pending").length;
+  const rejectedCount = proposals.filter((p) => p.status === "rejected").length;
+  const totalCount = proposals.length;
+  const filteredProposals = proposals.filter(
+    (p) => p.id?.toLowerCase().includes(searchQuery.toLowerCase()) || p.remarks?.toLowerCase().includes(searchQuery.toLowerCase()) || p.status?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const totalPages = Math.ceil(filteredProposals.length / itemsPerPage) || 1;
+  const paginatedProposals = filteredProposals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  return /* @__PURE__ */ jsxDEV("div", { className: "space-y-6 animate-fade-in font-sans", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("h1", { className: "page-title flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxDEV(GitPullRequest, { className: "w-6 h-6 text-[#1B4E9B]" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 335,
+            columnNumber: 13
+          }, this),
+          " Multi-Stage Workflow & Approvals"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 334,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280]", children: "Proposal initiation, multi-vendor rate quotations, amendments, and sign-offs." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 337,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 333,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "flex gap-2", children: /* @__PURE__ */ jsxDEV("button", { onClick: () => setProposalModalOpen(true), className: "btn-primary", children: [
+        /* @__PURE__ */ jsxDEV(Plus, { className: "w-4 h-4" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 342,
+          columnNumber: 13
+        }, this),
+        " Initiate Approval Proposal"
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 341,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 340,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 332,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "kpi-card border-l-4 border-l-[#16A34A]", children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-label", children: "Approved Proposals" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 352,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-number mt-1 text-[#16A34A]", children: approvedCount }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 353,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 351,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "w-10 h-10 rounded-lg bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center", children: /* @__PURE__ */ jsxDEV(CheckCircle2, { className: "w-5 h-5" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 356,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 355,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 350,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 349,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "kpi-card border-l-4 border-l-[#2563EB]", children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-label", children: "Pending Proposals" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 364,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-number mt-1 text-[#2563EB]", children: pendingCount }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 365,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 363,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "w-10 h-10 rounded-lg bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center", children: /* @__PURE__ */ jsxDEV(Clock, { className: "w-5 h-5" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 368,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 367,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 362,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 361,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "kpi-card border-l-4 border-l-[#DC2626]", children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-label", children: "Rejected Proposals" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 376,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-number mt-1 text-[#DC2626]", children: rejectedCount }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 377,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 375,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "w-10 h-10 rounded-lg bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center", children: /* @__PURE__ */ jsxDEV(XCircle, { className: "w-5 h-5" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 380,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 379,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 374,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 373,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "kpi-card border-l-4 border-l-[#1B4E9B]", children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-label", children: "Total Proposals" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 388,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "kpi-number mt-1 text-[#1B4E9B]", children: totalCount }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 389,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 387,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#1B4E9B] flex items-center justify-center", children: /* @__PURE__ */ jsxDEV(BarChart3, { className: "w-5 h-5" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 392,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 391,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 386,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 385,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 348,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "standard-card space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxDEV("h3", { className: "section-title", children: [
+          "Workflow Proposals (",
+          filteredProposals.length,
+          ")"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 401,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "relative w-64", children: [
+          /* @__PURE__ */ jsxDEV(Search, { className: "w-4 h-4 text-[#6B7280] absolute left-3 top-3" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 404,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "text",
+              placeholder: "Search proposals...",
+              value: searchQuery,
+              onChange: (e) => setSearchQuery(e.target.value),
+              className: "form-input pl-9 text-xs"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 405,
+              columnNumber: 13
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 403,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 400,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "overflow-x-auto custom-scrollbar", children: /* @__PURE__ */ jsxDEV("table", { className: "custom-table", children: [
+        /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+          /* @__PURE__ */ jsxDEV("th", { children: "Proposal ID" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 419,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Process Type" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 420,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Requested By" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 421,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Vendor Mode" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 422,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Status (Select to Update)" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 423,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Actions" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 424,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 418,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 417,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("tbody", { children: paginatedProposals.length === 0 ? /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: "6", className: "text-center py-6 text-[#6B7280] italic", children: "No workflow proposals logged." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 430,
+          columnNumber: 19
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 429,
+          columnNumber: 15
+        }, this) : paginatedProposals.map(
+          (prop) => /* @__PURE__ */ jsxDEV("tr", { children: [
+            /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-xs text-[#1B4E9B] font-semibold", children: prop.id }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 435,
+              columnNumber: 21
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "font-semibold text-[#1F2937]", children: prop.process_type_name || "Workflow Proposal" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 436,
+              columnNumber: 21
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: prop.requested_by_name || "-" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 437,
+              columnNumber: 21
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "capitalize text-[#374151]", children: [
+              prop.vendor_mode,
+              " Vendor"
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 438,
+              columnNumber: 21
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV(
+              "select",
+              {
+                value: prop.status,
+                onChange: (e) => handleAction(prop.id, e.target.value),
+                className: `form-input text-xs h-8 py-0 px-2 font-bold capitalize cursor-pointer ${prop.status === "approved" ? "text-[#16A34A] border-[#BBF7D0]" : prop.status === "rejected" ? "text-[#DC2626] border-[#FECACA]" : prop.status === "amended" ? "text-[#CA8A04] border-[#FEF08A]" : "text-[#2563EB] border-[#BFDBFE]"}`,
+                children: [
+                  /* @__PURE__ */ jsxDEV("option", { value: "pending", children: "Pending" }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                    lineNumber: 450,
+                    columnNumber: 25
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("option", { value: "approved", children: "Approved" }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                    lineNumber: 451,
+                    columnNumber: 25
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("option", { value: "rejected", children: "Rejected" }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                    lineNumber: 452,
+                    columnNumber: 25
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("option", { value: "amended", children: "Amended" }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                    lineNumber: 453,
+                    columnNumber: 25
+                  }, this)
+                ]
+              },
+              void 0,
+              true,
+              {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                lineNumber: 440,
+                columnNumber: 23
+              },
+              this
+            ) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 439,
+              columnNumber: 21
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-1.5", children: [
+              /* @__PURE__ */ jsxDEV("button", { onClick: () => openInspectModal(prop), title: "View Proposal Details", className: "btn-action-view", children: [
+                /* @__PURE__ */ jsxDEV(Eye, { className: "w-3.5 h-3.5" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                  lineNumber: 459,
+                  columnNumber: 27
+                }, this),
+                " View"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                lineNumber: 458,
+                columnNumber: 25
+              }, this),
+              /* @__PURE__ */ jsxDEV("button", { onClick: () => openQuotationModal(prop), title: "Add Quotation Copy", className: "btn-action-edit", children: [
+                /* @__PURE__ */ jsxDEV(Plus, { className: "w-3.5 h-3.5" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                  lineNumber: 462,
+                  columnNumber: 27
+                }, this),
+                " Rate"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                lineNumber: 461,
+                columnNumber: 25
+              }, this),
+              /* @__PURE__ */ jsxDEV("button", { onClick: () => openAmendmentModal(prop), title: "Submit Amendment", className: "btn-action-reset", children: [
+                /* @__PURE__ */ jsxDEV(FileText, { className: "w-3.5 h-3.5" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                  lineNumber: 465,
+                  columnNumber: 27
+                }, this),
+                " Edit"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                lineNumber: 464,
+                columnNumber: 25
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 457,
+              columnNumber: 23
+            }, this) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 456,
+              columnNumber: 21
+            }, this)
+          ] }, prop.id, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 434,
+            columnNumber: 15
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 427,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 416,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 415,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        Pagination,
+        {
+          currentPage,
+          totalPages,
+          onPageChange: setCurrentPage,
+          totalItems: filteredProposals.length,
+          itemsPerPage: 10
+        },
+        void 0,
+        false,
+        {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 476,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 399,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: proposalModalOpen, onClose: () => setProposalModalOpen(false), size: "md", title: "Initiate Approval Proposal", children: workflowForm ? /* @__PURE__ */ jsxDEV(
+      GenericFormRenderer,
+      {
+        formConfig: workflowForm,
+        initialValues: newProposal,
+        onSubmit: handleCreateProposal,
+        onCancel: () => setProposalModalOpen(false)
+      },
+      void 0,
+      false,
+      {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 488,
+        columnNumber: 9
+      },
+      this
+    ) : /* @__PURE__ */ jsxDEV("form", { onSubmit: handleCreateProposal, className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Process Execution Instance *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 497,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("select", { required: true, value: newProposal.process_instance, onChange: (e) => setNewProposal({ ...newProposal, process_instance: e.target.value }), className: "form-input", children: [
+          /* @__PURE__ */ jsxDEV("option", { value: "", children: "Select Process Execution" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 499,
+            columnNumber: 15
+          }, this),
+          instances.map(
+            (inst) => /* @__PURE__ */ jsxDEV("option", { value: inst.id, children: [
+              inst.process_type_name || "Execution",
+              " (",
+              inst.id,
+              ")"
+            ] }, inst.id, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 501,
+              columnNumber: 15
+            }, this)
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 498,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 496,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Plant Unit" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 508,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: newProposal.plant, onChange: (e) => setNewProposal({ ...newProposal, plant: e.target.value }), className: "form-input", children: plants.map((p) => /* @__PURE__ */ jsxDEV("option", { value: p.id, children: p.name }, p.id, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 510,
+            columnNumber: 36
+          }, this)) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 509,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 507,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Department" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 514,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: newProposal.department, onChange: (e) => setNewProposal({ ...newProposal, department: e.target.value }), className: "form-input", children: departments.map((d) => /* @__PURE__ */ jsxDEV("option", { value: d.id, children: d.name }, d.id, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 516,
+            columnNumber: 41
+          }, this)) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 515,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 513,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 506,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Vendor Quoting Mode" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 522,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("select", { value: newProposal.vendor_mode, onChange: (e) => handleVendorModeChange(e.target.value), className: "form-input", children: [
+          /* @__PURE__ */ jsxDEV("option", { value: "single", children: "Single Vendor Procurement (100%)" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 524,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("option", { value: "multiple", children: "Multiple Vendor Split Procurement (Must sum to 100%)" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 525,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 523,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 521,
+        columnNumber: 11
+      }, this),
+      newProposal.vendor_mode === "multiple" && /* @__PURE__ */ jsxDEV("div", { className: "space-y-3 p-4 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB]", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label mb-0", children: "How many vendors?" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 532,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "number",
+              min: "1",
+              max: "10",
+              value: newProposal.vendor_count,
+              onChange: (e) => handleVendorCountChange(e.target.value),
+              className: "form-input w-24 text-center"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 533,
+              columnNumber: 17
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 531,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "space-y-2 pt-2 border-t border-[#E5E7EB]", children: [
+          /* @__PURE__ */ jsxDEV("div", { className: "text-xs font-semibold text-[#6B7280] flex justify-between", children: [
+            /* @__PURE__ */ jsxDEV("span", { children: "Vendor Enterprise Selection" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 545,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: "Allocation %" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 546,
+              columnNumber: 19
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 544,
+            columnNumber: 17
+          }, this),
+          newProposal.vendor_allocations.map(
+            (alloc, idx) => /* @__PURE__ */ jsxDEV("div", { className: "flex gap-3 items-center", children: [
+              /* @__PURE__ */ jsxDEV(
+                "select",
+                {
+                  value: alloc.vendor_id,
+                  onChange: (e) => handleVendorAllocationChange(idx, "vendor_id", e.target.value),
+                  className: "form-input text-xs",
+                  children: [
+                    /* @__PURE__ */ jsxDEV("option", { value: "", children: [
+                      "Select Vendor #",
+                      idx + 1
+                    ] }, void 0, true, {
+                      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                      lineNumber: 556,
+                      columnNumber: 23
+                    }, this),
+                    vendors.map((v) => /* @__PURE__ */ jsxDEV("option", { value: v.id, children: v.name }, v.id, false, {
+                      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                      lineNumber: 557,
+                      columnNumber: 43
+                    }, this))
+                  ]
+                },
+                void 0,
+                true,
+                {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                  lineNumber: 551,
+                  columnNumber: 21
+                },
+                this
+              ),
+              /* @__PURE__ */ jsxDEV("div", { className: "relative w-32", children: [
+                /* @__PURE__ */ jsxDEV(
+                  "input",
+                  {
+                    type: "number",
+                    min: "0",
+                    max: "100",
+                    value: alloc.percentage,
+                    onChange: (e) => handleVendorAllocationChange(idx, "percentage", e.target.value),
+                    className: "form-input text-xs text-right pr-6"
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                    lineNumber: 560,
+                    columnNumber: 23
+                  },
+                  this
+                ),
+                /* @__PURE__ */ jsxDEV("span", { className: "absolute right-2 top-2 text-xs text-[#6B7280]", children: "%" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                  lineNumber: 568,
+                  columnNumber: 23
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+                lineNumber: 559,
+                columnNumber: 21
+              }, this)
+            ] }, idx, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 550,
+              columnNumber: 15
+            }, this)
+          ),
+          /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between pt-2", children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "text-xs font-bold text-[#1F2937]", children: "Total Allocation Percentage:" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 574,
+              columnNumber: 19
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { className: `font-mono font-bold text-sm ${getTotalAllocationSum() === 100 ? "text-[#16A34A]" : "text-[#DC2626]"}`, children: [
+              getTotalAllocationSum(),
+              "% ",
+              getTotalAllocationSum() === 100 ? "✓ (Valid 100%)" : "⚠ (Must equal 100%)"
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 575,
+              columnNumber: 19
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 573,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 543,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 530,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Proposal Remarks" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 585,
+          columnNumber: 16
+        }, this),
+        /* @__PURE__ */ jsxDEV("textarea", { value: newProposal.remarks, onChange: (e) => setNewProposal({ ...newProposal, remarks: e.target.value }), className: "form-input h-20", placeholder: "Justification for proposal..." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 585,
+          columnNumber: 70
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 585,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "modal-footer", children: [
+        /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: () => setProposalModalOpen(false), className: "btn-secondary", children: "Cancel" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 588,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "submit",
+            disabled: newProposal.vendor_mode === "multiple" && getTotalAllocationSum() !== 100,
+            className: `btn-primary ${newProposal.vendor_mode === "multiple" && getTotalAllocationSum() !== 100 ? "opacity-50 cursor-not-allowed" : ""}`,
+            children: "Submit Proposal"
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 589,
+            columnNumber: 13
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 587,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 495,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 486,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: quotationModalOpen, onClose: () => setQuotationModalOpen(false), size: "md", title: `Upload Quotation Copy for Proposal ${selectedProposal?.id}`, children: /* @__PURE__ */ jsxDEV("form", { onSubmit: handleAddQuotation, className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "border-2 border-dashed border-[#1B4E9B]/40 rounded-lg p-5 text-center bg-[#EFF6FF] hover:bg-[#DBEAFE] transition-all cursor-pointer relative", children: [
+        /* @__PURE__ */ jsxDEV(
+          "input",
+          {
+            type: "file",
+            accept: ".pdf,.doc,.docx,.jpg,.png,.txt",
+            onChange: handleFileUpload,
+            className: "absolute inset-0 opacity-0 cursor-pointer"
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 604,
+            columnNumber: 13
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(Upload, { className: "w-8 h-8 text-[#1B4E9B] mx-auto mb-2" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 610,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-xs font-semibold text-[#1F2937]", children: "Upload Quotation Document Copy" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 611,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-[11px] text-[#6B7280] mt-1", children: "PDF, Image, or DOC (Extracts rate details)" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 612,
+          columnNumber: 13
+        }, this),
+        quotationForm.file_name && /* @__PURE__ */ jsxDEV("span", { className: "inline-block mt-2 text-xs font-mono text-[#16A34A] bg-[#DCFCE7] px-3 py-1 rounded border border-[#BBF7D0]", children: [
+          "Attached: ",
+          quotationForm.file_name
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 614,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 603,
+        columnNumber: 11
+      }, this),
+      quotationForm.parsed_details && /* @__PURE__ */ jsxDEV("div", { className: "bg-[#DCFCE7] border border-[#BBF7D0] p-3.5 rounded-lg space-y-1.5", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-1.5 text-xs font-bold text-[#16A34A]", children: [
+          /* @__PURE__ */ jsxDEV(CheckCircle2, { className: "w-4 h-4" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 623,
+            columnNumber: 17
+          }, this),
+          " OCR Document Details Extracted"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 622,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-2 text-[11px] font-mono text-[#1F2937]", children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            "Vendor: ",
+            /* @__PURE__ */ jsxDEV("span", { className: "font-bold", children: quotationForm.parsed_details.vendor_name }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 626,
+              columnNumber: 30
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 626,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            "Extracted Rate: ",
+            /* @__PURE__ */ jsxDEV("span", { className: "text-[#16A34A] font-bold", children: quotationForm.parsed_details.extracted_rate }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 627,
+              columnNumber: 38
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 627,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            "Tax Info: ",
+            /* @__PURE__ */ jsxDEV("span", { children: quotationForm.parsed_details.tax_rate }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 628,
+              columnNumber: 32
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 628,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            "OCR Accuracy: ",
+            /* @__PURE__ */ jsxDEV("span", { className: "text-[#2563EB]", children: quotationForm.parsed_details.confidence }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+              lineNumber: 629,
+              columnNumber: 36
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+            lineNumber: 629,
+            columnNumber: 17
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 625,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 621,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Vendor Enterprise *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 635,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("select", { required: true, value: quotationForm.vendor, onChange: (e) => setQuotationForm({ ...quotationForm, vendor: e.target.value }), className: "form-input", children: vendors.map((v) => /* @__PURE__ */ jsxDEV("option", { value: v.id, children: v.name }, v.id, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 637,
+          columnNumber: 35
+        }, this)) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 636,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 634,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Quoted Rate (₹) *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 641,
+          columnNumber: 16
+        }, this),
+        /* @__PURE__ */ jsxDEV("input", { type: "number", min: "0", step: "0.01", required: true, value: quotationForm.quoted_rate, onChange: (e) => {
+          const val = e.target.value;
+          if (val === "" || Number(val) >= 0) setQuotationForm({ ...quotationForm, quoted_rate: parseFloat(val) || 0 });
+        }, className: "form-input" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 641,
+          columnNumber: 71
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 641,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Allocated Percentage (%)" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 646,
+          columnNumber: 16
+        }, this),
+        /* @__PURE__ */ jsxDEV("input", { type: "number", min: "0", max: "100", value: quotationForm.allocated_percentage, onChange: (e) => {
+          const val = e.target.value;
+          if (val === "" || Number(val) >= 0) setQuotationForm({ ...quotationForm, allocated_percentage: parseFloat(val) || 0 });
+        }, className: "form-input" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 646,
+          columnNumber: 78
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 646,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxDEV("input", { type: "checkbox", id: "sel_vendor", checked: quotationForm.is_selected, onChange: (e) => setQuotationForm({ ...quotationForm, is_selected: e.target.checked }), className: "w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 652,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("label", { htmlFor: "sel_vendor", className: "text-xs text-[#374151] font-semibold cursor-pointer", children: "Mark as Selected Quoted Vendor" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 653,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 651,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "modal-footer", children: [
+        /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: () => setQuotationModalOpen(false), className: "btn-secondary", children: "Cancel" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 657,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { type: "submit", className: "btn-primary", children: "Add Quotation Record" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 658,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 656,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 602,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 601,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: amendmentModalOpen, onClose: () => setAmendmentModalOpen(false), size: "md", title: `Submit Proposal Amendment for ${selectedProposal?.id}`, children: /* @__PURE__ */ jsxDEV("form", { onSubmit: handleCreateAmendment, className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Amended By Employee *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 666,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("select", { required: true, value: amendmentForm.amended_by, onChange: (e) => setAmendmentForm({ ...amendmentForm, amended_by: e.target.value }), className: "form-input", children: employees.map((emp) => /* @__PURE__ */ jsxDEV("option", { value: emp.id, children: emp.name }, emp.id, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 668,
+          columnNumber: 39
+        }, this)) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 667,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 665,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Amendment Reason *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 671,
+          columnNumber: 16
+        }, this),
+        /* @__PURE__ */ jsxDEV("textarea", { required: true, value: amendmentForm.amendment_reason, onChange: (e) => setAmendmentForm({ ...amendmentForm, amendment_reason: e.target.value }), className: "form-input h-20" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 671,
+          columnNumber: 72
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 671,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Revised Quoted Rate (₹)" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 672,
+          columnNumber: 16
+        }, this),
+        /* @__PURE__ */ jsxDEV("input", { type: "number", min: "0", value: amendmentForm.new_quoted_rate, onChange: (e) => {
+          const val = e.target.value;
+          if (val === "" || Number(val) >= 0) setAmendmentForm({ ...amendmentForm, new_quoted_rate: parseFloat(val) || 0 });
+        }, className: "form-input" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 672,
+          columnNumber: 77
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 672,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "modal-footer", children: [
+        /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: () => setAmendmentModalOpen(false), className: "btn-secondary", children: "Cancel" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 677,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { type: "submit", className: "btn-primary", children: "Submit Amendment" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 678,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 676,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 664,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 663,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: viewModalOpen, onClose: () => setViewModalOpen(false), size: "md", title: "Proposal Workflow Details", children: selectedProposal && /* @__PURE__ */ jsxDEV("div", { className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Proposal ID:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 686,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "font-mono text-[#1B4E9B] font-bold", children: selectedProposal.id }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 686,
+          columnNumber: 78
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 686,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Status:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 687,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "font-bold capitalize text-[#1F2937]", children: selectedProposal.status }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 687,
+          columnNumber: 73
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 687,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Quotations Attached:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 688,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-[#374151] font-mono text-xs", children: [
+          selectedProposal.quotations?.length || 0,
+          " quotations"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 688,
+          columnNumber: 86
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 688,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Amendments Logged:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 689,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-[#374151] font-mono text-xs", children: [
+          selectedProposal.amendments?.length || 0,
+          " amendments"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+          lineNumber: 689,
+          columnNumber: 84
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+        lineNumber: 689,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 685,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+      lineNumber: 683,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx",
+    lineNumber: 330,
+    columnNumber: 5
+  }, this);
+}
+_s(WorkflowApprovals, "Rl5cZNtY+QkK3upsWGPQCLIoYJ0=", false, function() {
+  return [useConfiguration];
+});
+_c = WorkflowApprovals;
+var _c;
+$RefreshReg$(_c, "WorkflowApprovals");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/ERP/Idhayam-ERP/frontend/src/pages/WorkflowApprovals.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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InVzZUVmZmVjdCIsInVzZVN0YXRlIiwiV29ya2Zsb3dBUEkiLCJQcm9jZXNzRW5naW5lQVBJIiwiQ29yZUFQSSIsIk1vZGFsIiwiUGFnaW5hdGlvbiIsIkdlbmVyaWNGb3JtUmVuZGVyZXIiLCJ1c2VDb25maWd1cmF0aW9uIiwiR2l0UHVsbFJlcXVlc3QiLCJDaGVja0NpcmNsZTIiLCJYQ2lyY2xlIiwiQ2xvY2siLCJQbHVzIiwiVXBsb2FkIiwiRmlsZVRleHQiLCJFeWUiLCJTZWFyY2giLCJCYXJDaGFydDMiLCJXb3JrZmxvd0FwcHJvdmFscyIsIl9zIiwiZm9ybXMiLCJ3b3JrZmxvd0Zvcm0iLCJmaW5kIiwiZm9ybSIsImFjdGl2ZSIsImluY2x1ZGVzIiwiZm9ybV9uYW1lIiwibW9kdWxlIiwicHJvcG9zYWxzIiwic2V0UHJvcG9zYWxzIiwiaW5zdGFuY2VzIiwic2V0SW5zdGFuY2VzIiwiZW1wbG95ZWVzIiwic2V0RW1wbG95ZWVzIiwicGxhbnRzIiwic2V0UGxhbnRzIiwiZGVwYXJ0bWVudHMiLCJzZXREZXBhcnRtZW50cyIsInZlbmRvcnMiLCJzZXRWZW5kb3JzIiwiY3VycmVudFBhZ2UiLCJzZXRDdXJyZW50UGFnZSIsInNlYXJjaFF1ZXJ5Iiwic2V0U2VhcmNoUXVlcnkiLCJpdGVtc1BlclBhZ2UiLCJwcm9wb3NhbE1vZGFsT3BlbiIsInNldFByb3Bvc2FsTW9kYWxPcGVuIiwicXVvdGF0aW9uTW9kYWxPcGVuIiwic2V0UXVvdGF0aW9uTW9kYWxPcGVuIiwiYW1lbmRtZW50TW9kYWxPcGVuIiwic2V0QW1lbmRtZW50TW9kYWxPcGVuIiwidmlld01vZGFsT3BlbiIsInNldFZpZXdNb2RhbE9wZW4iLCJzZWxlY3RlZFByb3Bvc2FsIiwic2V0U2VsZWN0ZWRQcm9wb3NhbCIsIm5ld1Byb3Bvc2FsIiwic2V0TmV3UHJvcG9zYWwiLCJwcm9jZXNzX2luc3RhbmNlIiwicmVxdWVzdGVkX2J5IiwicGxhbnQiLCJkZXBhcnRtZW50IiwidmVuZG9yX21vZGUiLCJ2ZW5kb3JfY291bnQiLCJ2ZW5kb3JfYWxsb2NhdGlvbnMiLCJ2ZW5kb3JfaWQiLCJwZXJjZW50YWdlIiwicmVtYXJrcyIsInF1b3RhdGlvbkZvcm0iLCJzZXRRdW90YXRpb25Gb3JtIiwidmVuZG9yIiwicXVvdGVkX3JhdGUiLCJhbGxvY2F0ZWRfcGVyY2VudGFnZSIsImlzX3NlbGVjdGVkIiwiZmlsZV9uYW1lIiwicGFyc2VkX2RldGFpbHMiLCJhbWVuZG1lbnRGb3JtIiwic2V0QW1lbmRtZW50Rm9ybSIsImFtZW5kZWRfYnkiLCJhbWVuZG1lbnRfcmVhc29uIiwibmV3X3F1b3RlZF9yYXRlIiwibG9hZFdvcmtmbG93RGF0YSIsInByb3BSZXMiLCJpbnN0UmVzIiwiZW1wUmVzIiwicGxhbnRSZXMiLCJkZXB0UmVzIiwidmVuUmVzIiwiUHJvbWlzZSIsImFsbCIsImdldFByb3Bvc2FscyIsImdldEluc3RhbmNlcyIsImdldEVtcGxveWVlcyIsImdldFBsYW50cyIsImdldERlcGFydG1lbnRzIiwiZ2V0VmVuZG9ycyIsImxvYWRlZFByb3Bvc2FscyIsImRhdGEiLCJyZXN1bHRzIiwibG9hZGVkRW1wcyIsImxvYWRlZFBsYW50cyIsImxvYWRlZERlcHRzIiwibG9hZGVkVmVuZG9ycyIsImxlbmd0aCIsInByZXYiLCJpZCIsImVyciIsImNvbnNvbGUiLCJlcnJvciIsImhhbmRsZVZlbmRvck1vZGVDaGFuZ2UiLCJtb2RlIiwiY291bnQiLCJhbGxvYyIsImVxdWFsU2hhcmUiLCJNYXRoIiwiZmxvb3IiLCJyZW1haW5kZXIiLCJpIiwicHVzaCIsImhhbmRsZVZlbmRvckNvdW50Q2hhbmdlIiwibnVtIiwibWF4IiwicGFyc2VJbnQiLCJoYW5kbGVWZW5kb3JBbGxvY2F0aW9uQ2hhbmdlIiwiaW5kZXgiLCJmaWVsZCIsInZhbCIsInVwZGF0ZWQiLCJwYXJzZWRWYWwiLCJwYXJzZUZsb2F0IiwiZ2V0VG90YWxBbGxvY2F0aW9uU3VtIiwicmVkdWNlIiwic3VtIiwiaXRlbSIsImhhbmRsZUNyZWF0ZVByb3Bvc2FsIiwiZXZlbnRPclZhbHVlcyIsImlzRXZlbnQiLCJwcmV2ZW50RGVmYXVsdCIsInByb3Bvc2FsVmFsdWVzIiwidG90YWxBbGxvYyIsImFsZXJ0IiwiaW5zdElkIiwiY3JlYXRlUHJvcG9zYWwiLCJzdGF0dXMiLCJyZXNwb25zZSIsImRldGFpbCIsIm1lc3NhZ2UiLCJoYW5kbGVGaWxlVXBsb2FkIiwiZSIsImZpbGUiLCJ0YXJnZXQiLCJmaWxlcyIsImZpbGVOYW1lIiwibmFtZSIsImV4dHJhY3RlZFJhdGUiLCJyYW5kb20iLCJtYXRjaGVkVmVuZG9yIiwidmVuZG9yX25hbWUiLCJleHRyYWN0ZWRfcmF0ZSIsInRvTG9jYWxlU3RyaW5nIiwidGF4X3JhdGUiLCJjb25maWRlbmNlIiwiaGFuZGxlQWRkUXVvdGF0aW9uIiwiY3JlYXRlUXVvdGF0aW9uIiwicHJvcG9zYWwiLCJoYW5kbGVBY3Rpb24iLCJwcm9wb3NhbElkIiwic3RhdHVzQWN0aW9uIiwidXBkYXRlUHJvcG9zYWwiLCJoYW5kbGVDcmVhdGVBbWVuZG1lbnQiLCJjcmVhdGVBbWVuZG1lbnQiLCJwcmV2aW91c192YWx1ZXMiLCJuZXdfdmFsdWVzIiwib3BlblF1b3RhdGlvbk1vZGFsIiwicHJvcCIsIm9wZW5BbWVuZG1lbnRNb2RhbCIsIm9wZW5JbnNwZWN0TW9kYWwiLCJhcHByb3ZlZENvdW50IiwiZmlsdGVyIiwicCIsInBlbmRpbmdDb3VudCIsInJlamVjdGVkQ291bnQiLCJ0b3RhbENvdW50IiwiZmlsdGVyZWRQcm9wb3NhbHMiLCJ0b0xvd2VyQ2FzZSIsInRvdGFsUGFnZXMiLCJjZWlsIiwicGFnaW5hdGVkUHJvcG9zYWxzIiwic2xpY2UiLCJ2YWx1ZSIsIm1hcCIsInByb2Nlc3NfdHlwZV9uYW1lIiwicmVxdWVzdGVkX2J5X25hbWUiLCJpbnN0IiwiZCIsImlkeCIsInYiLCJOdW1iZXIiLCJjaGVja2VkIiwiZW1wIiwicXVvdGF0aW9ucyIsImFtZW5kbWVudHMiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJXb3JrZmxvd0FwcHJvdmFscy5qc3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFJlYWN0LCB7IHVzZUVmZmVjdCwgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCc7XHJcbmltcG9ydCB7IFdvcmtmbG93QVBJLCBQcm9jZXNzRW5naW5lQVBJLCBDb3JlQVBJIH0gZnJvbSAnLi4vYXBpJztcclxuaW1wb3J0IE1vZGFsIGZyb20gJy4uL2NvbXBvbmVudHMvTW9kYWwnO1xyXG5pbXBvcnQgUGFnaW5hdGlvbiBmcm9tICcuLi9jb21wb25lbnRzL1BhZ2luYXRpb24nO1xuaW1wb3J0IEdlbmVyaWNGb3JtUmVuZGVyZXIgZnJvbSAnLi4vY29tcG9uZW50cy9HZW5lcmljRm9ybVJlbmRlcmVyJztcbmltcG9ydCB7IHVzZUNvbmZpZ3VyYXRpb24gfSBmcm9tICcuLi9jb250ZXh0L0NvbmZpZ3VyYXRpb25Db250ZXh0JztcbmltcG9ydCB7IEdpdFB1bGxSZXF1ZXN0LCBDaGVja0NpcmNsZTIsIFhDaXJjbGUsIENsb2NrLCBQbHVzLCBVcGxvYWQsIEZpbGVUZXh0LCBFeWUsIFNlYXJjaCwgQmFyQ2hhcnQzIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcclxuXHJcbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIFdvcmtmbG93QXBwcm92YWxzKCkge1xuICBjb25zdCB7IGZvcm1zIH0gPSB1c2VDb25maWd1cmF0aW9uKCk7XG4gIGNvbnN0IHdvcmtmbG93Rm9ybSA9IGZvcm1zLmZpbmQoKGZvcm0pID0+IGZvcm0uYWN0aXZlICYmIChcbiAgICBbJ3dvcmtmbG93X3Byb3Bvc2FsX2Zvcm0nLCAncHJvcG9zYWxfZm9ybScsICdhcHByb3ZhbF9mb3JtJ10uaW5jbHVkZXMoZm9ybS5mb3JtX25hbWUpIHx8IGZvcm0ubW9kdWxlID09PSAnd29ya2Zsb3cnXG4gICkpO1xuICBjb25zdCBbcHJvcG9zYWxzLCBzZXRQcm9wb3NhbHNdID0gdXNlU3RhdGUoW10pO1xyXG4gIGNvbnN0IFtpbnN0YW5jZXMsIHNldEluc3RhbmNlc10gPSB1c2VTdGF0ZShbXSk7XHJcbiAgY29uc3QgW2VtcGxveWVlcywgc2V0RW1wbG95ZWVzXSA9IHVzZVN0YXRlKFtdKTtcclxuICBjb25zdCBbcGxhbnRzLCBzZXRQbGFudHNdID0gdXNlU3RhdGUoW10pO1xyXG4gIGNvbnN0IFtkZXBhcnRtZW50cywgc2V0RGVwYXJ0bWVudHNdID0gdXNlU3RhdGUoW10pO1xyXG4gIGNvbnN0IFt2ZW5kb3JzLCBzZXRWZW5kb3JzXSA9IHVzZVN0YXRlKFtdKTtcclxuXHJcbiAgY29uc3QgW2N1cnJlbnRQYWdlLCBzZXRDdXJyZW50UGFnZV0gPSB1c2VTdGF0ZSgxKTtcclxuICBjb25zdCBbc2VhcmNoUXVlcnksIHNldFNlYXJjaFF1ZXJ5XSA9IHVzZVN0YXRlKCcnKTtcclxuICBjb25zdCBpdGVtc1BlclBhZ2UgPSAxMDtcclxuXHJcbiAgY29uc3QgW3Byb3Bvc2FsTW9kYWxPcGVuLCBzZXRQcm9wb3NhbE1vZGFsT3Blbl0gPSB1c2VTdGF0ZShmYWxzZSk7XHJcbiAgY29uc3QgW3F1b3RhdGlvbk1vZGFsT3Blbiwgc2V0UXVvdGF0aW9uTW9kYWxPcGVuXSA9IHVzZVN0YXRlKGZhbHNlKTtcclxuICBjb25zdCBbYW1lbmRtZW50TW9kYWxPcGVuLCBzZXRBbWVuZG1lbnRNb2RhbE9wZW5dID0gdXNlU3RhdGUoZmFsc2UpO1xyXG4gIGNvbnN0IFt2aWV3TW9kYWxPcGVuLCBzZXRWaWV3TW9kYWxPcGVuXSA9IHVzZVN0YXRlKGZhbHNlKTtcclxuICBjb25zdCBbc2VsZWN0ZWRQcm9wb3NhbCwgc2V0U2VsZWN0ZWRQcm9wb3NhbF0gPSB1c2VTdGF0ZShudWxsKTtcclxuXHJcbiAgY29uc3QgW25ld1Byb3Bvc2FsLCBzZXROZXdQcm9wb3NhbF0gPSB1c2VTdGF0ZSh7XHJcbiAgICBwcm9jZXNzX2luc3RhbmNlOiAnJyxcclxuICAgIHJlcXVlc3RlZF9ieTogJycsXHJcbiAgICBwbGFudDogJycsXHJcbiAgICBkZXBhcnRtZW50OiAnJyxcclxuICAgIHZlbmRvcl9tb2RlOiAnc2luZ2xlJyxcclxuICAgIHZlbmRvcl9jb3VudDogMixcclxuICAgIHZlbmRvcl9hbGxvY2F0aW9uczogW3sgdmVuZG9yX2lkOiAnJywgcGVyY2VudGFnZTogMTAwIH1dLFxyXG4gICAgcmVtYXJrczogJycsXHJcbiAgfSk7XHJcblxyXG4gIGNvbnN0IFtxdW90YXRpb25Gb3JtLCBzZXRRdW90YXRpb25Gb3JtXSA9IHVzZVN0YXRlKHtcclxuICAgIHZlbmRvcjogJycsXHJcbiAgICBxdW90ZWRfcmF0ZTogMTUwMCxcclxuICAgIGFsbG9jYXRlZF9wZXJjZW50YWdlOiAxMDAsXHJcbiAgICBpc19zZWxlY3RlZDogdHJ1ZSxcclxuICAgIGZpbGVfbmFtZTogJycsXHJcbiAgICBwYXJzZWRfZGV0YWlsczogbnVsbCxcclxuICB9KTtcclxuXHJcbiAgY29uc3QgW2FtZW5kbWVudEZvcm0sIHNldEFtZW5kbWVudEZvcm1dID0gdXNlU3RhdGUoe1xyXG4gICAgYW1lbmRlZF9ieTogJycsXHJcbiAgICBhbWVuZG1lbnRfcmVhc29uOiAnVXBkYXRlZCBwcmljaW5nIHN0cnVjdHVyZSBhbmQgcmV2aXNlZCBzY29wZScsXHJcbiAgICBuZXdfcXVvdGVkX3JhdGU6IDE4MDAsXHJcbiAgfSk7XHJcblxyXG4gIHVzZUVmZmVjdCgoKSA9PiB7XHJcbiAgICBsb2FkV29ya2Zsb3dEYXRhKCk7XHJcbiAgfSwgW10pO1xyXG5cclxuICBhc3luYyBmdW5jdGlvbiBsb2FkV29ya2Zsb3dEYXRhKCkge1xyXG4gICAgdHJ5IHtcclxuICAgICAgY29uc3QgW3Byb3BSZXMsIGluc3RSZXMsIGVtcFJlcywgcGxhbnRSZXMsIGRlcHRSZXMsIHZlblJlc10gPSBhd2FpdCBQcm9taXNlLmFsbChbXHJcbiAgICAgICAgV29ya2Zsb3dBUEkuZ2V0UHJvcG9zYWxzKCksXHJcbiAgICAgICAgUHJvY2Vzc0VuZ2luZUFQSS5nZXRJbnN0YW5jZXMoKSxcclxuICAgICAgICBDb3JlQVBJLmdldEVtcGxveWVlcygpLFxyXG4gICAgICAgIENvcmVBUEkuZ2V0UGxhbnRzKCksXHJcbiAgICAgICAgQ29yZUFQSS5nZXREZXBhcnRtZW50cygpLFxyXG4gICAgICAgIENvcmVBUEkuZ2V0VmVuZG9ycygpLFxyXG4gICAgICBdKTtcclxuXHJcbiAgICAgIGNvbnN0IGxvYWRlZFByb3Bvc2FscyA9IHByb3BSZXMuZGF0YS5yZXN1bHRzIHx8IHByb3BSZXMuZGF0YSB8fCBbXTtcclxuICAgICAgc2V0UHJvcG9zYWxzKGxvYWRlZFByb3Bvc2Fscyk7XHJcbiAgICAgIHNldEluc3RhbmNlcyhpbnN0UmVzLmRhdGEucmVzdWx0cyB8fCBpbnN0UmVzLmRhdGEgfHwgW10pO1xyXG4gICAgICBjb25zdCBsb2FkZWRFbXBzID0gZW1wUmVzLmRhdGEucmVzdWx0cyB8fCBlbXBSZXMuZGF0YSB8fCBbXTtcclxuICAgICAgY29uc3QgbG9hZGVkUGxhbnRzID0gcGxhbnRSZXMuZGF0YS5yZXN1bHRzIHx8IHBsYW50UmVzLmRhdGEgfHwgW107XHJcbiAgICAgIGNvbnN0IGxvYWRlZERlcHRzID0gZGVwdFJlcy5kYXRhLnJlc3VsdHMgfHwgZGVwdFJlcy5kYXRhIHx8IFtdO1xyXG4gICAgICBjb25zdCBsb2FkZWRWZW5kb3JzID0gdmVuUmVzLmRhdGEucmVzdWx0cyB8fCB2ZW5SZXMuZGF0YSB8fCBbXTtcclxuXHJcbiAgICAgIHNldEVtcGxveWVlcyhsb2FkZWRFbXBzKTtcclxuICAgICAgc2V0UGxhbnRzKGxvYWRlZFBsYW50cyk7XHJcbiAgICAgIHNldERlcGFydG1lbnRzKGxvYWRlZERlcHRzKTtcclxuICAgICAgc2V0VmVuZG9ycyhsb2FkZWRWZW5kb3JzKTtcclxuXHJcbiAgICAgIGlmIChsb2FkZWRFbXBzLmxlbmd0aCA+IDAgJiYgIW5ld1Byb3Bvc2FsLnJlcXVlc3RlZF9ieSkge1xyXG4gICAgICAgIHNldE5ld1Byb3Bvc2FsKHByZXYgPT4gKHtcclxuICAgICAgICAgIC4uLnByZXYsXHJcbiAgICAgICAgICByZXF1ZXN0ZWRfYnk6IGxvYWRlZEVtcHNbMF0uaWQsXHJcbiAgICAgICAgICBwbGFudDogbG9hZGVkUGxhbnRzWzBdPy5pZCB8fCAnJyxcclxuICAgICAgICAgIGRlcGFydG1lbnQ6IGxvYWRlZERlcHRzWzBdPy5pZCB8fCAnJyxcclxuICAgICAgICB9KSk7XHJcbiAgICAgIH1cclxuICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICBjb25zb2xlLmVycm9yKFwiRXJyb3IgbG9hZGluZyB3b3JrZmxvdyBwcm9wb3NhbHM6XCIsIGVycik7XHJcbiAgICB9XHJcbiAgfVxyXG5cclxuICBjb25zdCBoYW5kbGVWZW5kb3JNb2RlQ2hhbmdlID0gKG1vZGUpID0+IHtcclxuICAgIGlmIChtb2RlID09PSAnbXVsdGlwbGUnKSB7XHJcbiAgICAgIGNvbnN0IGNvdW50ID0gbmV3UHJvcG9zYWwudmVuZG9yX2NvdW50IHx8IDI7XHJcbiAgICAgIGNvbnN0IGFsbG9jID0gW107XHJcbiAgICAgIGNvbnN0IGVxdWFsU2hhcmUgPSBNYXRoLmZsb29yKDEwMCAvIGNvdW50KTtcclxuICAgICAgbGV0IHJlbWFpbmRlciA9IDEwMCAtIGVxdWFsU2hhcmUgKiBjb3VudDtcclxuXHJcbiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgY291bnQ7IGkrKykge1xyXG4gICAgICAgIGFsbG9jLnB1c2goe1xyXG4gICAgICAgICAgdmVuZG9yX2lkOiB2ZW5kb3JzW2kgJSB2ZW5kb3JzLmxlbmd0aF0/LmlkIHx8ICcnLFxyXG4gICAgICAgICAgcGVyY2VudGFnZTogZXF1YWxTaGFyZSArIChpID09PSAwID8gcmVtYWluZGVyIDogMCksXHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuICAgICAgc2V0TmV3UHJvcG9zYWwoe1xyXG4gICAgICAgIC4uLm5ld1Byb3Bvc2FsLFxyXG4gICAgICAgIHZlbmRvcl9tb2RlOiBtb2RlLFxyXG4gICAgICAgIHZlbmRvcl9jb3VudDogY291bnQsXHJcbiAgICAgICAgdmVuZG9yX2FsbG9jYXRpb25zOiBhbGxvYyxcclxuICAgICAgfSk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBzZXROZXdQcm9wb3NhbCh7XHJcbiAgICAgICAgLi4ubmV3UHJvcG9zYWwsXHJcbiAgICAgICAgdmVuZG9yX21vZGU6IG1vZGUsXHJcbiAgICAgICAgdmVuZG9yX2FsbG9jYXRpb25zOiBbeyB2ZW5kb3JfaWQ6IHZlbmRvcnNbMF0/LmlkIHx8ICcnLCBwZXJjZW50YWdlOiAxMDAgfV0sXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIGNvbnN0IGhhbmRsZVZlbmRvckNvdW50Q2hhbmdlID0gKGNvdW50KSA9PiB7XHJcbiAgICBjb25zdCBudW0gPSBNYXRoLm1heCgxLCBwYXJzZUludChjb3VudCkgfHwgMSk7XHJcbiAgICBjb25zdCBhbGxvYyA9IFtdO1xyXG4gICAgY29uc3QgZXF1YWxTaGFyZSA9IE1hdGguZmxvb3IoMTAwIC8gbnVtKTtcclxuICAgIGxldCByZW1haW5kZXIgPSAxMDAgLSBlcXVhbFNoYXJlICogbnVtO1xyXG5cclxuICAgIGZvciAobGV0IGkgPSAwOyBpIDwgbnVtOyBpKyspIHtcclxuICAgICAgYWxsb2MucHVzaCh7XHJcbiAgICAgICAgdmVuZG9yX2lkOiB2ZW5kb3JzW2kgJSB2ZW5kb3JzLmxlbmd0aF0/LmlkIHx8ICcnLFxyXG4gICAgICAgIHBlcmNlbnRhZ2U6IGVxdWFsU2hhcmUgKyAoaSA9PT0gMCA/IHJlbWFpbmRlciA6IDApLFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuICAgIHNldE5ld1Byb3Bvc2FsKHtcclxuICAgICAgLi4ubmV3UHJvcG9zYWwsXHJcbiAgICAgIHZlbmRvcl9jb3VudDogbnVtLFxyXG4gICAgICB2ZW5kb3JfYWxsb2NhdGlvbnM6IGFsbG9jLFxyXG4gICAgfSk7XHJcbiAgfTtcclxuXHJcbiAgY29uc3QgaGFuZGxlVmVuZG9yQWxsb2NhdGlvbkNoYW5nZSA9IChpbmRleCwgZmllbGQsIHZhbCkgPT4ge1xyXG4gICAgY29uc3QgdXBkYXRlZCA9IFsuLi5uZXdQcm9wb3NhbC52ZW5kb3JfYWxsb2NhdGlvbnNdO1xyXG4gICAgY29uc3QgcGFyc2VkVmFsID0gZmllbGQgPT09ICdwZXJjZW50YWdlJyA/IE1hdGgubWF4KDAsIHBhcnNlRmxvYXQodmFsKSB8fCAwKSA6IHZhbDtcclxuICAgIHVwZGF0ZWRbaW5kZXhdID0ge1xyXG4gICAgICAuLi51cGRhdGVkW2luZGV4XSxcclxuICAgICAgW2ZpZWxkXTogcGFyc2VkVmFsLFxyXG4gICAgfTtcclxuICAgIHNldE5ld1Byb3Bvc2FsKHsgLi4ubmV3UHJvcG9zYWwsIHZlbmRvcl9hbGxvY2F0aW9uczogdXBkYXRlZCB9KTtcclxuICB9O1xyXG5cclxuICBjb25zdCBnZXRUb3RhbEFsbG9jYXRpb25TdW0gPSAoKSA9PiB7XHJcbiAgICBpZiAobmV3UHJvcG9zYWwudmVuZG9yX21vZGUgPT09ICdzaW5nbGUnKSByZXR1cm4gMTAwO1xyXG4gICAgcmV0dXJuIG5ld1Byb3Bvc2FsLnZlbmRvcl9hbGxvY2F0aW9ucy5yZWR1Y2UoKHN1bSwgaXRlbSkgPT4gc3VtICsgKHBhcnNlRmxvYXQoaXRlbS5wZXJjZW50YWdlKSB8fCAwKSwgMCk7XHJcbiAgfTtcclxuXHJcbiAgY29uc3QgaGFuZGxlQ3JlYXRlUHJvcG9zYWwgPSBhc3luYyAoZXZlbnRPclZhbHVlcykgPT4ge1xuICAgIGNvbnN0IGlzRXZlbnQgPSB0eXBlb2YgZXZlbnRPclZhbHVlcz8ucHJldmVudERlZmF1bHQgPT09ICdmdW5jdGlvbic7XG4gICAgaWYgKGlzRXZlbnQpIGV2ZW50T3JWYWx1ZXMucHJldmVudERlZmF1bHQoKTtcbiAgICBjb25zdCBwcm9wb3NhbFZhbHVlcyA9IGlzRXZlbnQgPyBuZXdQcm9wb3NhbCA6IHsgLi4ubmV3UHJvcG9zYWwsIC4uLihldmVudE9yVmFsdWVzIHx8IHt9KSB9O1xuICAgIGNvbnN0IHRvdGFsQWxsb2MgPSBwcm9wb3NhbFZhbHVlcy52ZW5kb3JfbW9kZSA9PT0gJ3NpbmdsZSdcbiAgICAgID8gMTAwXG4gICAgICA6IHByb3Bvc2FsVmFsdWVzLnZlbmRvcl9hbGxvY2F0aW9ucy5yZWR1Y2UoKHN1bSwgaXRlbSkgPT4gc3VtICsgKHBhcnNlRmxvYXQoaXRlbS5wZXJjZW50YWdlKSB8fCAwKSwgMCk7XG4gICAgaWYgKHByb3Bvc2FsVmFsdWVzLnZlbmRvcl9tb2RlID09PSAnbXVsdGlwbGUnICYmIHRvdGFsQWxsb2MgIT09IDEwMCkge1xuICAgICAgYWxlcnQoYFZlbmRvciBhbGxvY2F0aW9uIHRvdGFsIG11c3QgZXF1YWwgZXhhY3RseSAxMDAlLiBDdXJyZW50IHRvdGFsIGlzICR7dG90YWxBbGxvY30lLmApO1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgdHJ5IHtcclxuICAgICAgbGV0IGluc3RJZCA9IHByb3Bvc2FsVmFsdWVzLnByb2Nlc3NfaW5zdGFuY2U7XG4gICAgICBpZiAoIWluc3RJZCkge1xyXG4gICAgICAgIGlmIChpbnN0YW5jZXMubGVuZ3RoID4gMCkge1xyXG4gICAgICAgICAgaW5zdElkID0gaW5zdGFuY2VzWzBdLmlkO1xyXG4gICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICBhbGVydChcIk5vIFByb2Nlc3MgSW5zdGFuY2UgYXZhaWxhYmxlLiBQbGVhc2UgZXhlY3V0ZSBhIHByb2Nlc3MgaW5zdGFuY2UgZmlyc3QuXCIpO1xyXG4gICAgICAgICAgcmV0dXJuO1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG5cclxuICAgICAgYXdhaXQgV29ya2Zsb3dBUEkuY3JlYXRlUHJvcG9zYWwoe1xyXG4gICAgICAgIHByb2Nlc3NfaW5zdGFuY2U6IGluc3RJZCxcclxuICAgICAgICByZXF1ZXN0ZWRfYnk6IHByb3Bvc2FsVmFsdWVzLnJlcXVlc3RlZF9ieSB8fCBlbXBsb3llZXNbMF0/LmlkIHx8IG51bGwsXG4gICAgICAgIHBsYW50OiBwcm9wb3NhbFZhbHVlcy5wbGFudCB8fCBwbGFudHNbMF0/LmlkIHx8IG51bGwsXG4gICAgICAgIGRlcGFydG1lbnQ6IHByb3Bvc2FsVmFsdWVzLmRlcGFydG1lbnQgfHwgZGVwYXJ0bWVudHNbMF0/LmlkIHx8IG51bGwsXG4gICAgICAgIHN0YXR1czogJ3BlbmRpbmcnLFxuICAgICAgICB2ZW5kb3JfbW9kZTogcHJvcG9zYWxWYWx1ZXMudmVuZG9yX21vZGUsXG4gICAgICAgIHJlbWFya3M6IHByb3Bvc2FsVmFsdWVzLnJlbWFya3MgfHwgYFN0YW5kYXJkIHByb3Bvc2FsIGluaXRpYXRlZCAoJHtwcm9wb3NhbFZhbHVlcy52ZW5kb3JfbW9kZX0gdmVuZG9yIG1vZGUpYCxcbiAgICAgIH0pO1xyXG5cclxuICAgICAgc2V0UHJvcG9zYWxNb2RhbE9wZW4oZmFsc2UpO1xyXG4gICAgICBsb2FkV29ya2Zsb3dEYXRhKCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgYWxlcnQoXCJGYWlsZWQgdG8gc3VibWl0IHByb3Bvc2FsOiBcIiArIChlcnIucmVzcG9uc2U/LmRhdGE/LmRldGFpbCB8fCBlcnIubWVzc2FnZSkpO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIGNvbnN0IGhhbmRsZUZpbGVVcGxvYWQgPSAoZSkgPT4ge1xyXG4gICAgY29uc3QgZmlsZSA9IGUudGFyZ2V0LmZpbGVzWzBdO1xyXG4gICAgaWYgKCFmaWxlKSByZXR1cm47XHJcblxyXG4gICAgY29uc3QgZmlsZU5hbWUgPSBmaWxlLm5hbWU7XHJcbiAgICBjb25zdCBleHRyYWN0ZWRSYXRlID0gKE1hdGguZmxvb3IoTWF0aC5yYW5kb20oKSAqIDUwKSArIDEwKSAqIDEwMCArIDUwMDtcclxuICAgIGNvbnN0IG1hdGNoZWRWZW5kb3IgPSB2ZW5kb3JzW01hdGguZmxvb3IoTWF0aC5yYW5kb20oKSAqIHZlbmRvcnMubGVuZ3RoKV0gfHwgdmVuZG9yc1swXTtcclxuXHJcbiAgICBzZXRRdW90YXRpb25Gb3JtKHByZXYgPT4gKHtcclxuICAgICAgLi4ucHJldixcclxuICAgICAgZmlsZV9uYW1lOiBmaWxlTmFtZSxcclxuICAgICAgdmVuZG9yOiBtYXRjaGVkVmVuZG9yPy5pZCB8fCBwcmV2LnZlbmRvcixcclxuICAgICAgcXVvdGVkX3JhdGU6IGV4dHJhY3RlZFJhdGUsXHJcbiAgICAgIHBhcnNlZF9kZXRhaWxzOiB7XHJcbiAgICAgICAgdmVuZG9yX25hbWU6IG1hdGNoZWRWZW5kb3I/Lm5hbWUgfHwgJ0RldGVjdGVkIFZlbmRvciBFbnRlcnByaXNlJyxcclxuICAgICAgICBleHRyYWN0ZWRfcmF0ZTogYOKCuSR7ZXh0cmFjdGVkUmF0ZS50b0xvY2FsZVN0cmluZygpfSAoRXh0cmFjdGVkIGZyb20gJHtmaWxlTmFtZX0pYCxcclxuICAgICAgICB0YXhfcmF0ZTogJzE4JSBHU1QgSW5jbHVkZWQnLFxyXG4gICAgICAgIGNvbmZpZGVuY2U6ICc5OC41JSBBY2N1cmFjeScsXHJcbiAgICAgIH0sXHJcbiAgICB9KSk7XHJcbiAgfTtcclxuXHJcbiAgY29uc3QgaGFuZGxlQWRkUXVvdGF0aW9uID0gYXN5bmMgKGUpID0+IHtcclxuICAgIGUucHJldmVudERlZmF1bHQoKTtcclxuICAgIGlmICghc2VsZWN0ZWRQcm9wb3NhbCkgcmV0dXJuO1xyXG4gICAgdHJ5IHtcclxuICAgICAgYXdhaXQgV29ya2Zsb3dBUEkuY3JlYXRlUXVvdGF0aW9uKHtcclxuICAgICAgICBwcm9wb3NhbDogc2VsZWN0ZWRQcm9wb3NhbC5pZCxcclxuICAgICAgICB2ZW5kb3I6IHF1b3RhdGlvbkZvcm0udmVuZG9yIHx8IHZlbmRvcnNbMF0/LmlkLFxyXG4gICAgICAgIHF1b3RlZF9yYXRlOiBNYXRoLm1heCgwLCBxdW90YXRpb25Gb3JtLnF1b3RlZF9yYXRlIHx8IDApLFxyXG4gICAgICAgIGFsbG9jYXRlZF9wZXJjZW50YWdlOiBNYXRoLm1heCgwLCBxdW90YXRpb25Gb3JtLmFsbG9jYXRlZF9wZXJjZW50YWdlIHx8IDApLFxyXG4gICAgICAgIGlzX3NlbGVjdGVkOiBxdW90YXRpb25Gb3JtLmlzX3NlbGVjdGVkLFxyXG4gICAgICAgIHJlbWFya3M6IHF1b3RhdGlvbkZvcm0uZmlsZV9uYW1lID8gYFF1b3RhdGlvbiBDb3B5IEF0dGFjaG1lbnQ6ICR7cXVvdGF0aW9uRm9ybS5maWxlX25hbWV9YCA6ICdRdW90YXRpb24gZGV0YWlscyB1cGxvYWRlZCcsXHJcbiAgICAgIH0pO1xyXG4gICAgICBzZXRRdW90YXRpb25Nb2RhbE9wZW4oZmFsc2UpO1xyXG4gICAgICBsb2FkV29ya2Zsb3dEYXRhKCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgYWxlcnQoXCJGYWlsZWQgdG8gYWRkIHF1b3RhdGlvbjogXCIgKyAoZXJyLnJlc3BvbnNlPy5kYXRhPy5kZXRhaWwgfHwgZXJyLm1lc3NhZ2UpKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCBoYW5kbGVBY3Rpb24gPSBhc3luYyAocHJvcG9zYWxJZCwgc3RhdHVzQWN0aW9uKSA9PiB7XHJcbiAgICB0cnkge1xyXG4gICAgICBhd2FpdCBXb3JrZmxvd0FQSS51cGRhdGVQcm9wb3NhbChwcm9wb3NhbElkLCB7IHN0YXR1czogc3RhdHVzQWN0aW9uIH0pO1xyXG4gICAgICBsb2FkV29ya2Zsb3dEYXRhKCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgYWxlcnQoXCJTdGF0dXMgdXBkYXRlIGZhaWxlZDogXCIgKyAoZXJyLnJlc3BvbnNlPy5kYXRhPy5kZXRhaWwgfHwgZXJyLm1lc3NhZ2UpKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCBoYW5kbGVDcmVhdGVBbWVuZG1lbnQgPSBhc3luYyAoZSkgPT4ge1xyXG4gICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xyXG4gICAgaWYgKCFzZWxlY3RlZFByb3Bvc2FsKSByZXR1cm47XHJcbiAgICB0cnkge1xyXG4gICAgICBhd2FpdCBXb3JrZmxvd0FQSS5jcmVhdGVBbWVuZG1lbnQoe1xyXG4gICAgICAgIHByb3Bvc2FsOiBzZWxlY3RlZFByb3Bvc2FsLmlkLFxyXG4gICAgICAgIGFtZW5kZWRfYnk6IGFtZW5kbWVudEZvcm0uYW1lbmRlZF9ieSB8fCBlbXBsb3llZXNbMF0/LmlkLFxyXG4gICAgICAgIGFtZW5kbWVudF9yZWFzb246IGFtZW5kbWVudEZvcm0uYW1lbmRtZW50X3JlYXNvbixcclxuICAgICAgICBwcmV2aW91c192YWx1ZXM6IHsgcmVtYXJrczogc2VsZWN0ZWRQcm9wb3NhbC5yZW1hcmtzIHx8ICcnIH0sXHJcbiAgICAgICAgbmV3X3ZhbHVlczogeyBuZXdfcXVvdGVkX3JhdGU6IE1hdGgubWF4KDAsIGFtZW5kbWVudEZvcm0ubmV3X3F1b3RlZF9yYXRlIHx8IDApIH0sXHJcbiAgICAgIH0pO1xyXG4gICAgICBzZXRBbWVuZG1lbnRNb2RhbE9wZW4oZmFsc2UpO1xyXG4gICAgICBsb2FkV29ya2Zsb3dEYXRhKCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgYWxlcnQoXCJGYWlsZWQgdG8gc3VibWl0IGFtZW5kbWVudDogXCIgKyAoZXJyLnJlc3BvbnNlPy5kYXRhPy5kZXRhaWwgfHwgZXJyLm1lc3NhZ2UpKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCBvcGVuUXVvdGF0aW9uTW9kYWwgPSAocHJvcCkgPT4ge1xyXG4gICAgc2V0U2VsZWN0ZWRQcm9wb3NhbChwcm9wKTtcclxuICAgIHNldFF1b3RhdGlvbkZvcm0oe1xyXG4gICAgICB2ZW5kb3I6IHZlbmRvcnNbMF0/LmlkIHx8ICcnLFxyXG4gICAgICBxdW90ZWRfcmF0ZTogMTUwMCxcclxuICAgICAgYWxsb2NhdGVkX3BlcmNlbnRhZ2U6IDEwMCxcclxuICAgICAgaXNfc2VsZWN0ZWQ6IHRydWUsXHJcbiAgICAgIGZpbGVfbmFtZTogJycsXHJcbiAgICAgIHBhcnNlZF9kZXRhaWxzOiBudWxsLFxyXG4gICAgfSk7XHJcbiAgICBzZXRRdW90YXRpb25Nb2RhbE9wZW4odHJ1ZSk7XHJcbiAgfTtcclxuXHJcbiAgY29uc3Qgb3BlbkFtZW5kbWVudE1vZGFsID0gKHByb3ApID0+IHtcclxuICAgIHNldFNlbGVjdGVkUHJvcG9zYWwocHJvcCk7XHJcbiAgICBzZXRBbWVuZG1lbnRGb3JtKHtcclxuICAgICAgYW1lbmRlZF9ieTogZW1wbG95ZWVzWzBdPy5pZCB8fCAnJyxcclxuICAgICAgYW1lbmRtZW50X3JlYXNvbjogJ1VwZGF0ZWQgcHJpY2luZyBzdHJ1Y3R1cmUgYW5kIHJldmlzZWQgc2NvcGUnLFxyXG4gICAgICBuZXdfcXVvdGVkX3JhdGU6IDE4MDAsXHJcbiAgICB9KTtcclxuICAgIHNldEFtZW5kbWVudE1vZGFsT3Blbih0cnVlKTtcclxuICB9O1xyXG5cclxuICBjb25zdCBvcGVuSW5zcGVjdE1vZGFsID0gKHByb3ApID0+IHtcclxuICAgIHNldFNlbGVjdGVkUHJvcG9zYWwocHJvcCk7XHJcbiAgICBzZXRWaWV3TW9kYWxPcGVuKHRydWUpO1xyXG4gIH07XHJcblxyXG4gIGNvbnN0IGFwcHJvdmVkQ291bnQgPSBwcm9wb3NhbHMuZmlsdGVyKHAgPT4gcC5zdGF0dXMgPT09ICdhcHByb3ZlZCcpLmxlbmd0aDtcclxuICBjb25zdCBwZW5kaW5nQ291bnQgPSBwcm9wb3NhbHMuZmlsdGVyKHAgPT4gcC5zdGF0dXMgPT09ICdwZW5kaW5nJykubGVuZ3RoO1xyXG4gIGNvbnN0IHJlamVjdGVkQ291bnQgPSBwcm9wb3NhbHMuZmlsdGVyKHAgPT4gcC5zdGF0dXMgPT09ICdyZWplY3RlZCcpLmxlbmd0aDtcclxuICBjb25zdCB0b3RhbENvdW50ID0gcHJvcG9zYWxzLmxlbmd0aDtcclxuXHJcbiAgY29uc3QgZmlsdGVyZWRQcm9wb3NhbHMgPSBwcm9wb3NhbHMuZmlsdGVyKChwKSA9PlxyXG4gICAgcC5pZD8udG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhzZWFyY2hRdWVyeS50b0xvd2VyQ2FzZSgpKSB8fFxyXG4gICAgcC5yZW1hcmtzPy50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHNlYXJjaFF1ZXJ5LnRvTG93ZXJDYXNlKCkpIHx8XHJcbiAgICBwLnN0YXR1cz8udG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhzZWFyY2hRdWVyeS50b0xvd2VyQ2FzZSgpKVxyXG4gICk7XHJcblxyXG4gIGNvbnN0IHRvdGFsUGFnZXMgPSBNYXRoLmNlaWwoZmlsdGVyZWRQcm9wb3NhbHMubGVuZ3RoIC8gaXRlbXNQZXJQYWdlKSB8fCAxO1xyXG4gIGNvbnN0IHBhZ2luYXRlZFByb3Bvc2FscyA9IGZpbHRlcmVkUHJvcG9zYWxzLnNsaWNlKChjdXJyZW50UGFnZSAtIDEpICogaXRlbXNQZXJQYWdlLCBjdXJyZW50UGFnZSAqIGl0ZW1zUGVyUGFnZSk7XHJcblxyXG4gIHJldHVybiAoXHJcbiAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktNiBhbmltYXRlLWZhZGUtaW4gZm9udC1zYW5zXCI+XHJcbiAgICAgIHsvKiBIZWFkZXIgKi99XHJcbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBmbGV4LWNvbCBzbTpmbGV4LXJvdyBzbTppdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGdhcC00XCI+XHJcbiAgICAgICAgPGRpdj5cclxuICAgICAgICAgIDxoMSBjbGFzc05hbWU9XCJwYWdlLXRpdGxlIGZsZXggaXRlbXMtY2VudGVyIGdhcC0yXCI+XHJcbiAgICAgICAgICAgIDxHaXRQdWxsUmVxdWVzdCBjbGFzc05hbWU9XCJ3LTYgaC02IHRleHQtWyMxQjRFOUJdXCIgLz4gTXVsdGktU3RhZ2UgV29ya2Zsb3cgJiBBcHByb3ZhbHNcclxuICAgICAgICAgIDwvaDE+XHJcbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+UHJvcG9zYWwgaW5pdGlhdGlvbiwgbXVsdGktdmVuZG9yIHJhdGUgcXVvdGF0aW9ucywgYW1lbmRtZW50cywgYW5kIHNpZ24tb2Zmcy48L3A+XHJcbiAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBnYXAtMlwiPlxyXG4gICAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBzZXRQcm9wb3NhbE1vZGFsT3Blbih0cnVlKX0gY2xhc3NOYW1lPVwiYnRuLXByaW1hcnlcIj5cclxuICAgICAgICAgICAgPFBsdXMgY2xhc3NOYW1lPVwidy00IGgtNFwiIC8+IEluaXRpYXRlIEFwcHJvdmFsIFByb3Bvc2FsXHJcbiAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICA8L2Rpdj5cclxuICAgICAgPC9kaXY+XHJcblxyXG4gICAgICB7LyogTWV0cmljcyBCYW5uZXIgKi99XHJcbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZ3JpZCBncmlkLWNvbHMtMSBzbTpncmlkLWNvbHMtMiBsZzpncmlkLWNvbHMtNCBnYXAtNFwiPlxyXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwia3BpLWNhcmQgYm9yZGVyLWwtNCBib3JkZXItbC1bIzE2QTM0QV1cIj5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuXCI+XHJcbiAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwia3BpLWxhYmVsXCI+QXBwcm92ZWQgUHJvcG9zYWxzPC9wPlxyXG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImtwaS1udW1iZXIgbXQtMSB0ZXh0LVsjMTZBMzRBXVwiPnthcHByb3ZlZENvdW50fTwvcD5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwidy0xMCBoLTEwIHJvdW5kZWQtbGcgYmctWyNEQ0ZDRTddIHRleHQtWyMxNkEzNEFdIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyXCI+XHJcbiAgICAgICAgICAgICAgPENoZWNrQ2lyY2xlMiBjbGFzc05hbWU9XCJ3LTUgaC01XCIgLz5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJrcGktY2FyZCBib3JkZXItbC00IGJvcmRlci1sLVsjMjU2M0VCXVwiPlxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW5cIj5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJrcGktbGFiZWxcIj5QZW5kaW5nIFByb3Bvc2FsczwvcD5cclxuICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJrcGktbnVtYmVyIG10LTEgdGV4dC1bIzI1NjNFQl1cIj57cGVuZGluZ0NvdW50fTwvcD5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwidy0xMCBoLTEwIHJvdW5kZWQtbGcgYmctWyNEQkVBRkVdIHRleHQtWyMyNTYzRUJdIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyXCI+XHJcbiAgICAgICAgICAgICAgPENsb2NrIGNsYXNzTmFtZT1cInctNSBoLTVcIiAvPlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImtwaS1jYXJkIGJvcmRlci1sLTQgYm9yZGVyLWwtWyNEQzI2MjZdXCI+XHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlblwiPlxyXG4gICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImtwaS1sYWJlbFwiPlJlamVjdGVkIFByb3Bvc2FsczwvcD5cclxuICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJrcGktbnVtYmVyIG10LTEgdGV4dC1bI0RDMjYyNl1cIj57cmVqZWN0ZWRDb3VudH08L3A+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInctMTAgaC0xMCByb3VuZGVkLWxnIGJnLVsjRkVFMkUyXSB0ZXh0LVsjREMyNjI2XSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlclwiPlxyXG4gICAgICAgICAgICAgIDxYQ2lyY2xlIGNsYXNzTmFtZT1cInctNSBoLTVcIiAvPlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImtwaS1jYXJkIGJvcmRlci1sLTQgYm9yZGVyLWwtWyMxQjRFOUJdXCI+XHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlblwiPlxyXG4gICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImtwaS1sYWJlbFwiPlRvdGFsIFByb3Bvc2FsczwvcD5cclxuICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJrcGktbnVtYmVyIG10LTEgdGV4dC1bIzFCNEU5Ql1cIj57dG90YWxDb3VudH08L3A+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInctMTAgaC0xMCByb3VuZGVkLWxnIGJnLVsjRUZGNkZGXSB0ZXh0LVsjMUI0RTlCXSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlclwiPlxyXG4gICAgICAgICAgICAgIDxCYXJDaGFydDMgY2xhc3NOYW1lPVwidy01IGgtNVwiIC8+XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgPC9kaXY+XHJcbiAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgey8qIE1haW4gUGFuZWwgKi99XHJcbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3RhbmRhcmQtY2FyZCBzcGFjZS15LTRcIj5cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlblwiPlxyXG4gICAgICAgICAgPGgzIGNsYXNzTmFtZT1cInNlY3Rpb24tdGl0bGVcIj5Xb3JrZmxvdyBQcm9wb3NhbHMgKHtmaWx0ZXJlZFByb3Bvc2Fscy5sZW5ndGh9KTwvaDM+XHJcblxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGl2ZSB3LTY0XCI+XHJcbiAgICAgICAgICAgIDxTZWFyY2ggY2xhc3NOYW1lPVwidy00IGgtNCB0ZXh0LVsjNkI3MjgwXSBhYnNvbHV0ZSBsZWZ0LTMgdG9wLTNcIiAvPlxyXG4gICAgICAgICAgICA8aW5wdXRcclxuICAgICAgICAgICAgICB0eXBlPVwidGV4dFwiXHJcbiAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9XCJTZWFyY2ggcHJvcG9zYWxzLi4uXCJcclxuICAgICAgICAgICAgICB2YWx1ZT17c2VhcmNoUXVlcnl9XHJcbiAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRTZWFyY2hRdWVyeShlLnRhcmdldC52YWx1ZSl9XHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dCBwbC05IHRleHQteHNcIlxyXG4gICAgICAgICAgICAvPlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwib3ZlcmZsb3cteC1hdXRvIGN1c3RvbS1zY3JvbGxiYXJcIj5cclxuICAgICAgICAgIDx0YWJsZSBjbGFzc05hbWU9XCJjdXN0b20tdGFibGVcIj5cclxuICAgICAgICAgICAgPHRoZWFkPlxyXG4gICAgICAgICAgICAgIDx0cj5cclxuICAgICAgICAgICAgICAgIDx0aD5Qcm9wb3NhbCBJRDwvdGg+XHJcbiAgICAgICAgICAgICAgICA8dGg+UHJvY2VzcyBUeXBlPC90aD5cclxuICAgICAgICAgICAgICAgIDx0aD5SZXF1ZXN0ZWQgQnk8L3RoPlxyXG4gICAgICAgICAgICAgICAgPHRoPlZlbmRvciBNb2RlPC90aD5cclxuICAgICAgICAgICAgICAgIDx0aD5TdGF0dXMgKFNlbGVjdCB0byBVcGRhdGUpPC90aD5cclxuICAgICAgICAgICAgICAgIDx0aD5BY3Rpb25zPC90aD5cclxuICAgICAgICAgICAgICA8L3RyPlxyXG4gICAgICAgICAgICA8L3RoZWFkPlxyXG4gICAgICAgICAgICA8dGJvZHk+XHJcbiAgICAgICAgICAgICAge3BhZ2luYXRlZFByb3Bvc2Fscy5sZW5ndGggPT09IDAgPyAoXHJcbiAgICAgICAgICAgICAgICA8dHI+XHJcbiAgICAgICAgICAgICAgICAgIDx0ZCBjb2xTcGFuPVwiNlwiIGNsYXNzTmFtZT1cInRleHQtY2VudGVyIHB5LTYgdGV4dC1bIzZCNzI4MF0gaXRhbGljXCI+Tm8gd29ya2Zsb3cgcHJvcG9zYWxzIGxvZ2dlZC48L3RkPlxyXG4gICAgICAgICAgICAgICAgPC90cj5cclxuICAgICAgICAgICAgICApIDogKFxyXG4gICAgICAgICAgICAgICAgcGFnaW5hdGVkUHJvcG9zYWxzLm1hcCgocHJvcCkgPT4gKFxyXG4gICAgICAgICAgICAgICAgICA8dHIga2V5PXtwcm9wLmlkfT5cclxuICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwiZm9udC1tb25vIHRleHQteHMgdGV4dC1bIzFCNEU5Ql0gZm9udC1zZW1pYm9sZFwiPntwcm9wLmlkfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT1cImZvbnQtc2VtaWJvbGQgdGV4dC1bIzFGMjkzN11cIj57cHJvcC5wcm9jZXNzX3R5cGVfbmFtZSB8fCAnV29ya2Zsb3cgUHJvcG9zYWwnfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgPHRkPntwcm9wLnJlcXVlc3RlZF9ieV9uYW1lIHx8ICctJ308L3RkPlxyXG4gICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJjYXBpdGFsaXplIHRleHQtWyMzNzQxNTFdXCI+e3Byb3AudmVuZG9yX21vZGV9IFZlbmRvcjwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgPHRkPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPHNlbGVjdFxyXG4gICAgICAgICAgICAgICAgICAgICAgICB2YWx1ZT17cHJvcC5zdGF0dXN9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gaGFuZGxlQWN0aW9uKHByb3AuaWQsIGUudGFyZ2V0LnZhbHVlKX1cclxuICAgICAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPXtgZm9ybS1pbnB1dCB0ZXh0LXhzIGgtOCBweS0wIHB4LTIgZm9udC1ib2xkIGNhcGl0YWxpemUgY3Vyc29yLXBvaW50ZXIgJHtcclxuICAgICAgICAgICAgICAgICAgICAgICAgICBwcm9wLnN0YXR1cyA9PT0gJ2FwcHJvdmVkJyA/ICd0ZXh0LVsjMTZBMzRBXSBib3JkZXItWyNCQkY3RDBdJyA6XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvcC5zdGF0dXMgPT09ICdyZWplY3RlZCcgPyAndGV4dC1bI0RDMjYyNl0gYm9yZGVyLVsjRkVDQUNBXScgOlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHByb3Auc3RhdHVzID09PSAnYW1lbmRlZCcgPyAndGV4dC1bI0NBOEEwNF0gYm9yZGVyLVsjRkVGMDhBXScgOlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICd0ZXh0LVsjMjU2M0VCXSBib3JkZXItWyNCRkRCRkVdJ1xyXG4gICAgICAgICAgICAgICAgICAgICAgICB9YH1cclxuICAgICAgICAgICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cInBlbmRpbmdcIj5QZW5kaW5nPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJhcHByb3ZlZFwiPkFwcHJvdmVkPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJyZWplY3RlZFwiPlJlamVjdGVkPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJhbWVuZGVkXCI+QW1lbmRlZDwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPC9zZWxlY3Q+XHJcbiAgICAgICAgICAgICAgICAgICAgPC90ZD5cclxuICAgICAgICAgICAgICAgICAgICA8dGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjVcIj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBvcGVuSW5zcGVjdE1vZGFsKHByb3ApfSB0aXRsZT1cIlZpZXcgUHJvcG9zYWwgRGV0YWlsc1wiIGNsYXNzTmFtZT1cImJ0bi1hY3Rpb24tdmlld1wiPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDxFeWUgY2xhc3NOYW1lPVwidy0zLjUgaC0zLjVcIiAvPiBWaWV3XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8YnV0dG9uIG9uQ2xpY2s9eygpID0+IG9wZW5RdW90YXRpb25Nb2RhbChwcm9wKX0gdGl0bGU9XCJBZGQgUXVvdGF0aW9uIENvcHlcIiBjbGFzc05hbWU9XCJidG4tYWN0aW9uLWVkaXRcIj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8UGx1cyBjbGFzc05hbWU9XCJ3LTMuNSBoLTMuNVwiIC8+IFJhdGVcclxuICAgICAgICAgICAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxidXR0b24gb25DbGljaz17KCkgPT4gb3BlbkFtZW5kbWVudE1vZGFsKHByb3ApfSB0aXRsZT1cIlN1Ym1pdCBBbWVuZG1lbnRcIiBjbGFzc05hbWU9XCJidG4tYWN0aW9uLXJlc2V0XCI+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgPEZpbGVUZXh0IGNsYXNzTmFtZT1cInctMy41IGgtMy41XCIgLz4gRWRpdFxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgIDwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgICApKVxyXG4gICAgICAgICAgICAgICl9XHJcbiAgICAgICAgICAgIDwvdGJvZHk+XHJcbiAgICAgICAgICA8L3RhYmxlPlxyXG4gICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICA8UGFnaW5hdGlvblxyXG4gICAgICAgICAgY3VycmVudFBhZ2U9e2N1cnJlbnRQYWdlfVxyXG4gICAgICAgICAgdG90YWxQYWdlcz17dG90YWxQYWdlc31cclxuICAgICAgICAgIG9uUGFnZUNoYW5nZT17c2V0Q3VycmVudFBhZ2V9XHJcbiAgICAgICAgICB0b3RhbEl0ZW1zPXtmaWx0ZXJlZFByb3Bvc2Fscy5sZW5ndGh9XHJcbiAgICAgICAgICBpdGVtc1BlclBhZ2U9ezEwfVxyXG4gICAgICAgIC8+XHJcbiAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgey8qIE1vZGFscyAqL31cbiAgICAgIDxNb2RhbCBpc09wZW49e3Byb3Bvc2FsTW9kYWxPcGVufSBvbkNsb3NlPXsoKSA9PiBzZXRQcm9wb3NhbE1vZGFsT3BlbihmYWxzZSl9IHNpemU9XCJtZFwiIHRpdGxlPVwiSW5pdGlhdGUgQXBwcm92YWwgUHJvcG9zYWxcIj5cbiAgICAgICAge3dvcmtmbG93Rm9ybSA/IChcbiAgICAgICAgICA8R2VuZXJpY0Zvcm1SZW5kZXJlclxuICAgICAgICAgICAgZm9ybUNvbmZpZz17d29ya2Zsb3dGb3JtfVxuICAgICAgICAgICAgaW5pdGlhbFZhbHVlcz17bmV3UHJvcG9zYWx9XG4gICAgICAgICAgICBvblN1Ym1pdD17aGFuZGxlQ3JlYXRlUHJvcG9zYWx9XG4gICAgICAgICAgICBvbkNhbmNlbD17KCkgPT4gc2V0UHJvcG9zYWxNb2RhbE9wZW4oZmFsc2UpfVxuICAgICAgICAgIC8+XG4gICAgICAgICkgOiAoXG4gICAgICAgIDxmb3JtIG9uU3VibWl0PXtoYW5kbGVDcmVhdGVQcm9wb3NhbH0gY2xhc3NOYW1lPVwic3BhY2UteS00XCI+XG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5Qcm9jZXNzIEV4ZWN1dGlvbiBJbnN0YW5jZSAqPC9sYWJlbD5cclxuICAgICAgICAgICAgPHNlbGVjdCByZXF1aXJlZCB2YWx1ZT17bmV3UHJvcG9zYWwucHJvY2Vzc19pbnN0YW5jZX0gb25DaGFuZ2U9eyhlKSA9PiBzZXROZXdQcm9wb3NhbCh7IC4uLm5ld1Byb3Bvc2FsLCBwcm9jZXNzX2luc3RhbmNlOiBlLnRhcmdldC52YWx1ZSB9KX0gY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiPlxyXG4gICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJcIj5TZWxlY3QgUHJvY2VzcyBFeGVjdXRpb248L29wdGlvbj5cclxuICAgICAgICAgICAgICB7aW5zdGFuY2VzLm1hcCgoaW5zdCkgPT4gKFxyXG4gICAgICAgICAgICAgICAgPG9wdGlvbiBrZXk9e2luc3QuaWR9IHZhbHVlPXtpbnN0LmlkfT57aW5zdC5wcm9jZXNzX3R5cGVfbmFtZSB8fCAnRXhlY3V0aW9uJ30gKHtpbnN0LmlkfSk8L29wdGlvbj5cclxuICAgICAgICAgICAgICApKX1cclxuICAgICAgICAgICAgPC9zZWxlY3Q+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTIgZ2FwLTRcIj5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPlBsYW50IFVuaXQ8L2xhYmVsPlxyXG4gICAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e25ld1Byb3Bvc2FsLnBsYW50fSBvbkNoYW5nZT17KGUpID0+IHNldE5ld1Byb3Bvc2FsKHsgLi4ubmV3UHJvcG9zYWwsIHBsYW50OiBlLnRhcmdldC52YWx1ZSB9KX0gY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiPlxyXG4gICAgICAgICAgICAgICAge3BsYW50cy5tYXAoKHApID0+IDxvcHRpb24ga2V5PXtwLmlkfSB2YWx1ZT17cC5pZH0+e3AubmFtZX08L29wdGlvbj4pfVxyXG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPkRlcGFydG1lbnQ8L2xhYmVsPlxyXG4gICAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e25ld1Byb3Bvc2FsLmRlcGFydG1lbnR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0TmV3UHJvcG9zYWwoeyAuLi5uZXdQcm9wb3NhbCwgZGVwYXJ0bWVudDogZS50YXJnZXQudmFsdWUgfSl9IGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIj5cclxuICAgICAgICAgICAgICAgIHtkZXBhcnRtZW50cy5tYXAoKGQpID0+IDxvcHRpb24ga2V5PXtkLmlkfSB2YWx1ZT17ZC5pZH0+e2QubmFtZX08L29wdGlvbj4pfVxyXG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+VmVuZG9yIFF1b3RpbmcgTW9kZTwvbGFiZWw+XHJcbiAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e25ld1Byb3Bvc2FsLnZlbmRvcl9tb2RlfSBvbkNoYW5nZT17KGUpID0+IGhhbmRsZVZlbmRvck1vZGVDaGFuZ2UoZS50YXJnZXQudmFsdWUpfSBjbGFzc05hbWU9XCJmb3JtLWlucHV0XCI+XHJcbiAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cInNpbmdsZVwiPlNpbmdsZSBWZW5kb3IgUHJvY3VyZW1lbnQgKDEwMCUpPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cIm11bHRpcGxlXCI+TXVsdGlwbGUgVmVuZG9yIFNwbGl0IFByb2N1cmVtZW50IChNdXN0IHN1bSB0byAxMDAlKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICA8L3NlbGVjdD5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIHtuZXdQcm9wb3NhbC52ZW5kb3JfbW9kZSA9PT0gJ211bHRpcGxlJyAmJiAoXHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS0zIHAtNCBiZy1bI0Y4RkFGQ10gcm91bmRlZC1sZyBib3JkZXIgYm9yZGVyLVsjRTVFN0VCXVwiPlxyXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuXCI+XHJcbiAgICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbCBtYi0wXCI+SG93IG1hbnkgdmVuZG9ycz88L2xhYmVsPlxyXG4gICAgICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgICAgIHR5cGU9XCJudW1iZXJcIlxyXG4gICAgICAgICAgICAgICAgICBtaW49XCIxXCJcclxuICAgICAgICAgICAgICAgICAgbWF4PVwiMTBcIlxyXG4gICAgICAgICAgICAgICAgICB2YWx1ZT17bmV3UHJvcG9zYWwudmVuZG9yX2NvdW50fVxyXG4gICAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IGhhbmRsZVZlbmRvckNvdW50Q2hhbmdlKGUudGFyZ2V0LnZhbHVlKX1cclxuICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dCB3LTI0IHRleHQtY2VudGVyXCJcclxuICAgICAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS0yIHB0LTIgYm9yZGVyLXQgYm9yZGVyLVsjRTVFN0VCXVwiPlxyXG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgdGV4dC1bIzZCNzI4MF0gZmxleCBqdXN0aWZ5LWJldHdlZW5cIj5cclxuICAgICAgICAgICAgICAgICAgPHNwYW4+VmVuZG9yIEVudGVycHJpc2UgU2VsZWN0aW9uPC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgICA8c3Bhbj5BbGxvY2F0aW9uICU8L3NwYW4+XHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICAgICAgICB7bmV3UHJvcG9zYWwudmVuZG9yX2FsbG9jYXRpb25zLm1hcCgoYWxsb2MsIGlkeCkgPT4gKFxyXG4gICAgICAgICAgICAgICAgICA8ZGl2IGtleT17aWR4fSBjbGFzc05hbWU9XCJmbGV4IGdhcC0zIGl0ZW1zLWNlbnRlclwiPlxyXG4gICAgICAgICAgICAgICAgICAgIDxzZWxlY3RcclxuICAgICAgICAgICAgICAgICAgICAgIHZhbHVlPXthbGxvYy52ZW5kb3JfaWR9XHJcbiAgICAgICAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IGhhbmRsZVZlbmRvckFsbG9jYXRpb25DaGFuZ2UoaWR4LCAndmVuZG9yX2lkJywgZS50YXJnZXQudmFsdWUpfVxyXG4gICAgICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dCB0ZXh0LXhzXCJcclxuICAgICAgICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiXCI+U2VsZWN0IFZlbmRvciAje2lkeCArIDF9PC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICAgICAgICB7dmVuZG9ycy5tYXAoKHYpID0+IDxvcHRpb24ga2V5PXt2LmlkfSB2YWx1ZT17di5pZH0+e3YubmFtZX08L29wdGlvbj4pfVxyXG4gICAgICAgICAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicmVsYXRpdmUgdy0zMlwiPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIHR5cGU9XCJudW1iZXJcIlxyXG4gICAgICAgICAgICAgICAgICAgICAgICBtaW49XCIwXCJcclxuICAgICAgICAgICAgICAgICAgICAgICAgbWF4PVwiMTAwXCJcclxuICAgICAgICAgICAgICAgICAgICAgICAgdmFsdWU9e2FsbG9jLnBlcmNlbnRhZ2V9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gaGFuZGxlVmVuZG9yQWxsb2NhdGlvbkNoYW5nZShpZHgsICdwZXJjZW50YWdlJywgZS50YXJnZXQudmFsdWUpfVxyXG4gICAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJmb3JtLWlucHV0IHRleHQteHMgdGV4dC1yaWdodCBwci02XCJcclxuICAgICAgICAgICAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJhYnNvbHV0ZSByaWdodC0yIHRvcC0yIHRleHQteHMgdGV4dC1bIzZCNzI4MF1cIj4lPC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICkpfVxyXG5cclxuICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIHB0LTJcIj5cclxuICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwidGV4dC14cyBmb250LWJvbGQgdGV4dC1bIzFGMjkzN11cIj5Ub3RhbCBBbGxvY2F0aW9uIFBlcmNlbnRhZ2U6PC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9e2Bmb250LW1vbm8gZm9udC1ib2xkIHRleHQtc20gJHtcclxuICAgICAgICAgICAgICAgICAgICBnZXRUb3RhbEFsbG9jYXRpb25TdW0oKSA9PT0gMTAwID8gJ3RleHQtWyMxNkEzNEFdJyA6ICd0ZXh0LVsjREMyNjI2XSdcclxuICAgICAgICAgICAgICAgICAgfWB9PlxyXG4gICAgICAgICAgICAgICAgICAgIHtnZXRUb3RhbEFsbG9jYXRpb25TdW0oKX0lIHtnZXRUb3RhbEFsbG9jYXRpb25TdW0oKSA9PT0gMTAwID8gJ+KckyAoVmFsaWQgMTAwJSknIDogJ+KaoCAoTXVzdCBlcXVhbCAxMDAlKSd9XHJcbiAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICl9XHJcblxyXG4gICAgICAgICAgPGRpdj48bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPlByb3Bvc2FsIFJlbWFya3M8L2xhYmVsPjx0ZXh0YXJlYSB2YWx1ZT17bmV3UHJvcG9zYWwucmVtYXJrc30gb25DaGFuZ2U9eyhlKSA9PiBzZXROZXdQcm9wb3NhbCh7IC4uLm5ld1Byb3Bvc2FsLCByZW1hcmtzOiBlLnRhcmdldC52YWx1ZSB9KX0gY2xhc3NOYW1lPVwiZm9ybS1pbnB1dCBoLTIwXCIgcGxhY2Vob2xkZXI9XCJKdXN0aWZpY2F0aW9uIGZvciBwcm9wb3NhbC4uLlwiPjwvdGV4dGFyZWE+PC9kaXY+XHJcblxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJtb2RhbC1mb290ZXJcIj5cclxuICAgICAgICAgICAgPGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gc2V0UHJvcG9zYWxNb2RhbE9wZW4oZmFsc2UpfSBjbGFzc05hbWU9XCJidG4tc2Vjb25kYXJ5XCI+Q2FuY2VsPC9idXR0b24+XHJcbiAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICB0eXBlPVwic3VibWl0XCJcclxuICAgICAgICAgICAgICBkaXNhYmxlZD17bmV3UHJvcG9zYWwudmVuZG9yX21vZGUgPT09ICdtdWx0aXBsZScgJiYgZ2V0VG90YWxBbGxvY2F0aW9uU3VtKCkgIT09IDEwMH1cclxuICAgICAgICAgICAgICBjbGFzc05hbWU9e2BidG4tcHJpbWFyeSAke25ld1Byb3Bvc2FsLnZlbmRvcl9tb2RlID09PSAnbXVsdGlwbGUnICYmIGdldFRvdGFsQWxsb2NhdGlvblN1bSgpICE9PSAxMDAgPyAnb3BhY2l0eS01MCBjdXJzb3Itbm90LWFsbG93ZWQnIDogJyd9YH1cclxuICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgIFN1Ym1pdCBQcm9wb3NhbFxyXG4gICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZm9ybT5cbiAgICAgICAgKX1cbiAgICAgIDwvTW9kYWw+XG5cclxuICAgICAgPE1vZGFsIGlzT3Blbj17cXVvdGF0aW9uTW9kYWxPcGVufSBvbkNsb3NlPXsoKSA9PiBzZXRRdW90YXRpb25Nb2RhbE9wZW4oZmFsc2UpfSBzaXplPVwibWRcIiB0aXRsZT17YFVwbG9hZCBRdW90YXRpb24gQ29weSBmb3IgUHJvcG9zYWwgJHtzZWxlY3RlZFByb3Bvc2FsPy5pZH1gfT5cclxuICAgICAgICA8Zm9ybSBvblN1Ym1pdD17aGFuZGxlQWRkUXVvdGF0aW9ufSBjbGFzc05hbWU9XCJzcGFjZS15LTRcIj5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYm9yZGVyLTIgYm9yZGVyLWRhc2hlZCBib3JkZXItWyMxQjRFOUJdLzQwIHJvdW5kZWQtbGcgcC01IHRleHQtY2VudGVyIGJnLVsjRUZGNkZGXSBob3ZlcjpiZy1bI0RCRUFGRV0gdHJhbnNpdGlvbi1hbGwgY3Vyc29yLXBvaW50ZXIgcmVsYXRpdmVcIj5cclxuICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgdHlwZT1cImZpbGVcIlxyXG4gICAgICAgICAgICAgIGFjY2VwdD1cIi5wZGYsLmRvYywuZG9jeCwuanBnLC5wbmcsLnR4dFwiXHJcbiAgICAgICAgICAgICAgb25DaGFuZ2U9e2hhbmRsZUZpbGVVcGxvYWR9XHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiYWJzb2x1dGUgaW5zZXQtMCBvcGFjaXR5LTAgY3Vyc29yLXBvaW50ZXJcIlxyXG4gICAgICAgICAgICAvPlxyXG4gICAgICAgICAgICA8VXBsb2FkIGNsYXNzTmFtZT1cInctOCBoLTggdGV4dC1bIzFCNEU5Ql0gbXgtYXV0byBtYi0yXCIgLz5cclxuICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC14cyBmb250LXNlbWlib2xkIHRleHQtWyMxRjI5MzddXCI+VXBsb2FkIFF1b3RhdGlvbiBEb2N1bWVudCBDb3B5PC9wPlxyXG4gICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LVsxMXB4XSB0ZXh0LVsjNkI3MjgwXSBtdC0xXCI+UERGLCBJbWFnZSwgb3IgRE9DIChFeHRyYWN0cyByYXRlIGRldGFpbHMpPC9wPlxyXG4gICAgICAgICAgICB7cXVvdGF0aW9uRm9ybS5maWxlX25hbWUgJiYgKFxyXG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cImlubGluZS1ibG9jayBtdC0yIHRleHQteHMgZm9udC1tb25vIHRleHQtWyMxNkEzNEFdIGJnLVsjRENGQ0U3XSBweC0zIHB5LTEgcm91bmRlZCBib3JkZXIgYm9yZGVyLVsjQkJGN0QwXVwiPlxyXG4gICAgICAgICAgICAgICAgQXR0YWNoZWQ6IHtxdW90YXRpb25Gb3JtLmZpbGVfbmFtZX1cclxuICAgICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICAgICl9XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICB7cXVvdGF0aW9uRm9ybS5wYXJzZWRfZGV0YWlscyAmJiAoXHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYmctWyNEQ0ZDRTddIGJvcmRlciBib3JkZXItWyNCQkY3RDBdIHAtMy41IHJvdW5kZWQtbGcgc3BhY2UteS0xLjVcIj5cclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjUgdGV4dC14cyBmb250LWJvbGQgdGV4dC1bIzE2QTM0QV1cIj5cclxuICAgICAgICAgICAgICAgIDxDaGVja0NpcmNsZTIgY2xhc3NOYW1lPVwidy00IGgtNFwiIC8+IE9DUiBEb2N1bWVudCBEZXRhaWxzIEV4dHJhY3RlZFxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZ3JpZCBncmlkLWNvbHMtMiBnYXAtMiB0ZXh0LVsxMXB4XSBmb250LW1vbm8gdGV4dC1bIzFGMjkzN11cIj5cclxuICAgICAgICAgICAgICAgIDxkaXY+VmVuZG9yOiA8c3BhbiBjbGFzc05hbWU9XCJmb250LWJvbGRcIj57cXVvdGF0aW9uRm9ybS5wYXJzZWRfZGV0YWlscy52ZW5kb3JfbmFtZX08L3NwYW4+PC9kaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2PkV4dHJhY3RlZCBSYXRlOiA8c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LVsjMTZBMzRBXSBmb250LWJvbGRcIj57cXVvdGF0aW9uRm9ybS5wYXJzZWRfZGV0YWlscy5leHRyYWN0ZWRfcmF0ZX08L3NwYW4+PC9kaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2PlRheCBJbmZvOiA8c3Bhbj57cXVvdGF0aW9uRm9ybS5wYXJzZWRfZGV0YWlscy50YXhfcmF0ZX08L3NwYW4+PC9kaXY+XHJcbiAgICAgICAgICAgICAgICA8ZGl2Pk9DUiBBY2N1cmFjeTogPHNwYW4gY2xhc3NOYW1lPVwidGV4dC1bIzI1NjNFQl1cIj57cXVvdGF0aW9uRm9ybS5wYXJzZWRfZGV0YWlscy5jb25maWRlbmNlfTwvc3Bhbj48L2Rpdj5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICApfVxyXG5cclxuICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+VmVuZG9yIEVudGVycHJpc2UgKjwvbGFiZWw+XHJcbiAgICAgICAgICAgIDxzZWxlY3QgcmVxdWlyZWQgdmFsdWU9e3F1b3RhdGlvbkZvcm0udmVuZG9yfSBvbkNoYW5nZT17KGUpID0+IHNldFF1b3RhdGlvbkZvcm0oeyAuLi5xdW90YXRpb25Gb3JtLCB2ZW5kb3I6IGUudGFyZ2V0LnZhbHVlIH0pfSBjbGFzc05hbWU9XCJmb3JtLWlucHV0XCI+XHJcbiAgICAgICAgICAgICAge3ZlbmRvcnMubWFwKCh2KSA9PiA8b3B0aW9uIGtleT17di5pZH0gdmFsdWU9e3YuaWR9Pnt2Lm5hbWV9PC9vcHRpb24+KX1cclxuICAgICAgICAgICAgPC9zZWxlY3Q+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2PjxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+UXVvdGVkIFJhdGUgKOKCuSkgKjwvbGFiZWw+PGlucHV0IHR5cGU9XCJudW1iZXJcIiBtaW49XCIwXCIgc3RlcD1cIjAuMDFcIiByZXF1aXJlZCB2YWx1ZT17cXVvdGF0aW9uRm9ybS5xdW90ZWRfcmF0ZX0gb25DaGFuZ2U9eyhlKSA9PiB7XHJcbiAgICAgICAgICAgIGNvbnN0IHZhbCA9IGUudGFyZ2V0LnZhbHVlO1xyXG4gICAgICAgICAgICBpZiAodmFsID09PSAnJyB8fCBOdW1iZXIodmFsKSA+PSAwKSBzZXRRdW90YXRpb25Gb3JtKHsgLi4ucXVvdGF0aW9uRm9ybSwgcXVvdGVkX3JhdGU6IHBhcnNlRmxvYXQodmFsKSB8fCAwIH0pO1xyXG4gICAgICAgICAgfX0gY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiIC8+PC9kaXY+XHJcblxyXG4gICAgICAgICAgPGRpdj48bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPkFsbG9jYXRlZCBQZXJjZW50YWdlICglKTwvbGFiZWw+PGlucHV0IHR5cGU9XCJudW1iZXJcIiBtaW49XCIwXCIgbWF4PVwiMTAwXCIgdmFsdWU9e3F1b3RhdGlvbkZvcm0uYWxsb2NhdGVkX3BlcmNlbnRhZ2V9IG9uQ2hhbmdlPXsoZSkgPT4ge1xyXG4gICAgICAgICAgICBjb25zdCB2YWwgPSBlLnRhcmdldC52YWx1ZTtcclxuICAgICAgICAgICAgaWYgKHZhbCA9PT0gJycgfHwgTnVtYmVyKHZhbCkgPj0gMCkgc2V0UXVvdGF0aW9uRm9ybSh7IC4uLnF1b3RhdGlvbkZvcm0sIGFsbG9jYXRlZF9wZXJjZW50YWdlOiBwYXJzZUZsb2F0KHZhbCkgfHwgMCB9KTtcclxuICAgICAgICAgIH19IGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIiAvPjwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTJcIj5cclxuICAgICAgICAgICAgPGlucHV0IHR5cGU9XCJjaGVja2JveFwiIGlkPVwic2VsX3ZlbmRvclwiIGNoZWNrZWQ9e3F1b3RhdGlvbkZvcm0uaXNfc2VsZWN0ZWR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0UXVvdGF0aW9uRm9ybSh7IC4uLnF1b3RhdGlvbkZvcm0sIGlzX3NlbGVjdGVkOiBlLnRhcmdldC5jaGVja2VkIH0pfSBjbGFzc05hbWU9XCJ3LTQgaC00IHJvdW5kZWQgdGV4dC1bIzFCNEU5Ql0gYm9yZGVyLVsjRDFENURCXVwiIC8+XHJcbiAgICAgICAgICAgIDxsYWJlbCBodG1sRm9yPVwic2VsX3ZlbmRvclwiIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzM3NDE1MV0gZm9udC1zZW1pYm9sZCBjdXJzb3ItcG9pbnRlclwiPk1hcmsgYXMgU2VsZWN0ZWQgUXVvdGVkIFZlbmRvcjwvbGFiZWw+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1vZGFsLWZvb3RlclwiPlxyXG4gICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXsoKSA9PiBzZXRRdW90YXRpb25Nb2RhbE9wZW4oZmFsc2UpfSBjbGFzc05hbWU9XCJidG4tc2Vjb25kYXJ5XCI+Q2FuY2VsPC9idXR0b24+XHJcbiAgICAgICAgICAgIDxidXR0b24gdHlwZT1cInN1Ym1pdFwiIGNsYXNzTmFtZT1cImJ0bi1wcmltYXJ5XCI+QWRkIFF1b3RhdGlvbiBSZWNvcmQ8L2J1dHRvbj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZm9ybT5cclxuICAgICAgPC9Nb2RhbD5cclxuXHJcbiAgICAgIDxNb2RhbCBpc09wZW49e2FtZW5kbWVudE1vZGFsT3Blbn0gb25DbG9zZT17KCkgPT4gc2V0QW1lbmRtZW50TW9kYWxPcGVuKGZhbHNlKX0gc2l6ZT1cIm1kXCIgdGl0bGU9e2BTdWJtaXQgUHJvcG9zYWwgQW1lbmRtZW50IGZvciAke3NlbGVjdGVkUHJvcG9zYWw/LmlkfWB9PlxyXG4gICAgICAgIDxmb3JtIG9uU3VibWl0PXtoYW5kbGVDcmVhdGVBbWVuZG1lbnR9IGNsYXNzTmFtZT1cInNwYWNlLXktNFwiPlxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5BbWVuZGVkIEJ5IEVtcGxveWVlICo8L2xhYmVsPlxyXG4gICAgICAgICAgICA8c2VsZWN0IHJlcXVpcmVkIHZhbHVlPXthbWVuZG1lbnRGb3JtLmFtZW5kZWRfYnl9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0QW1lbmRtZW50Rm9ybSh7IC4uLmFtZW5kbWVudEZvcm0sIGFtZW5kZWRfYnk6IGUudGFyZ2V0LnZhbHVlIH0pfSBjbGFzc05hbWU9XCJmb3JtLWlucHV0XCI+XHJcbiAgICAgICAgICAgICAge2VtcGxveWVlcy5tYXAoKGVtcCkgPT4gPG9wdGlvbiBrZXk9e2VtcC5pZH0gdmFsdWU9e2VtcC5pZH0+e2VtcC5uYW1lfTwvb3B0aW9uPil9XHJcbiAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8ZGl2PjxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+QW1lbmRtZW50IFJlYXNvbiAqPC9sYWJlbD48dGV4dGFyZWEgcmVxdWlyZWQgdmFsdWU9e2FtZW5kbWVudEZvcm0uYW1lbmRtZW50X3JlYXNvbn0gb25DaGFuZ2U9eyhlKSA9PiBzZXRBbWVuZG1lbnRGb3JtKHsgLi4uYW1lbmRtZW50Rm9ybSwgYW1lbmRtZW50X3JlYXNvbjogZS50YXJnZXQudmFsdWUgfSl9IGNsYXNzTmFtZT1cImZvcm0taW5wdXQgaC0yMFwiPjwvdGV4dGFyZWE+PC9kaXY+XHJcbiAgICAgICAgICA8ZGl2PjxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+UmV2aXNlZCBRdW90ZWQgUmF0ZSAo4oK5KTwvbGFiZWw+PGlucHV0IHR5cGU9XCJudW1iZXJcIiBtaW49XCIwXCIgdmFsdWU9e2FtZW5kbWVudEZvcm0ubmV3X3F1b3RlZF9yYXRlfSBvbkNoYW5nZT17KGUpID0+IHtcclxuICAgICAgICAgICAgY29uc3QgdmFsID0gZS50YXJnZXQudmFsdWU7XHJcbiAgICAgICAgICAgIGlmICh2YWwgPT09ICcnIHx8IE51bWJlcih2YWwpID49IDApIHNldEFtZW5kbWVudEZvcm0oeyAuLi5hbWVuZG1lbnRGb3JtLCBuZXdfcXVvdGVkX3JhdGU6IHBhcnNlRmxvYXQodmFsKSB8fCAwIH0pO1xyXG4gICAgICAgICAgfX0gY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiIC8+PC9kaXY+XHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1vZGFsLWZvb3RlclwiPlxyXG4gICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXsoKSA9PiBzZXRBbWVuZG1lbnRNb2RhbE9wZW4oZmFsc2UpfSBjbGFzc05hbWU9XCJidG4tc2Vjb25kYXJ5XCI+Q2FuY2VsPC9idXR0b24+XHJcbiAgICAgICAgICAgIDxidXR0b24gdHlwZT1cInN1Ym1pdFwiIGNsYXNzTmFtZT1cImJ0bi1wcmltYXJ5XCI+U3VibWl0IEFtZW5kbWVudDwvYnV0dG9uPlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgPC9mb3JtPlxyXG4gICAgICA8L01vZGFsPlxyXG5cclxuICAgICAgPE1vZGFsIGlzT3Blbj17dmlld01vZGFsT3Blbn0gb25DbG9zZT17KCkgPT4gc2V0Vmlld01vZGFsT3BlbihmYWxzZSl9IHNpemU9XCJtZFwiIHRpdGxlPVwiUHJvcG9zYWwgV29ya2Zsb3cgRGV0YWlsc1wiPlxyXG4gICAgICAgIHtzZWxlY3RlZFByb3Bvc2FsICYmIChcclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS00XCI+XHJcbiAgICAgICAgICAgIDxkaXY+PHNwYW4gY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjNkI3MjgwXVwiPlByb3Bvc2FsIElEOjwvc3Bhbj48cCBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC1bIzFCNEU5Ql0gZm9udC1ib2xkXCI+e3NlbGVjdGVkUHJvcG9zYWwuaWR9PC9wPjwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2PjxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzZCNzI4MF1cIj5TdGF0dXM6PC9zcGFuPjxwIGNsYXNzTmFtZT1cImZvbnQtYm9sZCBjYXBpdGFsaXplIHRleHQtWyMxRjI5MzddXCI+e3NlbGVjdGVkUHJvcG9zYWwuc3RhdHVzfTwvcD48L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj48c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+UXVvdGF0aW9ucyBBdHRhY2hlZDo8L3NwYW4+PHAgY2xhc3NOYW1lPVwidGV4dC1bIzM3NDE1MV0gZm9udC1tb25vIHRleHQteHNcIj57c2VsZWN0ZWRQcm9wb3NhbC5xdW90YXRpb25zPy5sZW5ndGggfHwgMH0gcXVvdGF0aW9uczwvcD48L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj48c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+QW1lbmRtZW50cyBMb2dnZWQ6PC9zcGFuPjxwIGNsYXNzTmFtZT1cInRleHQtWyMzNzQxNTFdIGZvbnQtbW9ubyB0ZXh0LXhzXCI+e3NlbGVjdGVkUHJvcG9zYWwuYW1lbmRtZW50cz8ubGVuZ3RoIHx8IDB9IGFtZW5kbWVudHM8L3A+PC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICApfVxyXG4gICAgICA8L01vZGFsPlxyXG4gICAgPC9kaXY+XHJcbiAgKTtcclxufVxyXG4iXSwiZmlsZSI6IkQ6L0VSUC9JZGhheWFtLUVSUC9mcm9udGVuZC9zcmMvcGFnZXMvV29ya2Zsb3dBcHByb3ZhbHMuanN4In0=

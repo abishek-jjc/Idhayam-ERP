@@ -62,6 +62,10 @@ def pk_frm(): return generate_custom_pk("FRM")
 def pk_fld(): return generate_custom_pk("FLD")
 def pk_wgt(): return generate_custom_pk("WGT")
 def pk_thm(): return generate_custom_pk("THM")
+def pk_alg(): return generate_custom_pk("ALG")
+def pk_ver(): return generate_custom_pk("VER")
+def pk_src(): return generate_custom_pk("SRC")
+def pk_dbl(): return generate_custom_pk("DBL")
 
 class Company(models.Model):
     id = models.CharField(primary_key=True, max_length=50, default=pk_cmp, editable=False)
@@ -293,6 +297,7 @@ class UIMenu(models.Model):
     menu_name = models.CharField(max_length=150)
     menu_path = models.CharField(max_length=200)
     module_code = models.CharField(max_length=80)
+    page_key = models.CharField(max_length=80, blank=True, default='', help_text='Registered ERP page component')
     menu_icon = models.CharField(max_length=50, default='LayoutDashboard')
     parent_menu = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='submenus')
     display_order = models.IntegerField(default=0)
@@ -374,6 +379,11 @@ class UIFormField(models.Model):
         ('file', 'File Upload'),
         ('url', 'URL'),
         ('password', 'Password'),
+        ('decimal', 'Decimal'),
+        ('multiselect', 'Multi-select'),
+        ('radio', 'Radio Group'),
+        ('image', 'Image Upload'),
+        ('relationship', 'Relationship'),
     ]
     id = models.CharField(primary_key=True, max_length=50, default=pk_fld, editable=False)
     form = models.ForeignKey(UIForm, on_delete=models.CASCADE, related_name='fields')
@@ -382,8 +392,20 @@ class UIFormField(models.Model):
     field_type = models.CharField(max_length=30, choices=FIELD_TYPES, default='text')
     required = models.BooleanField(default=False)
     default_value = models.CharField(max_length=255, blank=True, null=True)
+    placeholder = models.CharField(max_length=255, blank=True, null=True)
+    help_text = models.CharField(max_length=500, blank=True, null=True)
     options = models.TextField(blank=True, null=True, help_text="Comma separated choices for dropdown")
     reference_table = models.CharField(max_length=80, blank=True, null=True)
+    validation_regex = models.CharField(max_length=500, blank=True, null=True)
+    validation_message = models.CharField(max_length=255, blank=True, null=True)
+    min_length = models.PositiveIntegerField(blank=True, null=True)
+    max_length = models.PositiveIntegerField(blank=True, null=True)
+    min_value = models.DecimalField(max_digits=18, decimal_places=4, blank=True, null=True)
+    max_value = models.DecimalField(max_digits=18, decimal_places=4, blank=True, null=True)
+    read_only = models.BooleanField(default=False)
+    conditional_field = models.CharField(max_length=80, blank=True, null=True)
+    conditional_value = models.CharField(max_length=255, blank=True, null=True)
+    column_span = models.PositiveSmallIntegerField(default=1)
     field_order = models.IntegerField(default=0)
     active = models.BooleanField(default=True)
 
@@ -426,9 +448,18 @@ class UIWidget(models.Model):
     widget_name = models.CharField(max_length=150)
     widget_type = models.CharField(max_length=50, choices=WIDGET_TYPES, default='kpi')
     data_source = models.CharField(max_length=200, blank=True, null=True)
+    module = models.CharField(max_length=80, default='dashboard')
+    permission_module = models.CharField(max_length=80, blank=True, default='')
     position = models.IntegerField(default=0)
     grid_width = models.CharField(max_length=30, default='col-span-1')
+    height = models.CharField(max_length=30, default='auto')
+    min_width = models.PositiveSmallIntegerField(default=1)
+    max_width = models.PositiveSmallIntegerField(default=4)
+    collapsible = models.BooleanField(default=False)
+    default_collapsed = models.BooleanField(default=False)
+    refresh_interval = models.PositiveIntegerField(default=0, help_text='Automatic refresh interval in seconds; 0 disables polling')
     active = models.BooleanField(default=True)
+    roles = models.ManyToManyField(Role, blank=True, related_name='dashboard_widgets')
 
     class Meta:
         db_table = 'ui_widget'
@@ -443,10 +474,43 @@ class UITheme(models.Model):
     theme_name = models.CharField(max_length=100, unique=True)
     primary_color = models.CharField(max_length=30, default='#3b82f6')
     secondary_color = models.CharField(max_length=30, default='#6366f1')
+    accent_color = models.CharField(max_length=30, default='#06b6d4', blank=True, null=True)
     background_color = models.CharField(max_length=30, default='#0f172a')
     card_bg_color = models.CharField(max_length=30, default='#1e293b')
+    sidebar_color = models.CharField(max_length=30, default='#1e293b', blank=True, null=True)
+    sidebar_text_color = models.CharField(max_length=30, default='#ffffff')
+    sidebar_active_bg = models.CharField(max_length=30, default='rgba(255,255,255,0.18)')
+    sidebar_active_text = models.CharField(max_length=30, default='#ffffff')
+    sidebar_hover_bg = models.CharField(max_length=30, default='rgba(255,255,255,0.10)')
+    sidebar_hover_text = models.CharField(max_length=30, default='#ffffff')
+    sidebar_icon_color = models.CharField(max_length=30, default='#dbeafe')
+    sidebar_active_icon_color = models.CharField(max_length=30, default='#ffffff')
+    sidebar_border_color = models.CharField(max_length=30, default='rgba(255,255,255,0.1)')
+    sidebar_width = models.CharField(max_length=20, default='250px')
+    sidebar_collapsed_default = models.BooleanField(default=False)
+    logo_text = models.CharField(max_length=30, default='E3')
+    application_name = models.CharField(max_length=120, default='ERP v3')
+    menu_spacing = models.CharField(max_length=20, default='4px')
+    navbar_color = models.CharField(max_length=30, default='#0f172a', blank=True, null=True)
+    navbar_text_color = models.CharField(max_length=30, default='#0f172a')
+    navbar_border_color = models.CharField(max_length=30, default='#e2e8f0')
+    navbar_icon_color = models.CharField(max_length=30, default='#475569')
+    login_background_color = models.CharField(max_length=30, default='#f8fafc')
+    login_card_color = models.CharField(max_length=30, default='#ffffff')
+    input_background_color = models.CharField(max_length=30, default='#ffffff')
+    input_border_color = models.CharField(max_length=30, default='#d1d5db')
+    input_text_color = models.CharField(max_length=30, default='#1f2937')
+    table_header_color = models.CharField(max_length=30, default='#f8fafc')
+    table_row_color = models.CharField(max_length=30, default='#ffffff')
+    success_color = models.CharField(max_length=30, default='#16a34a')
+    warning_color = models.CharField(max_length=30, default='#f6ce0a')
+    danger_color = models.CharField(max_length=30, default='#dc2626')
+    info_color = models.CharField(max_length=30, default='#2563eb')
+    shadow_value = models.CharField(max_length=120, default='0 2px 8px rgba(15,23,42,0.08)')
     text_color = models.CharField(max_length=30, default='#f8fafc')
     border_color = models.CharField(max_length=30, default='rgba(255,255,255,0.1)')
+    button_radius = models.CharField(max_length=20, default='6px', blank=True, null=True)
+    font_family = models.CharField(max_length=100, default='Inter, sans-serif', blank=True, null=True)
     active = models.BooleanField(default=False)
 
     class Meta:
@@ -454,4 +518,113 @@ class UITheme(models.Model):
 
     def __str__(self):
         return f"Theme: {self.theme_name} {'[ACTIVE]' if self.active else ''}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.active:
+            type(self).objects.exclude(pk=self.pk).filter(active=True).update(active=False)
+
+
+class ConfigAuditLog(models.Model):
+    ACTIONS = [
+        ('CREATE', 'Created'),
+        ('UPDATE', 'Updated'),
+        ('DELETE', 'Deleted'),
+        ('TOGGLE', 'Toggled Status'),
+        ('RESTORE', 'Restored Version'),
+        ('ENABLE', 'Enabled'),
+        ('DISABLE', 'Disabled'),
+        ('ROLLBACK', 'Rolled Back'),
+        ('PUBLISH', 'Published'),
+    ]
+    id = models.CharField(primary_key=True, max_length=50, default=pk_alg, editable=False)
+    config_type = models.CharField(max_length=60, help_text="menu, navbar, theme, form, widget, etc.")
+    module = models.CharField(max_length=80, blank=True, null=True)
+    item_id = models.CharField(max_length=100, blank=True, null=True)
+    item_name = models.CharField(max_length=200, blank=True, null=True)
+    action = models.CharField(max_length=30, choices=ACTIONS, default='UPDATE')
+    old_values = models.JSONField(blank=True, null=True)
+    new_values = models.JSONField(blank=True, null=True)
+    changed_by_name = models.CharField(max_length=150, default='System Super Administrator')
+    ip_address = models.CharField(max_length=50, blank=True, null=True)
+    user_agent = models.CharField(max_length=500, blank=True, null=True)
+    request_id = models.CharField(max_length=80, blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ui_config_audit_log'
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"AuditLog [{self.config_type}] {self.action} on {self.item_name} at {self.timestamp}"
+
+
+class ConfigVersion(models.Model):
+    id = models.CharField(primary_key=True, max_length=50, default=pk_ver, editable=False)
+    version_number = models.IntegerField(default=1)
+    config_type = models.CharField(max_length=60)
+    item_id = models.CharField(max_length=100, blank=True, null=True)
+    item_name = models.CharField(max_length=200, blank=True, null=True)
+    snapshot_data = models.JSONField()
+    created_by_name = models.CharField(max_length=150, default='System Super Administrator')
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ui_config_version'
+        ordering = ['-version_number']
+
+    def __str__(self):
+        return f"Version #{self.version_number} [{self.config_type}] - {self.description}"
+
+
+class UIDashboardLayout(models.Model):
+    LAYOUT_MODES = [
+        ('grid', 'Grid'), ('list', 'List'), ('compact', 'Compact'), ('full_width', 'Full Width'),
+    ]
+    id = models.CharField(primary_key=True, max_length=50, default=pk_dbl, editable=False)
+    layout_name = models.CharField(max_length=120, default='Default Dashboard')
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, blank=True, null=True, related_name='dashboard_layouts')
+    layout_mode = models.CharField(max_length=30, choices=LAYOUT_MODES, default='grid')
+    desktop_columns = models.PositiveSmallIntegerField(default=4)
+    tablet_columns = models.PositiveSmallIntegerField(default=2)
+    mobile_columns = models.PositiveSmallIntegerField(default=1)
+    row_gap = models.PositiveSmallIntegerField(default=16)
+    column_gap = models.PositiveSmallIntegerField(default=16)
+    widget_height = models.CharField(max_length=30, default='auto')
+    responsive = models.BooleanField(default=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'ui_dashboard_layout'
+        ordering = ['role_id', 'layout_name']
+
+    def __str__(self):
+        return f"{self.layout_name} ({self.layout_mode})"
+
+
+class GlobalSearchConfiguration(models.Model):
+    MATCH_MODES = [('contains', 'Contains'), ('starts_with', 'Starts With'), ('exact', 'Exact')]
+    id = models.CharField(primary_key=True, max_length=50, default=pk_src, editable=False)
+    entity_key = models.CharField(max_length=80, unique=True)
+    display_name = models.CharField(max_length=120)
+    module = models.CharField(max_length=80)
+    model_label = models.CharField(max_length=120)
+    searchable_fields = models.JSONField(default=list)
+    display_fields = models.JSONField(default=list, blank=True)
+    status_field = models.CharField(max_length=120, blank=True, default='')
+    route = models.CharField(max_length=200)
+    result_priority = models.PositiveIntegerField(default=100)
+    result_limit = models.PositiveSmallIntegerField(default=10)
+    match_mode = models.CharField(max_length=20, choices=MATCH_MODES, default='contains')
+    active = models.BooleanField(default=True)
+    roles = models.ManyToManyField(Role, blank=True, related_name='search_configurations')
+
+    class Meta:
+        db_table = 'global_search_configuration'
+        ordering = ['result_priority', 'display_name']
+
+    def __str__(self):
+        return f"Search: {self.display_name} [{self.entity_key}]"
+
 

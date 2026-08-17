@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { CoreAPI, ProcessEngineAPI, WorkflowAPI, JournalAPI } from '../api';
-import { Building2, Users, Cpu, GitPullRequest, Boxes, Truck, CheckCircle2, LayoutGrid, ArrowRight } from 'lucide-react';
+import { Building2, Users, Cpu, GitPullRequest, Boxes, Truck, CheckCircle2, LayoutGrid, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { useConfiguration } from '../context/ConfigurationContext';
 
 export default function Dashboard() {
+  const { widgets: dynamicWidgets, dashboardLayouts = [] } = useConfiguration();
+  const layout = dashboardLayouts[0] || {
+    layout_mode: 'grid', desktop_columns: 4, tablet_columns: 2, mobile_columns: 1,
+    row_gap: 16, column_gap: 16, widget_height: 'auto', responsive: true,
+  };
+  const [collapsedWidgets, setCollapsedWidgets] = useState(() => new Set());
   const [stats, setStats] = useState({
     plantsCount: 0,
     employeesCount: 0,
@@ -15,20 +21,18 @@ export default function Dashboard() {
     stocksCount: 0,
   });
   const [recentInstances, setRecentInstances] = useState([]);
-  const [dynamicWidgets, setDynamicWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadDashboardData = async () => {
     try {
-      const [plantsRes, empRes, macRes, pTypeRes, instRes, propRes, stockRes, widgetRes] = await Promise.all([
+      const [plantsRes, empRes, macRes, pTypeRes, instRes, propRes, stockRes] = await Promise.all([
         CoreAPI.getPlants().catch(() => ({ data: [] })),
         CoreAPI.getEmployees().catch(() => ({ data: [] })),
         CoreAPI.getMachines().catch(() => ({ data: [] })),
         ProcessEngineAPI.getProcessTypes().catch(() => ({ data: [] })),
         ProcessEngineAPI.getInstances().catch(() => ({ data: [] })),
         WorkflowAPI.getProposals().catch(() => ({ data: [] })),
-        JournalAPI.getStocks().catch(() => ({ data: [] })),
-        axios.get('http://127.0.0.1:8000/api/core/ui-widgets/?active=true').catch(() => ({ data: [] }))
+        JournalAPI.getStocks().catch(() => ({ data: [] }))
       ]);
 
       setStats({
@@ -42,7 +46,6 @@ export default function Dashboard() {
       });
 
       setRecentInstances((instRes.data.results || instRes.data || []).slice(0, 5));
-      setDynamicWidgets(widgetRes.data?.results || widgetRes.data || []);
     } catch (err) {
       console.error("Failed to load dashboard statistics:", err);
     } finally {
@@ -55,6 +58,30 @@ export default function Dashboard() {
     window.addEventListener('erp_ui_metadata_updated', loadDashboardData);
     return () => window.removeEventListener('erp_ui_metadata_updated', loadDashboardData);
   }, []);
+
+  useEffect(() => {
+    const intervals = dynamicWidgets.map((widget) => Number(widget.refresh_interval) || 0).filter((seconds) => seconds > 0);
+    if (intervals.length === 0) return undefined;
+    const refreshSeconds = Math.max(5, Math.min(...intervals));
+    const timer = window.setInterval(loadDashboardData, refreshSeconds * 1000);
+    return () => window.clearInterval(timer);
+  }, [dynamicWidgets]);
+
+  useEffect(() => {
+    setCollapsedWidgets(new Set(dynamicWidgets.filter((widget) => widget.default_collapsed).map((widget) => widget.id)));
+  }, [dynamicWidgets]);
+
+  const dashboardColumns = layout.layout_mode === 'list' || layout.layout_mode === 'full_width'
+    ? 1 : Number(layout.desktop_columns || (layout.layout_mode === 'compact' ? 6 : 4));
+  const widgetSpan = (widget) => Math.max(
+    Number(widget.min_width || 1),
+    Math.min(Number((widget.grid_width || '').match(/\d+/)?.[0] || 1), Number(widget.max_width || dashboardColumns), dashboardColumns),
+  );
+  const toggleCollapsed = (id) => setCollapsedWidgets((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   const getWidgetValue = (w) => {
     if (w.widget_type !== 'kpi') return 'Active';
@@ -94,22 +121,28 @@ export default function Dashboard() {
           <h3 className="section-title text-[15px] flex items-center gap-2">
             <LayoutGrid className="w-4 h-4 text-[#1B4E9B]" /> Configured Metadata Widgets
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div
+            className={`dashboard-widget-grid dashboard-layout-${layout.layout_mode}`}
+            style={{
+              '--dashboard-desktop-columns': dashboardColumns,
+              '--dashboard-tablet-columns': layout.responsive === false ? dashboardColumns : Number(layout.tablet_columns || 2),
+              '--dashboard-mobile-columns': layout.responsive === false ? dashboardColumns : Number(layout.mobile_columns || 1),
+              rowGap: `${Number(layout.row_gap || 16)}px`, columnGap: `${Number(layout.column_gap || 16)}px`,
+            }}
+          >
             {dynamicWidgets.map((w) => (
-              <div key={w.id} className="kpi-card">
+              <div key={w.id} className="kpi-card dashboard-widget" style={{ gridColumn: `span ${widgetSpan(w)}`, minHeight: collapsedWidgets.has(w.id) ? 'auto' : (w.height !== 'auto' ? w.height : layout.widget_height) }}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="kpi-label">{w.widget_name}</p>
-                    <p className="kpi-number mt-1">
-                      {getWidgetValue(w)}
-                    </p>
-                    <p className="text-[11px] text-[#6B7280] mt-1">{w.data_source || 'Core Aggregator'}</p>
                   </div>
-                  <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#1B4E9B] flex items-center justify-center">
-                    <LayoutGrid className="w-5 h-5" />
+                  <div className="flex items-center gap-1">
+                    {w.collapsible && <button type="button" className="btn-icon" onClick={() => toggleCollapsed(w.id)} aria-label={`${collapsedWidgets.has(w.id) ? 'Expand' : 'Collapse'} ${w.widget_name}`}>{collapsedWidgets.has(w.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}</button>}
+                    <div className="w-10 h-10 rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] flex items-center justify-center"><LayoutGrid className="w-5 h-5" /></div>
                   </div>
                 </div>
-                {w.widget_type === 'shortcut' && (
+                {!collapsedWidgets.has(w.id) && <><p className="kpi-number mt-1">{getWidgetValue(w)}</p><p className="text-[11px] text-[var(--text-secondary)] mt-1">{w.data_source || 'Core Aggregator'}</p></>}
+                {!collapsedWidgets.has(w.id) && w.widget_type === 'shortcut' && (
                   <Link
                     to={w.data_source || '/process-links'}
                     className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#1B4E9B] font-semibold hover:underline"

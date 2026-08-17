@@ -1,0 +1,660 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/UserPage.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=36603bcd"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=36603bcd"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import { useAuth } from "/src/context/AuthContext.jsx";
+import { ProcessEngineAPI, MastersAPI, WorkflowAPI } from "/src/api.js";
+import Modal from "/src/components/Modal.jsx";
+import DynamicForm from "/src/components/DynamicForm.jsx";
+import { UserCheck, Cpu, Layers, GitPullRequest, Plus, ShieldCheck, Clock, AlertCircle } from "/node_modules/.vite/deps/lucide-react.js?v=36603bcd";
+export default function UserPage() {
+  _s();
+  const { user, designation, isSuperAdmin, hasPermission } = useAuth();
+  const [processTypes, setProcessTypes] = useState([]);
+  const [instances, setInstances] = useState([]);
+  const [masterCategories, setMasterCategories] = useState([]);
+  const [masterItems, setMasterItems] = useState([]);
+  const [proposals, setProposals] = useState([]);
+  const [selectedProcessType, setSelectedProcessType] = useState(null);
+  const [createInstanceModal, setCreateInstanceModal] = useState(false);
+  const [attrDefinitions, setAttrDefinitions] = useState([]);
+  const [formValues, setFormValues] = useState({});
+  const [plants, setPlants] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  useEffect(() => {
+    loadUserData();
+  }, []);
+  async function loadUserData() {
+    try {
+      const [ptRes, instRes, catRes, itemRes, propRes, plantRes, deptRes] = await Promise.all(
+        [
+          ProcessEngineAPI.getProcessTypes(),
+          ProcessEngineAPI.getInstances(),
+          MastersAPI.getCategories(),
+          MastersAPI.getItems(),
+          WorkflowAPI.getProposals(),
+          ProcessEngineAPI.getPlants ? ProcessEngineAPI.getPlants() : fetch("http://127.0.0.1:8000/api/core/plants/").then((r) => r.json()),
+          fetch("http://127.0.0.1:8000/api/core/departments/").then((r) => r.json())
+        ]
+      );
+      const ptList = ptRes.data?.results || ptRes.data || [];
+      const instList = instRes.data?.results || instRes.data || [];
+      const catList = catRes.data?.results || catRes.data || [];
+      const itemList = itemRes.data?.results || itemRes.data || [];
+      const propList = propRes.data?.results || propRes.data || [];
+      const plantList = plantRes.results || plantRes.data?.results || plantRes.data || plantRes || [];
+      const deptList = deptRes.results || deptRes.data?.results || deptRes.data || deptRes || [];
+      setProcessTypes(ptList);
+      setInstances(instList);
+      setMasterCategories(catList);
+      setMasterItems(itemList);
+      setProposals(propList);
+      setPlants(plantList);
+      setDepartments(deptList);
+    } catch (err) {
+      console.error("Error loading user page data:", err);
+    }
+  }
+  const permittedProcessTypes = processTypes.filter((pt) => {
+    if (isSuperAdmin) return true;
+    return hasPermission("process_engine", pt.id) || hasPermission("process_engine", pt.code);
+  });
+  const openCreateProcessModal = async (pt) => {
+    setSelectedProcessType(pt);
+    try {
+      const defRes = await ProcessEngineAPI.getAttributeDefinitions({ process_type: pt.id });
+      const defs = defRes.data.results || defRes.data || [];
+      setAttrDefinitions(defs);
+      const initialVals = {};
+      defs.forEach((d) => {
+        initialVals[d.attribute_code] = "";
+      });
+      setFormValues(initialVals);
+      setCreateInstanceModal(true);
+    } catch (err) {
+      console.error("Error loading attributes:", err);
+    }
+  };
+  const handleCreateInstanceSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedProcessType) return;
+    try {
+      const plantId = plants[0]?.id || null;
+      const deptId = selectedProcessType.owning_department || departments[0]?.id || null;
+      await ProcessEngineAPI.createInstance({
+        process_type: selectedProcessType.id,
+        plant: plantId,
+        department: deptId,
+        status: selectedProcessType.requires_approval ? "pending" : "completed",
+        values: formValues
+      });
+      setCreateInstanceModal(false);
+      loadUserData();
+    } catch (err) {
+      alert("Failed to submit process execution: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "space-y-6 animate-fade-in", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "standard-card flex flex-col md:flex-row md:items-center justify-between gap-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "w-12 h-12 rounded-lg bg-[#1B4E9B] text-white flex items-center justify-center font-extrabold shrink-0", children: /* @__PURE__ */ jsxDEV(UserCheck, { className: "w-6 h-6" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 129,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 128,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("h1", { className: "page-title flex items-center gap-2", children: [
+            "Welcome, ",
+            user?.name || "Enterprise User",
+            isSuperAdmin && /* @__PURE__ */ jsxDEV("span", { className: "badge badge-success text-xs", children: "SuperAdmin" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 134,
+              columnNumber: 32
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 132,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280] font-medium flex items-center gap-2 mt-1", children: [
+            /* @__PURE__ */ jsxDEV("span", { children: [
+              "Active Designation: ",
+              /* @__PURE__ */ jsxDEV("strong", { className: "text-[#1B4E9B]", children: designation?.title || "General Staff" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 137,
+                columnNumber: 41
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 137,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: "•" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 138,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: [
+              "Hierarchy Level: ",
+              /* @__PURE__ */ jsxDEV("strong", { className: "text-[#1F2937]", children: designation?.hierarchy_level || 1 }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 139,
+                columnNumber: 38
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 139,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 136,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 131,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+        lineNumber: 127,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2 bg-[#F8FAFC] px-3.5 py-2 rounded-lg border border-[#E5E7EB] text-xs", children: [
+        /* @__PURE__ */ jsxDEV(ShieldCheck, { className: "w-4 h-4 text-[#16A34A]" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 145,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { className: "text-[#374151] font-semibold", children: "Designation Access Control Active" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 146,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+        lineNumber: 144,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+      lineNumber: 126,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "lg:col-span-2 space-y-6", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "standard-card space-y-4", children: [
+          /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxDEV("div", { children: [
+              /* @__PURE__ */ jsxDEV("h3", { className: "section-title flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxDEV(Cpu, { className: "w-5 h-5 text-[#1B4E9B]" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 161,
+                  columnNumber: 19
+                }, this),
+                " Permitted Process Engine Types"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 160,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280]", children: [
+                "Process types enabled for designation '",
+                designation?.title,
+                "'."
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 163,
+                columnNumber: 17
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 159,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { className: "badge badge-info text-xs", children: [
+              permittedProcessTypes.length,
+              " Allowed"
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 165,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 158,
+            columnNumber: 13
+          }, this),
+          permittedProcessTypes.length === 0 ? /* @__PURE__ */ jsxDEV("div", { className: "p-8 text-center bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-2", children: [
+            /* @__PURE__ */ jsxDEV(AlertCircle, { className: "w-8 h-8 text-[#F6CE0A] mx-auto" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 170,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { className: "text-sm font-semibold text-[#1F2937]", children: "No Process Types Assigned" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 171,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280]", children: "SuperAdmin has not granted permissions for any process types yet." }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 172,
+              columnNumber: 17
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 169,
+            columnNumber: 13
+          }, this) : /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: permittedProcessTypes.map((pt) => {
+            const canCreate = isSuperAdmin || hasPermission("process_engine", pt.id, "create");
+            return /* @__PURE__ */ jsxDEV("div", { className: "p-4 rounded-lg bg-white border border-[#E5E7EB] hover:border-[#1B4E9B] transition-all flex flex-col justify-between gap-3 shadow-sm", children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between mb-1", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "font-mono text-[11px] text-[#1B4E9B] font-semibold", children: pt.code }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                    lineNumber: 182,
+                    columnNumber: 27
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { className: "badge badge-info text-[10px] capitalize", children: pt.category }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                    lineNumber: 183,
+                    columnNumber: 27
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 181,
+                  columnNumber: 25
+                }, this),
+                /* @__PURE__ */ jsxDEV("h4", { className: "font-bold text-[#1F2937] text-sm", children: pt.name }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 185,
+                  columnNumber: 25
+                }, this),
+                /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280] mt-1 line-clamp-2", children: pt.remarks || "Standard process execution template" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 186,
+                  columnNumber: 25
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 180,
+                columnNumber: 23
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between pt-2 border-t border-[#E5E7EB]", children: [
+                /* @__PURE__ */ jsxDEV("span", { className: "text-[11px] text-[#6B7280]", children: [
+                  "Approval: ",
+                  pt.requires_approval ? /* @__PURE__ */ jsxDEV("strong", { className: "text-[#CA8A04]", children: "Required" }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                    lineNumber: 191,
+                    columnNumber: 61
+                  }, this) : /* @__PURE__ */ jsxDEV("span", { className: "text-[#16A34A]", children: "Auto" }, void 0, false, {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                    lineNumber: 191,
+                    columnNumber: 116
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 190,
+                  columnNumber: 25
+                }, this),
+                canCreate && /* @__PURE__ */ jsxDEV(
+                  "button",
+                  {
+                    onClick: () => openCreateProcessModal(pt),
+                    className: "btn-primary text-xs py-1 px-2.5 h-8",
+                    children: [
+                      /* @__PURE__ */ jsxDEV(Plus, { className: "w-3.5 h-3.5" }, void 0, false, {
+                        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                        lineNumber: 198,
+                        columnNumber: 29
+                      }, this),
+                      " Execute"
+                    ]
+                  },
+                  void 0,
+                  true,
+                  {
+                    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                    lineNumber: 194,
+                    columnNumber: 23
+                  },
+                  this
+                )
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 189,
+                columnNumber: 23
+              }, this)
+            ] }, pt.id, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 179,
+              columnNumber: 19
+            }, this);
+          }) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 175,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 157,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "standard-card space-y-4", children: [
+          /* @__PURE__ */ jsxDEV("h3", { className: "section-title flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxDEV(Clock, { className: "w-5 h-5 text-[#1B4E9B]" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 212,
+              columnNumber: 15
+            }, this),
+            " Recent Process Executions"
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 211,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "overflow-x-auto max-h-72 custom-scrollbar", children: /* @__PURE__ */ jsxDEV("table", { className: "custom-table text-xs", children: [
+            /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+              /* @__PURE__ */ jsxDEV("th", { children: "Execution ID" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 219,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("th", { children: "Process Type" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 220,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("th", { children: "Status" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 221,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("th", { children: "Created At" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 222,
+                columnNumber: 21
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 218,
+              columnNumber: 19
+            }, this) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 217,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("tbody", { children: instances.length === 0 ? /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: "4", className: "text-center py-6 text-[#6B7280] italic", children: "No executions logged yet." }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 228,
+              columnNumber: 23
+            }, this) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 227,
+              columnNumber: 19
+            }, this) : instances.slice(0, 8).map(
+              (inst) => /* @__PURE__ */ jsxDEV("tr", { children: [
+                /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-[#1B4E9B] font-semibold", children: inst.id }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 233,
+                  columnNumber: 25
+                }, this),
+                /* @__PURE__ */ jsxDEV("td", { className: "font-medium text-[#1F2937]", children: inst.process_type_name || inst.process_type }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 234,
+                  columnNumber: 25
+                }, this),
+                /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV("span", { className: `badge ${inst.status === "completed" || inst.status === "approved" ? "badge-success" : "badge-warning"}`, children: inst.status }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 236,
+                  columnNumber: 27
+                }, this) }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 235,
+                  columnNumber: 25
+                }, this),
+                /* @__PURE__ */ jsxDEV("td", { className: "text-[#6B7280]", children: inst.created_at ? new Date(inst.created_at).toLocaleString() : "-" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 240,
+                  columnNumber: 25
+                }, this)
+              ] }, inst.id, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 232,
+                columnNumber: 19
+              }, this)
+            ) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 225,
+              columnNumber: 17
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 216,
+            columnNumber: 15
+          }, this) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 215,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 210,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+        lineNumber: 154,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "space-y-6", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "standard-card space-y-4", children: [
+          /* @__PURE__ */ jsxDEV("h3", { className: "section-title flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxDEV(Layers, { className: "w-5 h-5 text-[#16A34A]" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 257,
+              columnNumber: 15
+            }, this),
+            " Master Categories"
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 256,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "space-y-2", children: masterCategories.map(
+            (cat) => /* @__PURE__ */ jsxDEV("div", { className: "p-3 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("p", { className: "font-bold text-[#1F2937] text-xs", children: cat.name }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 264,
+                  columnNumber: 21
+                }, this),
+                /* @__PURE__ */ jsxDEV("p", { className: "font-mono text-[10px] text-[#16A34A]", children: cat.code }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 265,
+                  columnNumber: 21
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 263,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { className: "badge badge-info text-[10px]", children: [
+                masterItems.filter((i) => i.category === cat.id || i.category_code === cat.code).length,
+                " Items"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 267,
+                columnNumber: 19
+              }, this)
+            ] }, cat.id, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 262,
+              columnNumber: 15
+            }, this)
+          ) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 260,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 255,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "standard-card space-y-4", children: [
+          /* @__PURE__ */ jsxDEV("h3", { className: "section-title flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxDEV(GitPullRequest, { className: "w-5 h-5 text-[#2563EB]" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 278,
+              columnNumber: 15
+            }, this),
+            " Pending Workflow Approvals"
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 277,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "space-y-2 max-h-64 overflow-y-auto custom-scrollbar", children: proposals.length === 0 ? /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280] italic text-center py-4", children: "No pending workflow proposals." }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 283,
+            columnNumber: 15
+          }, this) : proposals.slice(0, 5).map(
+            (prop) => /* @__PURE__ */ jsxDEV("div", { className: "p-3 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] space-y-1", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxDEV("span", { className: "font-mono text-[10px] text-[#2563EB]", children: prop.id }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 288,
+                  columnNumber: 23
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "badge badge-warning text-[10px]", children: prop.status }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                  lineNumber: 289,
+                  columnNumber: 23
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 287,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("p", { className: "font-bold text-xs text-[#1F2937]", children: prop.proposal_type || "Proposal Review" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 291,
+                columnNumber: 21
+              }, this),
+              /* @__PURE__ */ jsxDEV("p", { className: "text-[10px] text-[#6B7280] italic", children: prop.remarks || "Awaiting sign-off" }, void 0, false, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+                lineNumber: 292,
+                columnNumber: 21
+              }, this)
+            ] }, prop.id, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+              lineNumber: 286,
+              columnNumber: 15
+            }, this)
+          ) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+            lineNumber: 281,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+          lineNumber: 276,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+        lineNumber: 252,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+      lineNumber: 151,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: createInstanceModal, onClose: () => setCreateInstanceModal(false), size: "lg", title: `Execute Process: ${selectedProcessType?.name}`, children: /* @__PURE__ */ jsxDEV(
+      DynamicForm,
+      {
+        definitions: attrDefinitions,
+        plants,
+        departments,
+        employees: [{ id: user?.username || "user-01", name: user?.name || "Current User", designation_title: designation?.title }],
+        onSubmit: async (formData) => {
+          try {
+            await ProcessEngineAPI.createInstance({
+              process_type: selectedProcessType.id,
+              plant: formData.plant || plants[0]?.id || null,
+              department: formData.department || departments[0]?.id || null,
+              performed_by: formData.performed_by || null,
+              status: selectedProcessType.requires_approval ? "pending" : "completed",
+              remarks: formData.remarks,
+              values: formData.values
+            });
+            setCreateInstanceModal(false);
+            loadUserData();
+          } catch (err) {
+            alert("Failed to submit process execution: " + (err.response?.data?.detail || err.message));
+          }
+        },
+        onCancel: () => setCreateInstanceModal(false)
+      },
+      void 0,
+      false,
+      {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+        lineNumber: 305,
+        columnNumber: 9
+      },
+      this
+    ) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+      lineNumber: 304,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx",
+    lineNumber: 123,
+    columnNumber: 5
+  }, this);
+}
+_s(UserPage, "bU50NQCGSoIwIaP/wgykXydhPk4=", false, function() {
+  return [useAuth];
+});
+_c = UserPage;
+var _c;
+$RefreshReg$(_c, "UserPage");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/ERP/Idhayam-ERP/frontend/src/pages/UserPage.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBNkdZOzs7Ozs7Ozs7Ozs7Ozs7OztBQTdHWixPQUFPQSxTQUFTQyxXQUFXQyxnQkFBZ0I7QUFDM0MsU0FBU0MsZUFBZTtBQUN4QixTQUFTQyxrQkFBa0JDLFlBQVlDLG1CQUFtQjtBQUMxRCxPQUFPQyxXQUFXO0FBQ2xCLE9BQU9DLGlCQUFpQjtBQUN4QixTQUFTQyxXQUFXQyxLQUFLQyxRQUFRQyxnQkFBZ0JDLE1BQU1DLGFBQWFDLE9BQU9DLG1CQUFtQjtBQUU5Rix3QkFBd0JDLFdBQVc7QUFBQUMsS0FBQTtBQUNqQyxRQUFNLEVBQUVDLE1BQU1DLGFBQWFDLGNBQWNDLGNBQWMsSUFBSW5CLFFBQVE7QUFFbkUsUUFBTSxDQUFDb0IsY0FBY0MsZUFBZSxJQUFJdEIsU0FBUyxFQUFFO0FBQ25ELFFBQU0sQ0FBQ3VCLFdBQVdDLFlBQVksSUFBSXhCLFNBQVMsRUFBRTtBQUM3QyxRQUFNLENBQUN5QixrQkFBa0JDLG1CQUFtQixJQUFJMUIsU0FBUyxFQUFFO0FBQzNELFFBQU0sQ0FBQzJCLGFBQWFDLGNBQWMsSUFBSTVCLFNBQVMsRUFBRTtBQUNqRCxRQUFNLENBQUM2QixXQUFXQyxZQUFZLElBQUk5QixTQUFTLEVBQUU7QUFFN0MsUUFBTSxDQUFDK0IscUJBQXFCQyxzQkFBc0IsSUFBSWhDLFNBQVMsSUFBSTtBQUNuRSxRQUFNLENBQUNpQyxxQkFBcUJDLHNCQUFzQixJQUFJbEMsU0FBUyxLQUFLO0FBQ3BFLFFBQU0sQ0FBQ21DLGlCQUFpQkMsa0JBQWtCLElBQUlwQyxTQUFTLEVBQUU7QUFDekQsUUFBTSxDQUFDcUMsWUFBWUMsYUFBYSxJQUFJdEMsU0FBUyxDQUFDLENBQUM7QUFFL0MsUUFBTSxDQUFDdUMsUUFBUUMsU0FBUyxJQUFJeEMsU0FBUyxFQUFFO0FBQ3ZDLFFBQU0sQ0FBQ3lDLGFBQWFDLGNBQWMsSUFBSTFDLFNBQVMsRUFBRTtBQUVqREQsWUFBVSxNQUFNO0FBQ2Q0QyxpQkFBYTtBQUFBLEVBQ2YsR0FBRyxFQUFFO0FBRUwsaUJBQWVBLGVBQWU7QUFDNUIsUUFBSTtBQUNGLFlBQU0sQ0FBQ0MsT0FBT0MsU0FBU0MsUUFBUUMsU0FBU0MsU0FBU0MsVUFBVUMsT0FBTyxJQUFJLE1BQU1DLFFBQVFDO0FBQUFBLFFBQUk7QUFBQSxVQUN0RmxELGlCQUFpQm1ELGdCQUFnQjtBQUFBLFVBQ2pDbkQsaUJBQWlCb0QsYUFBYTtBQUFBLFVBQzlCbkQsV0FBV29ELGNBQWM7QUFBQSxVQUN6QnBELFdBQVdxRCxTQUFTO0FBQUEsVUFDcEJwRCxZQUFZcUQsYUFBYTtBQUFBLFVBQ3pCdkQsaUJBQWlCd0QsWUFBWXhELGlCQUFpQndELFVBQVUsSUFBSUMsTUFBTSx3Q0FBd0MsRUFBRUMsS0FBSyxDQUFBQyxNQUFLQSxFQUFFQyxLQUFLLENBQUM7QUFBQSxVQUM5SEgsTUFBTSw2Q0FBNkMsRUFBRUMsS0FBSyxDQUFBQyxNQUFLQSxFQUFFQyxLQUFLLENBQUM7QUFBQSxRQUFDO0FBQUEsTUFDekU7QUFFRCxZQUFNQyxTQUFTbkIsTUFBTW9CLE1BQU1DLFdBQVdyQixNQUFNb0IsUUFBUTtBQUNwRCxZQUFNRSxXQUFXckIsUUFBUW1CLE1BQU1DLFdBQVdwQixRQUFRbUIsUUFBUTtBQUMxRCxZQUFNRyxVQUFVckIsT0FBT2tCLE1BQU1DLFdBQVduQixPQUFPa0IsUUFBUTtBQUN2RCxZQUFNSSxXQUFXckIsUUFBUWlCLE1BQU1DLFdBQVdsQixRQUFRaUIsUUFBUTtBQUMxRCxZQUFNSyxXQUFXckIsUUFBUWdCLE1BQU1DLFdBQVdqQixRQUFRZ0IsUUFBUTtBQUMxRCxZQUFNTSxZQUFZckIsU0FBU2dCLFdBQVdoQixTQUFTZSxNQUFNQyxXQUFXaEIsU0FBU2UsUUFBUWYsWUFBWTtBQUM3RixZQUFNc0IsV0FBV3JCLFFBQVFlLFdBQVdmLFFBQVFjLE1BQU1DLFdBQVdmLFFBQVFjLFFBQVFkLFdBQVc7QUFFeEY1QixzQkFBZ0J5QyxNQUFNO0FBQ3RCdkMsbUJBQWEwQyxRQUFRO0FBQ3JCeEMsMEJBQW9CeUMsT0FBTztBQUMzQnZDLHFCQUFld0MsUUFBUTtBQUN2QnRDLG1CQUFhdUMsUUFBUTtBQUNyQjdCLGdCQUFVOEIsU0FBUztBQUNuQjVCLHFCQUFlNkIsUUFBUTtBQUFBLElBQ3pCLFNBQVNDLEtBQUs7QUFDWkMsY0FBUUMsTUFBTSxpQ0FBaUNGLEdBQUc7QUFBQSxJQUNwRDtBQUFBLEVBQ0Y7QUFFQSxRQUFNRyx3QkFBd0J0RCxhQUFhdUQsT0FBTyxDQUFDQyxPQUFPO0FBQ3hELFFBQUkxRCxhQUFjLFFBQU87QUFDekIsV0FBT0MsY0FBYyxrQkFBa0J5RCxHQUFHQyxFQUFFLEtBQUsxRCxjQUFjLGtCQUFrQnlELEdBQUdFLElBQUk7QUFBQSxFQUMxRixDQUFDO0FBRUQsUUFBTUMseUJBQXlCLE9BQU9ILE9BQU87QUFDM0M3QywyQkFBdUI2QyxFQUFFO0FBQ3pCLFFBQUk7QUFDRixZQUFNSSxTQUFTLE1BQU0vRSxpQkFBaUJnRix3QkFBd0IsRUFBRUMsY0FBY04sR0FBR0MsR0FBRyxDQUFDO0FBQ3JGLFlBQU1NLE9BQU9ILE9BQU9qQixLQUFLQyxXQUFXZ0IsT0FBT2pCLFFBQVE7QUFDbkQ1Qix5QkFBbUJnRCxJQUFJO0FBRXZCLFlBQU1DLGNBQWMsQ0FBQztBQUNyQkQsV0FBS0UsUUFBUSxDQUFBQyxNQUFLO0FBQUVGLG9CQUFZRSxFQUFFQyxjQUFjLElBQUk7QUFBQSxNQUFJLENBQUM7QUFDekRsRCxvQkFBYytDLFdBQVc7QUFDekJuRCw2QkFBdUIsSUFBSTtBQUFBLElBQzdCLFNBQVNzQyxLQUFLO0FBQ1pDLGNBQVFDLE1BQU0sNkJBQTZCRixHQUFHO0FBQUEsSUFDaEQ7QUFBQSxFQUNGO0FBRUEsUUFBTWlCLDZCQUE2QixPQUFPQyxNQUFNO0FBQzlDQSxNQUFFQyxlQUFlO0FBQ2pCLFFBQUksQ0FBQzVELG9CQUFxQjtBQUMxQixRQUFJO0FBQ0YsWUFBTTZELFVBQVVyRCxPQUFPLENBQUMsR0FBR3VDLE1BQU07QUFDakMsWUFBTWUsU0FBUzlELG9CQUFvQitELHFCQUFxQnJELFlBQVksQ0FBQyxHQUFHcUMsTUFBTTtBQUU5RSxZQUFNNUUsaUJBQWlCNkYsZUFBZTtBQUFBLFFBQ3BDWixjQUFjcEQsb0JBQW9CK0M7QUFBQUEsUUFDbENrQixPQUFPSjtBQUFBQSxRQUNQSyxZQUFZSjtBQUFBQSxRQUNaSyxRQUFRbkUsb0JBQW9Cb0Usb0JBQW9CLFlBQVk7QUFBQSxRQUM1REMsUUFBUS9EO0FBQUFBLE1BQ1YsQ0FBQztBQUNESCw2QkFBdUIsS0FBSztBQUM1QlMsbUJBQWE7QUFBQSxJQUNmLFNBQVM2QixLQUFLO0FBQ1o2QixZQUFNLDBDQUEwQzdCLElBQUk4QixVQUFVdEMsTUFBTXVDLFVBQVUvQixJQUFJZ0MsUUFBUTtBQUFBLElBQzVGO0FBQUEsRUFDRjtBQUVBLFNBQ0UsdUJBQUMsU0FBSSxXQUFVLDZCQUdiO0FBQUEsMkJBQUMsU0FBSSxXQUFVLGlGQUNiO0FBQUEsNkJBQUMsU0FBSSxXQUFVLDJCQUNiO0FBQUEsK0JBQUMsU0FBSSxXQUFVLHlHQUNiLGlDQUFDLGFBQVUsV0FBVSxhQUFyQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQThCLEtBRGhDO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFFQTtBQUFBLFFBQ0EsdUJBQUMsU0FDQztBQUFBLGlDQUFDLFFBQUcsV0FBVSxzQ0FBcUM7QUFBQTtBQUFBLFlBQ3ZDdkYsTUFBTXdGLFFBQVE7QUFBQSxZQUN2QnRGLGdCQUFnQix1QkFBQyxVQUFLLFdBQVUsK0JBQThCLDBCQUE5QztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF3RDtBQUFBLGVBRjNFO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBR0E7QUFBQSxVQUNBLHVCQUFDLE9BQUUsV0FBVSxtRUFDWDtBQUFBLG1DQUFDLFVBQUs7QUFBQTtBQUFBLGNBQW9CLHVCQUFDLFlBQU8sV0FBVSxrQkFBa0JELHVCQUFhd0YsU0FBUyxtQkFBMUQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBMEU7QUFBQSxpQkFBcEc7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBNkc7QUFBQSxZQUM3Ryx1QkFBQyxVQUFLLGlCQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQVk7QUFBQSxZQUNaLHVCQUFDLFVBQUs7QUFBQTtBQUFBLGNBQWlCLHVCQUFDLFlBQU8sV0FBVSxrQkFBa0J4Rix1QkFBYXlGLG1CQUFtQixLQUFwRTtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFzRTtBQUFBLGlCQUE3RjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFzRztBQUFBLGVBSHhHO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBSUE7QUFBQSxhQVRGO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFVQTtBQUFBLFdBZEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQWVBO0FBQUEsTUFFQSx1QkFBQyxTQUFJLFdBQVUsK0ZBQ2I7QUFBQSwrQkFBQyxlQUFZLFdBQVUsNEJBQXZCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBK0M7QUFBQSxRQUMvQyx1QkFBQyxVQUFLLFdBQVUsZ0NBQStCLGlEQUEvQztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQWdGO0FBQUEsV0FGbEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUdBO0FBQUEsU0FyQkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXNCQTtBQUFBLElBR0EsdUJBQUMsU0FBSSxXQUFVLHlDQUdiO0FBQUEsNkJBQUMsU0FBSSxXQUFVLDJCQUdiO0FBQUEsK0JBQUMsU0FBSSxXQUFVLDJCQUNiO0FBQUEsaUNBQUMsU0FBSSxXQUFVLHFDQUNiO0FBQUEsbUNBQUMsU0FDQztBQUFBLHFDQUFDLFFBQUcsV0FBVSx5Q0FDWjtBQUFBLHVDQUFDLE9BQUksV0FBVSw0QkFBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUF1QztBQUFBLGdCQUFHO0FBQUEsbUJBRDVDO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQSxjQUNBLHVCQUFDLE9BQUUsV0FBVSwwQkFBeUI7QUFBQTtBQUFBLGdCQUF3Q3pGLGFBQWF3RjtBQUFBQSxnQkFBTTtBQUFBLG1CQUFqRztBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFtRztBQUFBLGlCQUpyRztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUtBO0FBQUEsWUFDQSx1QkFBQyxVQUFLLFdBQVUsNEJBQTRCL0I7QUFBQUEsb0NBQXNCaUM7QUFBQUEsY0FBTztBQUFBLGlCQUF6RTtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFpRjtBQUFBLGVBUG5GO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBUUE7QUFBQSxVQUVDakMsc0JBQXNCaUMsV0FBVyxJQUNoQyx1QkFBQyxTQUFJLFdBQVUsNkVBQ2I7QUFBQSxtQ0FBQyxlQUFZLFdBQVUsb0NBQXZCO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQXVEO0FBQUEsWUFDdkQsdUJBQUMsT0FBRSxXQUFVLHdDQUF1Qyx5Q0FBcEQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBNkU7QUFBQSxZQUM3RSx1QkFBQyxPQUFFLFdBQVUsMEJBQXlCLGlGQUF0QztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1RztBQUFBLGVBSHpHO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBSUEsSUFFQSx1QkFBQyxTQUFJLFdBQVUseUNBQ1pqQyxnQ0FBc0JrQyxJQUFJLENBQUNoQyxPQUFPO0FBQ2pDLGtCQUFNaUMsWUFBWTNGLGdCQUFnQkMsY0FBYyxrQkFBa0J5RCxHQUFHQyxJQUFJLFFBQVE7QUFDakYsbUJBQ0UsdUJBQUMsU0FBZ0IsV0FBVSx1SUFDekI7QUFBQSxxQ0FBQyxTQUNDO0FBQUEsdUNBQUMsU0FBSSxXQUFVLDBDQUNiO0FBQUEseUNBQUMsVUFBSyxXQUFVLHNEQUFzREQsYUFBR0UsUUFBekU7QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFBOEU7QUFBQSxrQkFDOUUsdUJBQUMsVUFBSyxXQUFVLDJDQUEyQ0YsYUFBR2tDLFlBQTlEO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBQXVFO0FBQUEscUJBRnpFO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBR0E7QUFBQSxnQkFDQSx1QkFBQyxRQUFHLFdBQVUsb0NBQW9DbEMsYUFBRzRCLFFBQXJEO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQTBEO0FBQUEsZ0JBQzFELHVCQUFDLE9BQUUsV0FBVSw0Q0FBNEM1QixhQUFHbUMsV0FBVyx5Q0FBdkU7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBNkc7QUFBQSxtQkFOL0c7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFPQTtBQUFBLGNBRUEsdUJBQUMsU0FBSSxXQUFVLG9FQUNiO0FBQUEsdUNBQUMsVUFBSyxXQUFVLDhCQUE2QjtBQUFBO0FBQUEsa0JBQ2hDbkMsR0FBR3NCLG9CQUFvQix1QkFBQyxZQUFPLFdBQVUsa0JBQWlCLHdCQUFuQztBQUFBO0FBQUE7QUFBQTtBQUFBLHlCQUEyQyxJQUFZLHVCQUFDLFVBQUssV0FBVSxrQkFBaUIsb0JBQWpDO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBQXFDO0FBQUEscUJBRGhJO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBRUE7QUFBQSxnQkFDQ1csYUFDQztBQUFBLGtCQUFDO0FBQUE7QUFBQSxvQkFDQyxTQUFTLE1BQU05Qix1QkFBdUJILEVBQUU7QUFBQSxvQkFDeEMsV0FBVTtBQUFBLG9CQUVWO0FBQUEsNkNBQUMsUUFBSyxXQUFVLGlCQUFoQjtBQUFBO0FBQUE7QUFBQTtBQUFBLDZCQUE2QjtBQUFBLHNCQUFHO0FBQUE7QUFBQTtBQUFBLGtCQUpsQztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsZ0JBS0E7QUFBQSxtQkFWSjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQVlBO0FBQUEsaUJBdEJRQSxHQUFHQyxJQUFiO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBdUJBO0FBQUEsVUFFSixDQUFDLEtBN0JIO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBOEJBO0FBQUEsYUFoREo7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQWtEQTtBQUFBLFFBR0EsdUJBQUMsU0FBSSxXQUFVLDJCQUNiO0FBQUEsaUNBQUMsUUFBRyxXQUFVLHlDQUNaO0FBQUEsbUNBQUMsU0FBTSxXQUFVLDRCQUFqQjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF5QztBQUFBLFlBQUc7QUFBQSxlQUQ5QztBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUVBO0FBQUEsVUFFQSx1QkFBQyxTQUFJLFdBQVUsNkNBQ2IsaUNBQUMsV0FBTSxXQUFVLHdCQUNmO0FBQUEsbUNBQUMsV0FDQyxpQ0FBQyxRQUNDO0FBQUEscUNBQUMsUUFBRyw0QkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFnQjtBQUFBLGNBQ2hCLHVCQUFDLFFBQUcsNEJBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBZ0I7QUFBQSxjQUNoQix1QkFBQyxRQUFHLHNCQUFKO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQVU7QUFBQSxjQUNWLHVCQUFDLFFBQUcsMEJBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBYztBQUFBLGlCQUpoQjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUtBLEtBTkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFPQTtBQUFBLFlBQ0EsdUJBQUMsV0FDRXZELG9CQUFVcUYsV0FBVyxJQUNwQix1QkFBQyxRQUNDLGlDQUFDLFFBQUcsU0FBUSxLQUFJLFdBQVUsMENBQXlDLHlDQUFuRTtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUE0RixLQUQ5RjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUVBLElBRUFyRixVQUFVMEYsTUFBTSxHQUFHLENBQUMsRUFBRUo7QUFBQUEsY0FBSSxDQUFDSyxTQUN6Qix1QkFBQyxRQUNDO0FBQUEsdUNBQUMsUUFBRyxXQUFVLDBDQUEwQ0EsZUFBS3BDLE1BQTdEO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQWdFO0FBQUEsZ0JBQ2hFLHVCQUFDLFFBQUcsV0FBVSw4QkFBOEJvQyxlQUFLQyxxQkFBcUJELEtBQUsvQixnQkFBM0U7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBd0Y7QUFBQSxnQkFDeEYsdUJBQUMsUUFDQyxpQ0FBQyxVQUFLLFdBQVcsU0FBUytCLEtBQUtoQixXQUFXLGVBQWVnQixLQUFLaEIsV0FBVyxhQUFhLGtCQUFrQixlQUFlLElBQ3BIZ0IsZUFBS2hCLFVBRFI7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFFQSxLQUhGO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBSUE7QUFBQSxnQkFDQSx1QkFBQyxRQUFHLFdBQVUsa0JBQWtCZ0IsZUFBS0UsYUFBYSxJQUFJQyxLQUFLSCxLQUFLRSxVQUFVLEVBQUVFLGVBQWUsSUFBSSxPQUEvRjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFtRztBQUFBLG1CQVI1RkosS0FBS3BDLElBQWQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFTQTtBQUFBLFlBQ0QsS0FqQkw7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFtQkE7QUFBQSxlQTVCRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQTZCQSxLQTlCRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQStCQTtBQUFBLGFBcENGO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFxQ0E7QUFBQSxXQTdGRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBK0ZBO0FBQUEsTUFHQSx1QkFBQyxTQUFJLFdBQVUsYUFHYjtBQUFBLCtCQUFDLFNBQUksV0FBVSwyQkFDYjtBQUFBLGlDQUFDLFFBQUcsV0FBVSx5Q0FDWjtBQUFBLG1DQUFDLFVBQU8sV0FBVSw0QkFBbEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBMEM7QUFBQSxZQUFHO0FBQUEsZUFEL0M7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFFQTtBQUFBLFVBRUEsdUJBQUMsU0FBSSxXQUFVLGFBQ1pyRCwyQkFBaUJvRjtBQUFBQSxZQUFJLENBQUNVLFFBQ3JCLHVCQUFDLFNBQWlCLFdBQVUseUZBQzFCO0FBQUEscUNBQUMsU0FDQztBQUFBLHVDQUFDLE9BQUUsV0FBVSxvQ0FBb0NBLGNBQUlkLFFBQXJEO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQTBEO0FBQUEsZ0JBQzFELHVCQUFDLE9BQUUsV0FBVSx3Q0FBd0NjLGNBQUl4QyxRQUF6RDtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUE4RDtBQUFBLG1CQUZoRTtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUdBO0FBQUEsY0FDQSx1QkFBQyxVQUFLLFdBQVUsZ0NBQ2JwRDtBQUFBQSw0QkFBWWlELE9BQU8sQ0FBQTRDLE1BQUtBLEVBQUVULGFBQWFRLElBQUl6QyxNQUFNMEMsRUFBRUMsa0JBQWtCRixJQUFJeEMsSUFBSSxFQUFFNkI7QUFBQUEsZ0JBQU87QUFBQSxtQkFEekY7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFFQTtBQUFBLGlCQVBRVyxJQUFJekMsSUFBZDtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQVFBO0FBQUEsVUFDRCxLQVhIO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBWUE7QUFBQSxhQWpCRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBa0JBO0FBQUEsUUFHQSx1QkFBQyxTQUFJLFdBQVUsMkJBQ2I7QUFBQSxpQ0FBQyxRQUFHLFdBQVUseUNBQ1o7QUFBQSxtQ0FBQyxrQkFBZSxXQUFVLDRCQUExQjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFrRDtBQUFBLFlBQUc7QUFBQSxlQUR2RDtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUVBO0FBQUEsVUFFQSx1QkFBQyxTQUFJLFdBQVUsdURBQ1pqRCxvQkFBVStFLFdBQVcsSUFDcEIsdUJBQUMsT0FBRSxXQUFVLGtEQUFpRCw4Q0FBOUQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBNEYsSUFFNUYvRSxVQUFVb0YsTUFBTSxHQUFHLENBQUMsRUFBRUo7QUFBQUEsWUFBSSxDQUFDYSxTQUN6Qix1QkFBQyxTQUFrQixXQUFVLGlFQUMzQjtBQUFBLHFDQUFDLFNBQUksV0FBVSxxQ0FDYjtBQUFBLHVDQUFDLFVBQUssV0FBVSx3Q0FBd0NBLGVBQUs1QyxNQUE3RDtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFnRTtBQUFBLGdCQUNoRSx1QkFBQyxVQUFLLFdBQVUsbUNBQW1DNEMsZUFBS3hCLFVBQXhEO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQStEO0FBQUEsbUJBRmpFO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBR0E7QUFBQSxjQUNBLHVCQUFDLE9BQUUsV0FBVSxvQ0FBb0N3QixlQUFLQyxpQkFBaUIscUJBQXZFO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQXlGO0FBQUEsY0FDekYsdUJBQUMsT0FBRSxXQUFVLHFDQUFxQ0QsZUFBS1YsV0FBVyx1QkFBbEU7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFBc0Y7QUFBQSxpQkFOOUVVLEtBQUs1QyxJQUFmO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBT0E7QUFBQSxVQUNELEtBYkw7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFlQTtBQUFBLGFBcEJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFxQkE7QUFBQSxXQTdDRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBK0NBO0FBQUEsU0FwSkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXNKQTtBQUFBLElBR0EsdUJBQUMsU0FBTSxRQUFRN0MscUJBQXFCLFNBQVMsTUFBTUMsdUJBQXVCLEtBQUssR0FBRyxNQUFLLE1BQUssT0FBTyxvQkFBb0JILHFCQUFxQjBFLElBQUksSUFDOUk7QUFBQSxNQUFDO0FBQUE7QUFBQSxRQUNDLGFBQWF0RTtBQUFBQSxRQUNiO0FBQUEsUUFDQTtBQUFBLFFBQ0EsV0FBVyxDQUFDLEVBQUUyQyxJQUFJN0QsTUFBTTJHLFlBQVksV0FBV25CLE1BQU14RixNQUFNd0YsUUFBUSxnQkFBZ0JvQixtQkFBbUIzRyxhQUFhd0YsTUFBTSxDQUFDO0FBQUEsUUFDMUgsVUFBVSxPQUFPb0IsYUFBYTtBQUM1QixjQUFJO0FBQ0Ysa0JBQU01SCxpQkFBaUI2RixlQUFlO0FBQUEsY0FDcENaLGNBQWNwRCxvQkFBb0IrQztBQUFBQSxjQUNsQ2tCLE9BQU84QixTQUFTOUIsU0FBU3pELE9BQU8sQ0FBQyxHQUFHdUMsTUFBTTtBQUFBLGNBQzFDbUIsWUFBWTZCLFNBQVM3QixjQUFjeEQsWUFBWSxDQUFDLEdBQUdxQyxNQUFNO0FBQUEsY0FDekRpRCxjQUFjRCxTQUFTQyxnQkFBZ0I7QUFBQSxjQUN2QzdCLFFBQVFuRSxvQkFBb0JvRSxvQkFBb0IsWUFBWTtBQUFBLGNBQzVEYSxTQUFTYyxTQUFTZDtBQUFBQSxjQUNsQlosUUFBUTBCLFNBQVMxQjtBQUFBQSxZQUNuQixDQUFDO0FBQ0RsRSxtQ0FBdUIsS0FBSztBQUM1QlMseUJBQWE7QUFBQSxVQUNmLFNBQVM2QixLQUFLO0FBQ1o2QixrQkFBTSwwQ0FBMEM3QixJQUFJOEIsVUFBVXRDLE1BQU11QyxVQUFVL0IsSUFBSWdDLFFBQVE7QUFBQSxVQUM1RjtBQUFBLFFBQ0Y7QUFBQSxRQUNBLFVBQVUsTUFBTXRFLHVCQUF1QixLQUFLO0FBQUE7QUFBQSxNQXRCOUM7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLElBc0JnRCxLQXZCbEQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXlCQTtBQUFBLE9BOU1GO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FnTkE7QUFFSjtBQUFDbEIsR0FsVHVCRCxVQUFRO0FBQUEsVUFDNkJkLE9BQU87QUFBQTtBQUFBLEtBRDVDYztBQUFRLElBQUFpSDtBQUFBLGFBQUFBLElBQUEiLCJuYW1lcyI6WyJSZWFjdCIsInVzZUVmZmVjdCIsInVzZVN0YXRlIiwidXNlQXV0aCIsIlByb2Nlc3NFbmdpbmVBUEkiLCJNYXN0ZXJzQVBJIiwiV29ya2Zsb3dBUEkiLCJNb2RhbCIsIkR5bmFtaWNGb3JtIiwiVXNlckNoZWNrIiwiQ3B1IiwiTGF5ZXJzIiwiR2l0UHVsbFJlcXVlc3QiLCJQbHVzIiwiU2hpZWxkQ2hlY2siLCJDbG9jayIsIkFsZXJ0Q2lyY2xlIiwiVXNlclBhZ2UiLCJfcyIsInVzZXIiLCJkZXNpZ25hdGlvbiIsImlzU3VwZXJBZG1pbiIsImhhc1Blcm1pc3Npb24iLCJwcm9jZXNzVHlwZXMiLCJzZXRQcm9jZXNzVHlwZXMiLCJpbnN0YW5jZXMiLCJzZXRJbnN0YW5jZXMiLCJtYXN0ZXJDYXRlZ29yaWVzIiwic2V0TWFzdGVyQ2F0ZWdvcmllcyIsIm1hc3Rlckl0ZW1zIiwic2V0TWFzdGVySXRlbXMiLCJwcm9wb3NhbHMiLCJzZXRQcm9wb3NhbHMiLCJzZWxlY3RlZFByb2Nlc3NUeXBlIiwic2V0U2VsZWN0ZWRQcm9jZXNzVHlwZSIsImNyZWF0ZUluc3RhbmNlTW9kYWwiLCJzZXRDcmVhdGVJbnN0YW5jZU1vZGFsIiwiYXR0ckRlZmluaXRpb25zIiwic2V0QXR0ckRlZmluaXRpb25zIiwiZm9ybVZhbHVlcyIsInNldEZvcm1WYWx1ZXMiLCJwbGFudHMiLCJzZXRQbGFudHMiLCJkZXBhcnRtZW50cyIsInNldERlcGFydG1lbnRzIiwibG9hZFVzZXJEYXRhIiwicHRSZXMiLCJpbnN0UmVzIiwiY2F0UmVzIiwiaXRlbVJlcyIsInByb3BSZXMiLCJwbGFudFJlcyIsImRlcHRSZXMiLCJQcm9taXNlIiwiYWxsIiwiZ2V0UHJvY2Vzc1R5cGVzIiwiZ2V0SW5zdGFuY2VzIiwiZ2V0Q2F0ZWdvcmllcyIsImdldEl0ZW1zIiwiZ2V0UHJvcG9zYWxzIiwiZ2V0UGxhbnRzIiwiZmV0Y2giLCJ0aGVuIiwiciIsImpzb24iLCJwdExpc3QiLCJkYXRhIiwicmVzdWx0cyIsImluc3RMaXN0IiwiY2F0TGlzdCIsIml0ZW1MaXN0IiwicHJvcExpc3QiLCJwbGFudExpc3QiLCJkZXB0TGlzdCIsImVyciIsImNvbnNvbGUiLCJlcnJvciIsInBlcm1pdHRlZFByb2Nlc3NUeXBlcyIsImZpbHRlciIsInB0IiwiaWQiLCJjb2RlIiwib3BlbkNyZWF0ZVByb2Nlc3NNb2RhbCIsImRlZlJlcyIsImdldEF0dHJpYnV0ZURlZmluaXRpb25zIiwicHJvY2Vzc190eXBlIiwiZGVmcyIsImluaXRpYWxWYWxzIiwiZm9yRWFjaCIsImQiLCJhdHRyaWJ1dGVfY29kZSIsImhhbmRsZUNyZWF0ZUluc3RhbmNlU3VibWl0IiwiZSIsInByZXZlbnREZWZhdWx0IiwicGxhbnRJZCIsImRlcHRJZCIsIm93bmluZ19kZXBhcnRtZW50IiwiY3JlYXRlSW5zdGFuY2UiLCJwbGFudCIsImRlcGFydG1lbnQiLCJzdGF0dXMiLCJyZXF1aXJlc19hcHByb3ZhbCIsInZhbHVlcyIsImFsZXJ0IiwicmVzcG9uc2UiLCJkZXRhaWwiLCJtZXNzYWdlIiwibmFtZSIsInRpdGxlIiwiaGllcmFyY2h5X2xldmVsIiwibGVuZ3RoIiwibWFwIiwiY2FuQ3JlYXRlIiwiY2F0ZWdvcnkiLCJyZW1hcmtzIiwic2xpY2UiLCJpbnN0IiwicHJvY2Vzc190eXBlX25hbWUiLCJjcmVhdGVkX2F0IiwiRGF0ZSIsInRvTG9jYWxlU3RyaW5nIiwiY2F0IiwiaSIsImNhdGVnb3J5X2NvZGUiLCJwcm9wIiwicHJvcG9zYWxfdHlwZSIsInVzZXJuYW1lIiwiZGVzaWduYXRpb25fdGl0bGUiLCJmb3JtRGF0YSIsInBlcmZvcm1lZF9ieSIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIlVzZXJQYWdlLmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JztcclxuaW1wb3J0IHsgdXNlQXV0aCB9IGZyb20gJy4uL2NvbnRleHQvQXV0aENvbnRleHQnO1xyXG5pbXBvcnQgeyBQcm9jZXNzRW5naW5lQVBJLCBNYXN0ZXJzQVBJLCBXb3JrZmxvd0FQSSB9IGZyb20gJy4uL2FwaSc7XHJcbmltcG9ydCBNb2RhbCBmcm9tICcuLi9jb21wb25lbnRzL01vZGFsJztcclxuaW1wb3J0IER5bmFtaWNGb3JtIGZyb20gJy4uL2NvbXBvbmVudHMvRHluYW1pY0Zvcm0nO1xyXG5pbXBvcnQgeyBVc2VyQ2hlY2ssIENwdSwgTGF5ZXJzLCBHaXRQdWxsUmVxdWVzdCwgUGx1cywgU2hpZWxkQ2hlY2ssIENsb2NrLCBBbGVydENpcmNsZSB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XHJcblxyXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBVc2VyUGFnZSgpIHtcclxuICBjb25zdCB7IHVzZXIsIGRlc2lnbmF0aW9uLCBpc1N1cGVyQWRtaW4sIGhhc1Blcm1pc3Npb24gfSA9IHVzZUF1dGgoKTtcclxuXHJcbiAgY29uc3QgW3Byb2Nlc3NUeXBlcywgc2V0UHJvY2Vzc1R5cGVzXSA9IHVzZVN0YXRlKFtdKTtcclxuICBjb25zdCBbaW5zdGFuY2VzLCBzZXRJbnN0YW5jZXNdID0gdXNlU3RhdGUoW10pO1xyXG4gIGNvbnN0IFttYXN0ZXJDYXRlZ29yaWVzLCBzZXRNYXN0ZXJDYXRlZ29yaWVzXSA9IHVzZVN0YXRlKFtdKTtcclxuICBjb25zdCBbbWFzdGVySXRlbXMsIHNldE1hc3Rlckl0ZW1zXSA9IHVzZVN0YXRlKFtdKTtcclxuICBjb25zdCBbcHJvcG9zYWxzLCBzZXRQcm9wb3NhbHNdID0gdXNlU3RhdGUoW10pO1xyXG5cclxuICBjb25zdCBbc2VsZWN0ZWRQcm9jZXNzVHlwZSwgc2V0U2VsZWN0ZWRQcm9jZXNzVHlwZV0gPSB1c2VTdGF0ZShudWxsKTtcclxuICBjb25zdCBbY3JlYXRlSW5zdGFuY2VNb2RhbCwgc2V0Q3JlYXRlSW5zdGFuY2VNb2RhbF0gPSB1c2VTdGF0ZShmYWxzZSk7XHJcbiAgY29uc3QgW2F0dHJEZWZpbml0aW9ucywgc2V0QXR0ckRlZmluaXRpb25zXSA9IHVzZVN0YXRlKFtdKTtcclxuICBjb25zdCBbZm9ybVZhbHVlcywgc2V0Rm9ybVZhbHVlc10gPSB1c2VTdGF0ZSh7fSk7XHJcblxyXG4gIGNvbnN0IFtwbGFudHMsIHNldFBsYW50c10gPSB1c2VTdGF0ZShbXSk7XHJcbiAgY29uc3QgW2RlcGFydG1lbnRzLCBzZXREZXBhcnRtZW50c10gPSB1c2VTdGF0ZShbXSk7XHJcblxyXG4gIHVzZUVmZmVjdCgoKSA9PiB7XHJcbiAgICBsb2FkVXNlckRhdGEoKTtcclxuICB9LCBbXSk7XHJcblxyXG4gIGFzeW5jIGZ1bmN0aW9uIGxvYWRVc2VyRGF0YSgpIHtcclxuICAgIHRyeSB7XHJcbiAgICAgIGNvbnN0IFtwdFJlcywgaW5zdFJlcywgY2F0UmVzLCBpdGVtUmVzLCBwcm9wUmVzLCBwbGFudFJlcywgZGVwdFJlc10gPSBhd2FpdCBQcm9taXNlLmFsbChbXHJcbiAgICAgICAgUHJvY2Vzc0VuZ2luZUFQSS5nZXRQcm9jZXNzVHlwZXMoKSxcclxuICAgICAgICBQcm9jZXNzRW5naW5lQVBJLmdldEluc3RhbmNlcygpLFxyXG4gICAgICAgIE1hc3RlcnNBUEkuZ2V0Q2F0ZWdvcmllcygpLFxyXG4gICAgICAgIE1hc3RlcnNBUEkuZ2V0SXRlbXMoKSxcclxuICAgICAgICBXb3JrZmxvd0FQSS5nZXRQcm9wb3NhbHMoKSxcclxuICAgICAgICBQcm9jZXNzRW5naW5lQVBJLmdldFBsYW50cyA/IFByb2Nlc3NFbmdpbmVBUEkuZ2V0UGxhbnRzKCkgOiBmZXRjaCgnaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlL3BsYW50cy8nKS50aGVuKHIgPT4gci5qc29uKCkpLFxyXG4gICAgICAgIGZldGNoKCdodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2NvcmUvZGVwYXJ0bWVudHMvJykudGhlbihyID0+IHIuanNvbigpKSxcclxuICAgICAgXSk7XHJcblxyXG4gICAgICBjb25zdCBwdExpc3QgPSBwdFJlcy5kYXRhPy5yZXN1bHRzIHx8IHB0UmVzLmRhdGEgfHwgW107XHJcbiAgICAgIGNvbnN0IGluc3RMaXN0ID0gaW5zdFJlcy5kYXRhPy5yZXN1bHRzIHx8IGluc3RSZXMuZGF0YSB8fCBbXTtcclxuICAgICAgY29uc3QgY2F0TGlzdCA9IGNhdFJlcy5kYXRhPy5yZXN1bHRzIHx8IGNhdFJlcy5kYXRhIHx8IFtdO1xyXG4gICAgICBjb25zdCBpdGVtTGlzdCA9IGl0ZW1SZXMuZGF0YT8ucmVzdWx0cyB8fCBpdGVtUmVzLmRhdGEgfHwgW107XHJcbiAgICAgIGNvbnN0IHByb3BMaXN0ID0gcHJvcFJlcy5kYXRhPy5yZXN1bHRzIHx8IHByb3BSZXMuZGF0YSB8fCBbXTtcclxuICAgICAgY29uc3QgcGxhbnRMaXN0ID0gcGxhbnRSZXMucmVzdWx0cyB8fCBwbGFudFJlcy5kYXRhPy5yZXN1bHRzIHx8IHBsYW50UmVzLmRhdGEgfHwgcGxhbnRSZXMgfHwgW107XHJcbiAgICAgIGNvbnN0IGRlcHRMaXN0ID0gZGVwdFJlcy5yZXN1bHRzIHx8IGRlcHRSZXMuZGF0YT8ucmVzdWx0cyB8fCBkZXB0UmVzLmRhdGEgfHwgZGVwdFJlcyB8fCBbXTtcclxuXHJcbiAgICAgIHNldFByb2Nlc3NUeXBlcyhwdExpc3QpO1xyXG4gICAgICBzZXRJbnN0YW5jZXMoaW5zdExpc3QpO1xyXG4gICAgICBzZXRNYXN0ZXJDYXRlZ29yaWVzKGNhdExpc3QpO1xyXG4gICAgICBzZXRNYXN0ZXJJdGVtcyhpdGVtTGlzdCk7XHJcbiAgICAgIHNldFByb3Bvc2Fscyhwcm9wTGlzdCk7XHJcbiAgICAgIHNldFBsYW50cyhwbGFudExpc3QpO1xyXG4gICAgICBzZXREZXBhcnRtZW50cyhkZXB0TGlzdCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgY29uc29sZS5lcnJvcihcIkVycm9yIGxvYWRpbmcgdXNlciBwYWdlIGRhdGE6XCIsIGVycik7XHJcbiAgICB9XHJcbiAgfVxyXG5cclxuICBjb25zdCBwZXJtaXR0ZWRQcm9jZXNzVHlwZXMgPSBwcm9jZXNzVHlwZXMuZmlsdGVyKChwdCkgPT4ge1xyXG4gICAgaWYgKGlzU3VwZXJBZG1pbikgcmV0dXJuIHRydWU7XHJcbiAgICByZXR1cm4gaGFzUGVybWlzc2lvbigncHJvY2Vzc19lbmdpbmUnLCBwdC5pZCkgfHwgaGFzUGVybWlzc2lvbigncHJvY2Vzc19lbmdpbmUnLCBwdC5jb2RlKTtcclxuICB9KTtcclxuXHJcbiAgY29uc3Qgb3BlbkNyZWF0ZVByb2Nlc3NNb2RhbCA9IGFzeW5jIChwdCkgPT4ge1xyXG4gICAgc2V0U2VsZWN0ZWRQcm9jZXNzVHlwZShwdCk7XHJcbiAgICB0cnkge1xyXG4gICAgICBjb25zdCBkZWZSZXMgPSBhd2FpdCBQcm9jZXNzRW5naW5lQVBJLmdldEF0dHJpYnV0ZURlZmluaXRpb25zKHsgcHJvY2Vzc190eXBlOiBwdC5pZCB9KTtcclxuICAgICAgY29uc3QgZGVmcyA9IGRlZlJlcy5kYXRhLnJlc3VsdHMgfHwgZGVmUmVzLmRhdGEgfHwgW107XHJcbiAgICAgIHNldEF0dHJEZWZpbml0aW9ucyhkZWZzKTtcclxuXHJcbiAgICAgIGNvbnN0IGluaXRpYWxWYWxzID0ge307XHJcbiAgICAgIGRlZnMuZm9yRWFjaChkID0+IHsgaW5pdGlhbFZhbHNbZC5hdHRyaWJ1dGVfY29kZV0gPSAnJzsgfSk7XHJcbiAgICAgIHNldEZvcm1WYWx1ZXMoaW5pdGlhbFZhbHMpO1xyXG4gICAgICBzZXRDcmVhdGVJbnN0YW5jZU1vZGFsKHRydWUpO1xyXG4gICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgIGNvbnNvbGUuZXJyb3IoXCJFcnJvciBsb2FkaW5nIGF0dHJpYnV0ZXM6XCIsIGVycik7XHJcbiAgICB9XHJcbiAgfTtcclxuXHJcbiAgY29uc3QgaGFuZGxlQ3JlYXRlSW5zdGFuY2VTdWJtaXQgPSBhc3luYyAoZSkgPT4ge1xyXG4gICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xyXG4gICAgaWYgKCFzZWxlY3RlZFByb2Nlc3NUeXBlKSByZXR1cm47XHJcbiAgICB0cnkge1xyXG4gICAgICBjb25zdCBwbGFudElkID0gcGxhbnRzWzBdPy5pZCB8fCBudWxsO1xyXG4gICAgICBjb25zdCBkZXB0SWQgPSBzZWxlY3RlZFByb2Nlc3NUeXBlLm93bmluZ19kZXBhcnRtZW50IHx8IGRlcGFydG1lbnRzWzBdPy5pZCB8fCBudWxsO1xyXG5cclxuICAgICAgYXdhaXQgUHJvY2Vzc0VuZ2luZUFQSS5jcmVhdGVJbnN0YW5jZSh7XHJcbiAgICAgICAgcHJvY2Vzc190eXBlOiBzZWxlY3RlZFByb2Nlc3NUeXBlLmlkLFxyXG4gICAgICAgIHBsYW50OiBwbGFudElkLFxyXG4gICAgICAgIGRlcGFydG1lbnQ6IGRlcHRJZCxcclxuICAgICAgICBzdGF0dXM6IHNlbGVjdGVkUHJvY2Vzc1R5cGUucmVxdWlyZXNfYXBwcm92YWwgPyAncGVuZGluZycgOiAnY29tcGxldGVkJyxcclxuICAgICAgICB2YWx1ZXM6IGZvcm1WYWx1ZXMsXHJcbiAgICAgIH0pO1xyXG4gICAgICBzZXRDcmVhdGVJbnN0YW5jZU1vZGFsKGZhbHNlKTtcclxuICAgICAgbG9hZFVzZXJEYXRhKCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgYWxlcnQoXCJGYWlsZWQgdG8gc3VibWl0IHByb2Nlc3MgZXhlY3V0aW9uOiBcIiArIChlcnIucmVzcG9uc2U/LmRhdGE/LmRldGFpbCB8fCBlcnIubWVzc2FnZSkpO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIHJldHVybiAoXHJcbiAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktNiBhbmltYXRlLWZhZGUtaW5cIj5cclxuICAgICAgXHJcbiAgICAgIHsvKiBUb3AgQmFubmVyICovfVxyXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInN0YW5kYXJkLWNhcmQgZmxleCBmbGV4LWNvbCBtZDpmbGV4LXJvdyBtZDppdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGdhcC00XCI+XHJcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtNFwiPlxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ3LTEyIGgtMTIgcm91bmRlZC1sZyBiZy1bIzFCNEU5Ql0gdGV4dC13aGl0ZSBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciBmb250LWV4dHJhYm9sZCBzaHJpbmstMFwiPlxyXG4gICAgICAgICAgICA8VXNlckNoZWNrIGNsYXNzTmFtZT1cInctNiBoLTZcIiAvPlxyXG4gICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICA8aDEgY2xhc3NOYW1lPVwicGFnZS10aXRsZSBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMlwiPlxyXG4gICAgICAgICAgICAgIFdlbGNvbWUsIHt1c2VyPy5uYW1lIHx8ICdFbnRlcnByaXNlIFVzZXInfVxyXG4gICAgICAgICAgICAgIHtpc1N1cGVyQWRtaW4gJiYgPHNwYW4gY2xhc3NOYW1lPVwiYmFkZ2UgYmFkZ2Utc3VjY2VzcyB0ZXh0LXhzXCI+U3VwZXJBZG1pbjwvc3Bhbj59XHJcbiAgICAgICAgICAgIDwvaDE+XHJcbiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzZCNzI4MF0gZm9udC1tZWRpdW0gZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIgbXQtMVwiPlxyXG4gICAgICAgICAgICAgIDxzcGFuPkFjdGl2ZSBEZXNpZ25hdGlvbjogPHN0cm9uZyBjbGFzc05hbWU9XCJ0ZXh0LVsjMUI0RTlCXVwiPntkZXNpZ25hdGlvbj8udGl0bGUgfHwgJ0dlbmVyYWwgU3RhZmYnfTwvc3Ryb25nPjwvc3Bhbj5cclxuICAgICAgICAgICAgICA8c3Bhbj4mYnVsbDs8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPHNwYW4+SGllcmFyY2h5IExldmVsOiA8c3Ryb25nIGNsYXNzTmFtZT1cInRleHQtWyMxRjI5MzddXCI+e2Rlc2lnbmF0aW9uPy5oaWVyYXJjaHlfbGV2ZWwgfHwgMX08L3N0cm9uZz48L3NwYW4+XHJcbiAgICAgICAgICAgIDwvcD5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIGJnLVsjRjhGQUZDXSBweC0zLjUgcHktMiByb3VuZGVkLWxnIGJvcmRlciBib3JkZXItWyNFNUU3RUJdIHRleHQteHNcIj5cclxuICAgICAgICAgIDxTaGllbGRDaGVjayBjbGFzc05hbWU9XCJ3LTQgaC00IHRleHQtWyMxNkEzNEFdXCIgLz5cclxuICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQtWyMzNzQxNTFdIGZvbnQtc2VtaWJvbGRcIj5EZXNpZ25hdGlvbiBBY2Nlc3MgQ29udHJvbCBBY3RpdmU8L3NwYW4+XHJcbiAgICAgICAgPC9kaXY+XHJcbiAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgey8qIEdyaWQgTGF5b3V0ICovfVxyXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTEgbGc6Z3JpZC1jb2xzLTMgZ2FwLTZcIj5cclxuXHJcbiAgICAgICAgey8qIENvbHVtbiAxICYgMjogUGVybWl0dGVkIFByb2Nlc3MgVHlwZXMgJiBFeGVjdXRpb24gKi99XHJcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJsZzpjb2wtc3Bhbi0yIHNwYWNlLXktNlwiPlxyXG4gICAgICAgICAgXHJcbiAgICAgICAgICB7LyogUGVybWl0dGVkIFByb2Nlc3MgRW5naW5lIFR5cGVzICovfVxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzdGFuZGFyZC1jYXJkIHNwYWNlLXktNFwiPlxyXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlblwiPlxyXG4gICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICA8aDMgY2xhc3NOYW1lPVwic2VjdGlvbi10aXRsZSBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMlwiPlxyXG4gICAgICAgICAgICAgICAgICA8Q3B1IGNsYXNzTmFtZT1cInctNSBoLTUgdGV4dC1bIzFCNEU5Ql1cIiAvPiBQZXJtaXR0ZWQgUHJvY2VzcyBFbmdpbmUgVHlwZXNcclxuICAgICAgICAgICAgICAgIDwvaDM+XHJcbiAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+UHJvY2VzcyB0eXBlcyBlbmFibGVkIGZvciBkZXNpZ25hdGlvbiAne2Rlc2lnbmF0aW9uPy50aXRsZX0nLjwvcD5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJiYWRnZSBiYWRnZS1pbmZvIHRleHQteHNcIj57cGVybWl0dGVkUHJvY2Vzc1R5cGVzLmxlbmd0aH0gQWxsb3dlZDwvc3Bhbj5cclxuICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICB7cGVybWl0dGVkUHJvY2Vzc1R5cGVzLmxlbmd0aCA9PT0gMCA/IChcclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInAtOCB0ZXh0LWNlbnRlciBiZy1bI0Y4RkFGQ10gcm91bmRlZC1sZyBib3JkZXIgYm9yZGVyLVsjRTVFN0VCXSBzcGFjZS15LTJcIj5cclxuICAgICAgICAgICAgICAgIDxBbGVydENpcmNsZSBjbGFzc05hbWU9XCJ3LTggaC04IHRleHQtWyNGNkNFMEFdIG14LWF1dG9cIiAvPlxyXG4gICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtWyMxRjI5MzddXCI+Tm8gUHJvY2VzcyBUeXBlcyBBc3NpZ25lZDwvcD5cclxuICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzZCNzI4MF1cIj5TdXBlckFkbWluIGhhcyBub3QgZ3JhbnRlZCBwZXJtaXNzaW9ucyBmb3IgYW55IHByb2Nlc3MgdHlwZXMgeWV0LjwvcD5cclxuICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgKSA6IChcclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTEgbWQ6Z3JpZC1jb2xzLTIgZ2FwLTRcIj5cclxuICAgICAgICAgICAgICAgIHtwZXJtaXR0ZWRQcm9jZXNzVHlwZXMubWFwKChwdCkgPT4ge1xyXG4gICAgICAgICAgICAgICAgICBjb25zdCBjYW5DcmVhdGUgPSBpc1N1cGVyQWRtaW4gfHwgaGFzUGVybWlzc2lvbigncHJvY2Vzc19lbmdpbmUnLCBwdC5pZCwgJ2NyZWF0ZScpO1xyXG4gICAgICAgICAgICAgICAgICByZXR1cm4gKFxyXG4gICAgICAgICAgICAgICAgICAgIDxkaXYga2V5PXtwdC5pZH0gY2xhc3NOYW1lPVwicC00IHJvdW5kZWQtbGcgYmctd2hpdGUgYm9yZGVyIGJvcmRlci1bI0U1RTdFQl0gaG92ZXI6Ym9yZGVyLVsjMUI0RTlCXSB0cmFuc2l0aW9uLWFsbCBmbGV4IGZsZXgtY29sIGp1c3RpZnktYmV0d2VlbiBnYXAtMyBzaGFkb3ctc21cIj5cclxuICAgICAgICAgICAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIG1iLTFcIj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC1bMTFweF0gdGV4dC1bIzFCNEU5Ql0gZm9udC1zZW1pYm9sZFwiPntwdC5jb2RlfTwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJiYWRnZSBiYWRnZS1pbmZvIHRleHQtWzEwcHhdIGNhcGl0YWxpemVcIj57cHQuY2F0ZWdvcnl9PC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPGg0IGNsYXNzTmFtZT1cImZvbnQtYm9sZCB0ZXh0LVsjMUYyOTM3XSB0ZXh0LXNtXCI+e3B0Lm5hbWV9PC9oND5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjNkI3MjgwXSBtdC0xIGxpbmUtY2xhbXAtMlwiPntwdC5yZW1hcmtzIHx8ICdTdGFuZGFyZCBwcm9jZXNzIGV4ZWN1dGlvbiB0ZW1wbGF0ZSd9PC9wPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gcHQtMiBib3JkZXItdCBib3JkZXItWyNFNUU3RUJdXCI+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cInRleHQtWzExcHhdIHRleHQtWyM2QjcyODBdXCI+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgQXBwcm92YWw6IHtwdC5yZXF1aXJlc19hcHByb3ZhbCA/IDxzdHJvbmcgY2xhc3NOYW1lPVwidGV4dC1bI0NBOEEwNF1cIj5SZXF1aXJlZDwvc3Ryb25nPiA6IDxzcGFuIGNsYXNzTmFtZT1cInRleHQtWyMxNkEzNEFdXCI+QXV0bzwvc3Bhbj59XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgICAge2NhbkNyZWF0ZSAmJiAoXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gb3BlbkNyZWF0ZVByb2Nlc3NNb2RhbChwdCl9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJidG4tcHJpbWFyeSB0ZXh0LXhzIHB5LTEgcHgtMi41IGgtOFwiXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgPFBsdXMgY2xhc3NOYW1lPVwidy0zLjUgaC0zLjVcIiAvPiBFeGVjdXRlXHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICl9XHJcbiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgKTtcclxuICAgICAgICAgICAgICAgIH0pfVxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICApfVxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgey8qIFJlY2VudCBQcm9jZXNzIEV4ZWN1dGlvbnMgKi99XHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInN0YW5kYXJkLWNhcmQgc3BhY2UteS00XCI+XHJcbiAgICAgICAgICAgIDxoMyBjbGFzc05hbWU9XCJzZWN0aW9uLXRpdGxlIGZsZXggaXRlbXMtY2VudGVyIGdhcC0yXCI+XHJcbiAgICAgICAgICAgICAgPENsb2NrIGNsYXNzTmFtZT1cInctNSBoLTUgdGV4dC1bIzFCNEU5Ql1cIiAvPiBSZWNlbnQgUHJvY2VzcyBFeGVjdXRpb25zXHJcbiAgICAgICAgICAgIDwvaDM+XHJcblxyXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm92ZXJmbG93LXgtYXV0byBtYXgtaC03MiBjdXN0b20tc2Nyb2xsYmFyXCI+XHJcbiAgICAgICAgICAgICAgPHRhYmxlIGNsYXNzTmFtZT1cImN1c3RvbS10YWJsZSB0ZXh0LXhzXCI+XHJcbiAgICAgICAgICAgICAgICA8dGhlYWQ+XHJcbiAgICAgICAgICAgICAgICAgIDx0cj5cclxuICAgICAgICAgICAgICAgICAgICA8dGg+RXhlY3V0aW9uIElEPC90aD5cclxuICAgICAgICAgICAgICAgICAgICA8dGg+UHJvY2VzcyBUeXBlPC90aD5cclxuICAgICAgICAgICAgICAgICAgICA8dGg+U3RhdHVzPC90aD5cclxuICAgICAgICAgICAgICAgICAgICA8dGg+Q3JlYXRlZCBBdDwvdGg+XHJcbiAgICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgICA8L3RoZWFkPlxyXG4gICAgICAgICAgICAgICAgPHRib2R5PlxyXG4gICAgICAgICAgICAgICAgICB7aW5zdGFuY2VzLmxlbmd0aCA9PT0gMCA/IChcclxuICAgICAgICAgICAgICAgICAgICA8dHI+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQgY29sU3Bhbj1cIjRcIiBjbGFzc05hbWU9XCJ0ZXh0LWNlbnRlciBweS02IHRleHQtWyM2QjcyODBdIGl0YWxpY1wiPk5vIGV4ZWN1dGlvbnMgbG9nZ2VkIHlldC48L3RkPlxyXG4gICAgICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgICAgICkgOiAoXHJcbiAgICAgICAgICAgICAgICAgICAgaW5zdGFuY2VzLnNsaWNlKDAsIDgpLm1hcCgoaW5zdCkgPT4gKFxyXG4gICAgICAgICAgICAgICAgICAgICAgPHRyIGtleT17aW5zdC5pZH0+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC1bIzFCNEU5Ql0gZm9udC1zZW1pYm9sZFwiPntpbnN0LmlkfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJmb250LW1lZGl1bSB0ZXh0LVsjMUYyOTM3XVwiPntpbnN0LnByb2Nlc3NfdHlwZV9uYW1lIHx8IGluc3QucHJvY2Vzc190eXBlfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDx0ZD5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9e2BiYWRnZSAke2luc3Quc3RhdHVzID09PSAnY29tcGxldGVkJyB8fCBpbnN0LnN0YXR1cyA9PT0gJ2FwcHJvdmVkJyA/ICdiYWRnZS1zdWNjZXNzJyA6ICdiYWRnZS13YXJuaW5nJ31gfT5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIHtpbnN0LnN0YXR1c31cclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJ0ZXh0LVsjNkI3MjgwXVwiPntpbnN0LmNyZWF0ZWRfYXQgPyBuZXcgRGF0ZShpbnN0LmNyZWF0ZWRfYXQpLnRvTG9jYWxlU3RyaW5nKCkgOiAnLSd9PC90ZD5cclxuICAgICAgICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgICAgICAgKSlcclxuICAgICAgICAgICAgICAgICAgKX1cclxuICAgICAgICAgICAgICAgIDwvdGJvZHk+XHJcbiAgICAgICAgICAgICAgPC90YWJsZT5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgIHsvKiBDb2x1bW4gMzogQWNjZXNzaWJsZSBNYXN0ZXJzICYgUGVuZGluZyBBcHByb3ZhbHMgKi99XHJcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzcGFjZS15LTZcIj5cclxuXHJcbiAgICAgICAgICB7LyogQWNjZXNzaWJsZSBNYXN0ZXIgQ2F0ZWdvcmllcyAqL31cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3RhbmRhcmQtY2FyZCBzcGFjZS15LTRcIj5cclxuICAgICAgICAgICAgPGgzIGNsYXNzTmFtZT1cInNlY3Rpb24tdGl0bGUgZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTJcIj5cclxuICAgICAgICAgICAgICA8TGF5ZXJzIGNsYXNzTmFtZT1cInctNSBoLTUgdGV4dC1bIzE2QTM0QV1cIiAvPiBNYXN0ZXIgQ2F0ZWdvcmllc1xyXG4gICAgICAgICAgICA8L2gzPlxyXG5cclxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzcGFjZS15LTJcIj5cclxuICAgICAgICAgICAgICB7bWFzdGVyQ2F0ZWdvcmllcy5tYXAoKGNhdCkgPT4gKFxyXG4gICAgICAgICAgICAgICAgPGRpdiBrZXk9e2NhdC5pZH0gY2xhc3NOYW1lPVwicC0zIHJvdW5kZWQtbGcgYmctWyNGOEZBRkNdIGJvcmRlciBib3JkZXItWyNFNUU3RUJdIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlblwiPlxyXG4gICAgICAgICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImZvbnQtYm9sZCB0ZXh0LVsjMUYyOTM3XSB0ZXh0LXhzXCI+e2NhdC5uYW1lfTwvcD5cclxuICAgICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC1bMTBweF0gdGV4dC1bIzE2QTM0QV1cIj57Y2F0LmNvZGV9PC9wPlxyXG4gICAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiYmFkZ2UgYmFkZ2UtaW5mbyB0ZXh0LVsxMHB4XVwiPlxyXG4gICAgICAgICAgICAgICAgICAgIHttYXN0ZXJJdGVtcy5maWx0ZXIoaSA9PiBpLmNhdGVnb3J5ID09PSBjYXQuaWQgfHwgaS5jYXRlZ29yeV9jb2RlID09PSBjYXQuY29kZSkubGVuZ3RofSBJdGVtc1xyXG4gICAgICAgICAgICAgICAgICA8L3NwYW4+XHJcbiAgICAgICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgICApKX1cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICB7LyogV29ya2Zsb3cgUHJvcG9zYWxzICovfVxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzdGFuZGFyZC1jYXJkIHNwYWNlLXktNFwiPlxyXG4gICAgICAgICAgICA8aDMgY2xhc3NOYW1lPVwic2VjdGlvbi10aXRsZSBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMlwiPlxyXG4gICAgICAgICAgICAgIDxHaXRQdWxsUmVxdWVzdCBjbGFzc05hbWU9XCJ3LTUgaC01IHRleHQtWyMyNTYzRUJdXCIgLz4gUGVuZGluZyBXb3JrZmxvdyBBcHByb3ZhbHNcclxuICAgICAgICAgICAgPC9oMz5cclxuXHJcbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS0yIG1heC1oLTY0IG92ZXJmbG93LXktYXV0byBjdXN0b20tc2Nyb2xsYmFyXCI+XHJcbiAgICAgICAgICAgICAge3Byb3Bvc2Fscy5sZW5ndGggPT09IDAgPyAoXHJcbiAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdIGl0YWxpYyB0ZXh0LWNlbnRlciBweS00XCI+Tm8gcGVuZGluZyB3b3JrZmxvdyBwcm9wb3NhbHMuPC9wPlxyXG4gICAgICAgICAgICAgICkgOiAoXHJcbiAgICAgICAgICAgICAgICBwcm9wb3NhbHMuc2xpY2UoMCwgNSkubWFwKChwcm9wKSA9PiAoXHJcbiAgICAgICAgICAgICAgICAgIDxkaXYga2V5PXtwcm9wLmlkfSBjbGFzc05hbWU9XCJwLTMgcm91bmRlZC1sZyBiZy1bI0Y4RkFGQ10gYm9yZGVyIGJvcmRlci1bI0U1RTdFQl0gc3BhY2UteS0xXCI+XHJcbiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW5cIj5cclxuICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cImZvbnQtbW9ubyB0ZXh0LVsxMHB4XSB0ZXh0LVsjMjU2M0VCXVwiPntwcm9wLmlkfTwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cImJhZGdlIGJhZGdlLXdhcm5pbmcgdGV4dC1bMTBweF1cIj57cHJvcC5zdGF0dXN9PC9zcGFuPlxyXG4gICAgICAgICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImZvbnQtYm9sZCB0ZXh0LXhzIHRleHQtWyMxRjI5MzddXCI+e3Byb3AucHJvcG9zYWxfdHlwZSB8fCAnUHJvcG9zYWwgUmV2aWV3J308L3A+XHJcbiAgICAgICAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1bMTBweF0gdGV4dC1bIzZCNzI4MF0gaXRhbGljXCI+e3Byb3AucmVtYXJrcyB8fCAnQXdhaXRpbmcgc2lnbi1vZmYnfTwvcD5cclxuICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICApKVxyXG4gICAgICAgICAgICAgICl9XHJcbiAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgPC9kaXY+XHJcblxyXG4gICAgICB7LyogTW9kYWw6IEV4ZWN1dGUgUHJvY2VzcyBJbnN0YW5jZSAqL31cclxuICAgICAgPE1vZGFsIGlzT3Blbj17Y3JlYXRlSW5zdGFuY2VNb2RhbH0gb25DbG9zZT17KCkgPT4gc2V0Q3JlYXRlSW5zdGFuY2VNb2RhbChmYWxzZSl9IHNpemU9XCJsZ1wiIHRpdGxlPXtgRXhlY3V0ZSBQcm9jZXNzOiAke3NlbGVjdGVkUHJvY2Vzc1R5cGU/Lm5hbWV9YH0+XHJcbiAgICAgICAgPER5bmFtaWNGb3JtXHJcbiAgICAgICAgICBkZWZpbml0aW9ucz17YXR0ckRlZmluaXRpb25zfVxyXG4gICAgICAgICAgcGxhbnRzPXtwbGFudHN9XHJcbiAgICAgICAgICBkZXBhcnRtZW50cz17ZGVwYXJ0bWVudHN9XHJcbiAgICAgICAgICBlbXBsb3llZXM9e1t7IGlkOiB1c2VyPy51c2VybmFtZSB8fCAndXNlci0wMScsIG5hbWU6IHVzZXI/Lm5hbWUgfHwgJ0N1cnJlbnQgVXNlcicsIGRlc2lnbmF0aW9uX3RpdGxlOiBkZXNpZ25hdGlvbj8udGl0bGUgfV19XHJcbiAgICAgICAgICBvblN1Ym1pdD17YXN5bmMgKGZvcm1EYXRhKSA9PiB7XHJcbiAgICAgICAgICAgIHRyeSB7XHJcbiAgICAgICAgICAgICAgYXdhaXQgUHJvY2Vzc0VuZ2luZUFQSS5jcmVhdGVJbnN0YW5jZSh7XHJcbiAgICAgICAgICAgICAgICBwcm9jZXNzX3R5cGU6IHNlbGVjdGVkUHJvY2Vzc1R5cGUuaWQsXHJcbiAgICAgICAgICAgICAgICBwbGFudDogZm9ybURhdGEucGxhbnQgfHwgcGxhbnRzWzBdPy5pZCB8fCBudWxsLFxyXG4gICAgICAgICAgICAgICAgZGVwYXJ0bWVudDogZm9ybURhdGEuZGVwYXJ0bWVudCB8fCBkZXBhcnRtZW50c1swXT8uaWQgfHwgbnVsbCxcclxuICAgICAgICAgICAgICAgIHBlcmZvcm1lZF9ieTogZm9ybURhdGEucGVyZm9ybWVkX2J5IHx8IG51bGwsXHJcbiAgICAgICAgICAgICAgICBzdGF0dXM6IHNlbGVjdGVkUHJvY2Vzc1R5cGUucmVxdWlyZXNfYXBwcm92YWwgPyAncGVuZGluZycgOiAnY29tcGxldGVkJyxcclxuICAgICAgICAgICAgICAgIHJlbWFya3M6IGZvcm1EYXRhLnJlbWFya3MsXHJcbiAgICAgICAgICAgICAgICB2YWx1ZXM6IGZvcm1EYXRhLnZhbHVlcyxcclxuICAgICAgICAgICAgICB9KTtcclxuICAgICAgICAgICAgICBzZXRDcmVhdGVJbnN0YW5jZU1vZGFsKGZhbHNlKTtcclxuICAgICAgICAgICAgICBsb2FkVXNlckRhdGEoKTtcclxuICAgICAgICAgICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgICAgICAgICAgYWxlcnQoXCJGYWlsZWQgdG8gc3VibWl0IHByb2Nlc3MgZXhlY3V0aW9uOiBcIiArIChlcnIucmVzcG9uc2U/LmRhdGE/LmRldGFpbCB8fCBlcnIubWVzc2FnZSkpO1xyXG4gICAgICAgICAgICB9XHJcbiAgICAgICAgICB9fVxyXG4gICAgICAgICAgb25DYW5jZWw9eygpID0+IHNldENyZWF0ZUluc3RhbmNlTW9kYWwoZmFsc2UpfVxyXG4gICAgICAgIC8+XHJcbiAgICAgIDwvTW9kYWw+XHJcblxyXG4gICAgPC9kaXY+XHJcbiAgKTtcclxufVxyXG5cclxuIl0sImZpbGUiOiJEOi9FUlAvSWRoYXlhbS1FUlAvZnJvbnRlbmQvc3JjL3BhZ2VzL1VzZXJQYWdlLmpzeCJ9

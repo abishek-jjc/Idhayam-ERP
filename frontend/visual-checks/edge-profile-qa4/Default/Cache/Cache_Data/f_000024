@@ -1,0 +1,408 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/ui/VersionRollbackManager.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=36603bcd"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=36603bcd"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import axios from "/node_modules/.vite/deps/axios.js?v=36603bcd";
+import { RotateCcw, History, Check, Clock, AlertCircle, Eye } from "/node_modules/.vite/deps/lucide-react.js?v=36603bcd";
+import Modal from "/src/components/Modal.jsx";
+const API = "http://127.0.0.1:8000/api/core";
+const CONFIG_TYPES = ["menu", "navbar", "theme", "form", "form_field", "modal", "widget", "dashboard_layout", "search"];
+export default function VersionRollbackManager({ configType = "menu", onItemRestored }) {
+  _s();
+  const [activeType, setActiveType] = useState(configType);
+  const [itemFilter, setItemFilter] = useState("");
+  const [versions, setVersions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVersion, setSelectedVersion] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const loadVersions = () => {
+    setLoading(true);
+    const params = new URLSearchParams({ config_type: activeType });
+    if (itemFilter) params.set("item_id", itemFilter);
+    axios.get(`${API}/ui-config-versions/?${params}`).then((response) => setVersions(response.data?.results || response.data || [])).finally(() => setLoading(false));
+  };
+  useEffect(loadVersions, [activeType, itemFilter]);
+  const rollback = async () => {
+    if (!selectedVersion) return;
+    setRestoring(true);
+    setMsg(null);
+    try {
+      const response = await axios.post(`${API}/ui-config-rollback/`, { version_id: selectedVersion.id });
+      setMsg({ type: "success", text: response.data.message });
+      setSelectedVersion(null);
+      window.dispatchEvent(new Event("erp_ui_metadata_updated"));
+      window.dispatchEvent(new Event("erp_theme_updated"));
+      onItemRestored?.();
+      loadVersions();
+    } catch (error) {
+      setMsg({ type: "error", text: error.response?.data?.error || "Failed to roll back this configuration." });
+    } finally {
+      setRestoring(false);
+    }
+  };
+  const itemOptions = [...new Map(versions.map((version) => [version.item_id, version])).values()].filter((version) => version.item_id);
+  return /* @__PURE__ */ jsxDEV("div", { className: "space-y-5", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "standard-card version-toolbar", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("p", { className: "workspace-kicker", children: "Configuration governance" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 66,
+          columnNumber: 12
+        }, this),
+        /* @__PURE__ */ jsxDEV("h3", { className: "section-title flex items-center gap-2 mt-2", children: [
+          /* @__PURE__ */ jsxDEV(History, { className: "w-5 h-5 text-[var(--primary)]" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 66,
+            columnNumber: 131
+          }, this),
+          " Version History"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 66,
+          columnNumber: 72
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "helper-text mt-1", children: "Every item has an independent version sequence. Rollbacks snapshot the current state first, so every restore remains reversible." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 66,
+          columnNumber: 205
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 66,
+        columnNumber: 7
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "version-current", children: [
+        /* @__PURE__ */ jsxDEV("small", { children: "Latest version" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 67,
+          columnNumber: 40
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: versions[0] ? `v${versions[0].version_number}` : "—" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 67,
+          columnNumber: 69
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: versions[0]?.item_name || "No snapshot selected" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 67,
+          columnNumber: 140
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 67,
+        columnNumber: 7
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "version-filters", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Configuration type" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 68,
+            columnNumber: 45
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { className: "form-input min-w-44", value: activeType, onChange: (e) => {
+            setActiveType(e.target.value);
+            setItemFilter("");
+          }, children: CONFIG_TYPES.map((type) => /* @__PURE__ */ jsxDEV("option", { value: type, children: type.replaceAll("_", " ") }, type, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 68,
+            columnNumber: 257
+          }, this)) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 68,
+            columnNumber: 101
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 68,
+          columnNumber: 40
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Item" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 68,
+            columnNumber: 347
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { className: "form-input min-w-52", value: itemFilter, onChange: (e) => setItemFilter(e.target.value), children: [
+            /* @__PURE__ */ jsxDEV("option", { value: "", children: "All items" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+              lineNumber: 68,
+              columnNumber: 496
+            }, this),
+            itemOptions.map((version) => /* @__PURE__ */ jsxDEV("option", { value: version.item_id, children: version.item_name || version.item_id }, version.item_id, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+              lineNumber: 68,
+              columnNumber: 561
+            }, this))
+          ] }, void 0, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 68,
+            columnNumber: 389
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 68,
+          columnNumber: 342
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 68,
+        columnNumber: 7
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+      lineNumber: 65,
+      columnNumber: 5
+    }, this),
+    msg && /* @__PURE__ */ jsxDEV("div", { className: `standard-card flex items-center gap-2 ${msg.type === "success" ? "text-[var(--success)]" : "text-[var(--danger)]"}`, children: [
+      msg.type === "success" ? /* @__PURE__ */ jsxDEV(Check, { className: "w-4 h-4" }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 70,
+        columnNumber: 173
+      }, this) : /* @__PURE__ */ jsxDEV(AlertCircle, { className: "w-4 h-4" }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 70,
+        columnNumber: 205
+      }, this),
+      msg.text
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+      lineNumber: 70,
+      columnNumber: 13
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "table-container overflow-x-auto", children: /* @__PURE__ */ jsxDEV("table", { className: "custom-table", children: [
+      /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+        /* @__PURE__ */ jsxDEV("th", { children: "Version" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 97
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { children: "Item" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 113
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { children: "Description" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 126
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { children: "Created" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 146
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { children: "Administrator" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 162
+        }, this),
+        /* @__PURE__ */ jsxDEV("th", { className: "text-right", children: "Review" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 184
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 93
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 86
+      }, this),
+      /* @__PURE__ */ jsxDEV("tbody", { children: loading ? /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: "6", className: "text-center", children: "Loading snapshots..." }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 257
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 253
+      }, this) : versions.length === 0 ? /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: "6", className: "text-center", children: "No snapshots for this selection." }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 358
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 354
+      }, this) : versions.map((version) => /* @__PURE__ */ jsxDEV("tr", { children: [
+        /* @__PURE__ */ jsxDEV("td", { className: "font-mono font-bold", children: [
+          "v",
+          version.version_number
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 490
+        }, this),
+        /* @__PURE__ */ jsxDEV("td", { children: version.item_name || version.item_id || "Legacy snapshot" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 556
+        }, this),
+        /* @__PURE__ */ jsxDEV("td", { children: version.description }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 624
+        }, this),
+        /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV("span", { className: "flex items-center gap-1", children: [
+          /* @__PURE__ */ jsxDEV(Clock, { className: "w-3 h-3" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 71,
+            columnNumber: 700
+          }, this),
+          new Date(version.created_at).toLocaleString()
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 658
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 654
+        }, this),
+        /* @__PURE__ */ jsxDEV("td", { children: version.created_by_name }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 788
+        }, this),
+        /* @__PURE__ */ jsxDEV("td", { className: "text-right", children: /* @__PURE__ */ jsxDEV("button", { className: "btn-action-view", onClick: () => setSelectedVersion(version), children: [
+          /* @__PURE__ */ jsxDEV(Eye, { className: "w-3 h-3" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 71,
+            columnNumber: 929
+          }, this),
+          " Compare & Restore"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 849
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 71,
+          columnNumber: 822
+        }, this)
+      ] }, version.id, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 469
+      }, this)) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 71,
+        columnNumber: 235
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+      lineNumber: 71,
+      columnNumber: 54
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+      lineNumber: 71,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: !!selectedVersion, onClose: () => setSelectedVersion(null), size: "lg", title: `Confirm rollback to v${selectedVersion?.version_number || ""}`, children: /* @__PURE__ */ jsxDEV("div", { className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "p-3 rounded-lg border border-[var(--warning)] bg-[var(--table-header)] text-xs", children: [
+        /* @__PURE__ */ jsxDEV("strong", { children: "Impact:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 73,
+          columnNumber: 130
+        }, this),
+        " this restores the selected item only. The current state is snapshotted first, making the operation reversible."
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 73,
+        columnNumber: 34
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("h4", { className: "form-label", children: [
+          "Target snapshot — ",
+          selectedVersion?.item_name || selectedVersion?.item_id
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 73,
+          columnNumber: 276
+        }, this),
+        /* @__PURE__ */ jsxDEV("pre", { className: "p-3 max-h-80 overflow-auto rounded-lg bg-[var(--table-header)] border border-[var(--theme-border)] text-[11px]", children: JSON.stringify(selectedVersion?.snapshot_data || {}, null, 2) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 73,
+          columnNumber: 382
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 73,
+        columnNumber: 271
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "modal-footer", children: [
+        /* @__PURE__ */ jsxDEV("button", { className: "btn-secondary", onClick: () => setSelectedVersion(null), children: "Cancel" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 73,
+          columnNumber: 615
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { className: "btn-primary", disabled: restoring, onClick: rollback, children: [
+          /* @__PURE__ */ jsxDEV(RotateCcw, { className: "w-4 h-4" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+            lineNumber: 73,
+            columnNumber: 777
+          }, this),
+          " ",
+          restoring ? "Restoring..." : "Confirm Rollback"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+          lineNumber: 73,
+          columnNumber: 705
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+        lineNumber: 73,
+        columnNumber: 585
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+      lineNumber: 73,
+      columnNumber: 7
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+      lineNumber: 72,
+      columnNumber: 5
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx",
+    lineNumber: 64,
+    columnNumber: 10
+  }, this);
+}
+_s(VersionRollbackManager, "+VHBucTgIaqtQSBTckvnNHK56kE=");
+_c = VersionRollbackManager;
+var _c;
+$RefreshReg$(_c, "VersionRollbackManager");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/ERP/Idhayam-ERP/frontend/src/components/ui/VersionRollbackManager.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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ZWNrIiwiQ2xvY2siLCJBbGVydENpcmNsZSIsIkV5ZSIsIk1vZGFsIiwiQVBJIiwiQ09ORklHX1RZUEVTIiwiVmVyc2lvblJvbGxiYWNrTWFuYWdlciIsImNvbmZpZ1R5cGUiLCJvbkl0ZW1SZXN0b3JlZCIsIl9zIiwiYWN0aXZlVHlwZSIsInNldEFjdGl2ZVR5cGUiLCJpdGVtRmlsdGVyIiwic2V0SXRlbUZpbHRlciIsInZlcnNpb25zIiwic2V0VmVyc2lvbnMiLCJsb2FkaW5nIiwic2V0TG9hZGluZyIsInNlbGVjdGVkVmVyc2lvbiIsInNldFNlbGVjdGVkVmVyc2lvbiIsInJlc3RvcmluZyIsInNldFJlc3RvcmluZyIsIm1zZyIsInNldE1zZyIsImxvYWRWZXJzaW9ucyIsInBhcmFtcyIsIlVSTFNlYXJjaFBhcmFtcyIsImNvbmZpZ190eXBlIiwic2V0IiwiZ2V0IiwidGhlbiIsInJlc3BvbnNlIiwiZGF0YSIsInJlc3VsdHMiLCJmaW5hbGx5Iiwicm9sbGJhY2siLCJwb3N0IiwidmVyc2lvbl9pZCIsImlkIiwidHlwZSIsInRleHQiLCJtZXNzYWdlIiwid2luZG93IiwiZGlzcGF0Y2hFdmVudCIsIkV2ZW50IiwiZXJyb3IiLCJpdGVtT3B0aW9ucyIsIk1hcCIsIm1hcCIsInZlcnNpb24iLCJpdGVtX2lkIiwidmFsdWVzIiwiZmlsdGVyIiwidmVyc2lvbl9udW1iZXIiLCJpdGVtX25hbWUiLCJlIiwidGFyZ2V0IiwidmFsdWUiLCJyZXBsYWNlQWxsIiwibGVuZ3RoIiwiZGVzY3JpcHRpb24iLCJEYXRlIiwiY3JlYXRlZF9hdCIsInRvTG9jYWxlU3RyaW5nIiwiY3JlYXRlZF9ieV9uYW1lIiwiSlNPTiIsInN0cmluZ2lmeSIsInNuYXBzaG90X2RhdGEiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJWZXJzaW9uUm9sbGJhY2tNYW5hZ2VyLmpzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgUmVhY3QsIHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCBheGlvcyBmcm9tICdheGlvcyc7XG5pbXBvcnQgeyBSb3RhdGVDY3csIEhpc3RvcnksIENoZWNrLCBDbG9jaywgQWxlcnRDaXJjbGUsIEV5ZSB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XG5pbXBvcnQgTW9kYWwgZnJvbSAnLi4vTW9kYWwnO1xuXG5jb25zdCBBUEkgPSAnaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FwaS9jb3JlJztcbmNvbnN0IENPTkZJR19UWVBFUyA9IFsnbWVudScsICduYXZiYXInLCAndGhlbWUnLCAnZm9ybScsICdmb3JtX2ZpZWxkJywgJ21vZGFsJywgJ3dpZGdldCcsICdkYXNoYm9hcmRfbGF5b3V0JywgJ3NlYXJjaCddO1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBWZXJzaW9uUm9sbGJhY2tNYW5hZ2VyKHsgY29uZmlnVHlwZSA9ICdtZW51Jywgb25JdGVtUmVzdG9yZWQgfSkge1xuICBjb25zdCBbYWN0aXZlVHlwZSwgc2V0QWN0aXZlVHlwZV0gPSB1c2VTdGF0ZShjb25maWdUeXBlKTtcbiAgY29uc3QgW2l0ZW1GaWx0ZXIsIHNldEl0ZW1GaWx0ZXJdID0gdXNlU3RhdGUoJycpO1xuICBjb25zdCBbdmVyc2lvbnMsIHNldFZlcnNpb25zXSA9IHVzZVN0YXRlKFtdKTtcbiAgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSk7XG4gIGNvbnN0IFtzZWxlY3RlZFZlcnNpb24sIHNldFNlbGVjdGVkVmVyc2lvbl0gPSB1c2VTdGF0ZShudWxsKTtcbiAgY29uc3QgW3Jlc3RvcmluZywgc2V0UmVzdG9yaW5nXSA9IHVzZVN0YXRlKGZhbHNlKTtcbiAgY29uc3QgW21zZywgc2V0TXNnXSA9IHVzZVN0YXRlKG51bGwpO1xuXG4gIGNvbnN0IGxvYWRWZXJzaW9ucyA9ICgpID0+IHtcbiAgICBzZXRMb2FkaW5nKHRydWUpO1xuICAgIGNvbnN0IHBhcmFtcyA9IG5ldyBVUkxTZWFyY2hQYXJhbXMoeyBjb25maWdfdHlwZTogYWN0aXZlVHlwZSB9KTtcbiAgICBpZiAoaXRlbUZpbHRlcikgcGFyYW1zLnNldCgnaXRlbV9pZCcsIGl0ZW1GaWx0ZXIpO1xuICAgIGF4aW9zLmdldChgJHtBUEl9L3VpLWNvbmZpZy12ZXJzaW9ucy8/JHtwYXJhbXN9YCkudGhlbigocmVzcG9uc2UpID0+IHNldFZlcnNpb25zKHJlc3BvbnNlLmRhdGE/LnJlc3VsdHMgfHwgcmVzcG9uc2UuZGF0YSB8fCBbXSkpLmZpbmFsbHkoKCkgPT4gc2V0TG9hZGluZyhmYWxzZSkpO1xuICB9O1xuXG4gIHVzZUVmZmVjdChsb2FkVmVyc2lvbnMsIFthY3RpdmVUeXBlLCBpdGVtRmlsdGVyXSk7XG5cbiAgY29uc3Qgcm9sbGJhY2sgPSBhc3luYyAoKSA9PiB7XG4gICAgaWYgKCFzZWxlY3RlZFZlcnNpb24pIHJldHVybjtcbiAgICBzZXRSZXN0b3JpbmcodHJ1ZSk7XG4gICAgc2V0TXNnKG51bGwpO1xuICAgIHRyeSB7XG4gICAgICBjb25zdCByZXNwb25zZSA9IGF3YWl0IGF4aW9zLnBvc3QoYCR7QVBJfS91aS1jb25maWctcm9sbGJhY2svYCwgeyB2ZXJzaW9uX2lkOiBzZWxlY3RlZFZlcnNpb24uaWQgfSk7XG4gICAgICBzZXRNc2coeyB0eXBlOiAnc3VjY2VzcycsIHRleHQ6IHJlc3BvbnNlLmRhdGEubWVzc2FnZSB9KTtcbiAgICAgIHNldFNlbGVjdGVkVmVyc2lvbihudWxsKTtcbiAgICAgIHdpbmRvdy5kaXNwYXRjaEV2ZW50KG5ldyBFdmVudCgnZXJwX3VpX21ldGFkYXRhX3VwZGF0ZWQnKSk7XG4gICAgICB3aW5kb3cuZGlzcGF0Y2hFdmVudChuZXcgRXZlbnQoJ2VycF90aGVtZV91cGRhdGVkJykpO1xuICAgICAgb25JdGVtUmVzdG9yZWQ/LigpO1xuICAgICAgbG9hZFZlcnNpb25zKCk7XG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgIHNldE1zZyh7IHR5cGU6ICdlcnJvcicsIHRleHQ6IGVycm9yLnJlc3BvbnNlPy5kYXRhPy5lcnJvciB8fCAnRmFpbGVkIHRvIHJvbGwgYmFjayB0aGlzIGNvbmZpZ3VyYXRpb24uJyB9KTtcbiAgICB9IGZpbmFsbHkgeyBzZXRSZXN0b3JpbmcoZmFsc2UpOyB9XG4gIH07XG5cbiAgY29uc3QgaXRlbU9wdGlvbnMgPSBbLi4ubmV3IE1hcCh2ZXJzaW9ucy5tYXAoKHZlcnNpb24pID0+IFt2ZXJzaW9uLml0ZW1faWQsIHZlcnNpb25dKSkudmFsdWVzKCldLmZpbHRlcigodmVyc2lvbikgPT4gdmVyc2lvbi5pdGVtX2lkKTtcbiAgcmV0dXJuIDxkaXYgY2xhc3NOYW1lPVwic3BhY2UteS01XCI+XG4gICAgPGRpdiBjbGFzc05hbWU9XCJzdGFuZGFyZC1jYXJkIHZlcnNpb24tdG9vbGJhclwiPlxuICAgICAgPGRpdj48cCBjbGFzc05hbWU9XCJ3b3Jrc3BhY2Uta2lja2VyXCI+Q29uZmlndXJhdGlvbiBnb3Zlcm5hbmNlPC9wPjxoMyBjbGFzc05hbWU9XCJzZWN0aW9uLXRpdGxlIGZsZXggaXRlbXMtY2VudGVyIGdhcC0yIG10LTJcIj48SGlzdG9yeSBjbGFzc05hbWU9XCJ3LTUgaC01IHRleHQtW3ZhcigtLXByaW1hcnkpXVwiIC8+IFZlcnNpb24gSGlzdG9yeTwvaDM+PHAgY2xhc3NOYW1lPVwiaGVscGVyLXRleHQgbXQtMVwiPkV2ZXJ5IGl0ZW0gaGFzIGFuIGluZGVwZW5kZW50IHZlcnNpb24gc2VxdWVuY2UuIFJvbGxiYWNrcyBzbmFwc2hvdCB0aGUgY3VycmVudCBzdGF0ZSBmaXJzdCwgc28gZXZlcnkgcmVzdG9yZSByZW1haW5zIHJldmVyc2libGUuPC9wPjwvZGl2PlxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJ2ZXJzaW9uLWN1cnJlbnRcIj48c21hbGw+TGF0ZXN0IHZlcnNpb248L3NtYWxsPjxzdHJvbmc+e3ZlcnNpb25zWzBdID8gYHYke3ZlcnNpb25zWzBdLnZlcnNpb25fbnVtYmVyfWAgOiAn4oCUJ308L3N0cm9uZz48c3Bhbj57dmVyc2lvbnNbMF0/Lml0ZW1fbmFtZSB8fCAnTm8gc25hcHNob3Qgc2VsZWN0ZWQnfTwvc3Bhbj48L2Rpdj5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwidmVyc2lvbi1maWx0ZXJzXCI+PGRpdj48bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPkNvbmZpZ3VyYXRpb24gdHlwZTwvbGFiZWw+PHNlbGVjdCBjbGFzc05hbWU9XCJmb3JtLWlucHV0IG1pbi13LTQ0XCIgdmFsdWU9e2FjdGl2ZVR5cGV9IG9uQ2hhbmdlPXsoZSkgPT4geyBzZXRBY3RpdmVUeXBlKGUudGFyZ2V0LnZhbHVlKTsgc2V0SXRlbUZpbHRlcignJyk7IH19PntDT05GSUdfVFlQRVMubWFwKCh0eXBlKSA9PiA8b3B0aW9uIGtleT17dHlwZX0gdmFsdWU9e3R5cGV9Pnt0eXBlLnJlcGxhY2VBbGwoJ18nLCAnICcpfTwvb3B0aW9uPil9PC9zZWxlY3Q+PC9kaXY+PGRpdj48bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPkl0ZW08L2xhYmVsPjxzZWxlY3QgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dCBtaW4tdy01MlwiIHZhbHVlPXtpdGVtRmlsdGVyfSBvbkNoYW5nZT17KGUpID0+IHNldEl0ZW1GaWx0ZXIoZS50YXJnZXQudmFsdWUpfT48b3B0aW9uIHZhbHVlPVwiXCI+QWxsIGl0ZW1zPC9vcHRpb24+e2l0ZW1PcHRpb25zLm1hcCgodmVyc2lvbikgPT4gPG9wdGlvbiBrZXk9e3ZlcnNpb24uaXRlbV9pZH0gdmFsdWU9e3ZlcnNpb24uaXRlbV9pZH0+e3ZlcnNpb24uaXRlbV9uYW1lIHx8IHZlcnNpb24uaXRlbV9pZH08L29wdGlvbj4pfTwvc2VsZWN0PjwvZGl2PjwvZGl2PlxuICAgIDwvZGl2PlxuICAgIHttc2cgJiYgPGRpdiBjbGFzc05hbWU9e2BzdGFuZGFyZC1jYXJkIGZsZXggaXRlbXMtY2VudGVyIGdhcC0yICR7bXNnLnR5cGUgPT09ICdzdWNjZXNzJyA/ICd0ZXh0LVt2YXIoLS1zdWNjZXNzKV0nIDogJ3RleHQtW3ZhcigtLWRhbmdlcildJ31gfT57bXNnLnR5cGUgPT09ICdzdWNjZXNzJyA/IDxDaGVjayBjbGFzc05hbWU9XCJ3LTQgaC00XCIgLz4gOiA8QWxlcnRDaXJjbGUgY2xhc3NOYW1lPVwidy00IGgtNFwiIC8+fXttc2cudGV4dH08L2Rpdj59XG4gICAgPGRpdiBjbGFzc05hbWU9XCJ0YWJsZS1jb250YWluZXIgb3ZlcmZsb3cteC1hdXRvXCI+PHRhYmxlIGNsYXNzTmFtZT1cImN1c3RvbS10YWJsZVwiPjx0aGVhZD48dHI+PHRoPlZlcnNpb248L3RoPjx0aD5JdGVtPC90aD48dGg+RGVzY3JpcHRpb248L3RoPjx0aD5DcmVhdGVkPC90aD48dGg+QWRtaW5pc3RyYXRvcjwvdGg+PHRoIGNsYXNzTmFtZT1cInRleHQtcmlnaHRcIj5SZXZpZXc8L3RoPjwvdHI+PC90aGVhZD48dGJvZHk+e2xvYWRpbmcgPyA8dHI+PHRkIGNvbFNwYW49XCI2XCIgY2xhc3NOYW1lPVwidGV4dC1jZW50ZXJcIj5Mb2FkaW5nIHNuYXBzaG90cy4uLjwvdGQ+PC90cj4gOiB2ZXJzaW9ucy5sZW5ndGggPT09IDAgPyA8dHI+PHRkIGNvbFNwYW49XCI2XCIgY2xhc3NOYW1lPVwidGV4dC1jZW50ZXJcIj5ObyBzbmFwc2hvdHMgZm9yIHRoaXMgc2VsZWN0aW9uLjwvdGQ+PC90cj4gOiB2ZXJzaW9ucy5tYXAoKHZlcnNpb24pID0+IDx0ciBrZXk9e3ZlcnNpb24uaWR9Pjx0ZCBjbGFzc05hbWU9XCJmb250LW1vbm8gZm9udC1ib2xkXCI+dnt2ZXJzaW9uLnZlcnNpb25fbnVtYmVyfTwvdGQ+PHRkPnt2ZXJzaW9uLml0ZW1fbmFtZSB8fCB2ZXJzaW9uLml0ZW1faWQgfHwgJ0xlZ2FjeSBzbmFwc2hvdCd9PC90ZD48dGQ+e3ZlcnNpb24uZGVzY3JpcHRpb259PC90ZD48dGQ+PHNwYW4gY2xhc3NOYW1lPVwiZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTFcIj48Q2xvY2sgY2xhc3NOYW1lPVwidy0zIGgtM1wiIC8+e25ldyBEYXRlKHZlcnNpb24uY3JlYXRlZF9hdCkudG9Mb2NhbGVTdHJpbmcoKX08L3NwYW4+PC90ZD48dGQ+e3ZlcnNpb24uY3JlYXRlZF9ieV9uYW1lfTwvdGQ+PHRkIGNsYXNzTmFtZT1cInRleHQtcmlnaHRcIj48YnV0dG9uIGNsYXNzTmFtZT1cImJ0bi1hY3Rpb24tdmlld1wiIG9uQ2xpY2s9eygpID0+IHNldFNlbGVjdGVkVmVyc2lvbih2ZXJzaW9uKX0+PEV5ZSBjbGFzc05hbWU9XCJ3LTMgaC0zXCIgLz4gQ29tcGFyZSAmIFJlc3RvcmU8L2J1dHRvbj48L3RkPjwvdHI+KX08L3Rib2R5PjwvdGFibGU+PC9kaXY+XG4gICAgPE1vZGFsIGlzT3Blbj17ISFzZWxlY3RlZFZlcnNpb259IG9uQ2xvc2U9eygpID0+IHNldFNlbGVjdGVkVmVyc2lvbihudWxsKX0gc2l6ZT1cImxnXCIgdGl0bGU9e2BDb25maXJtIHJvbGxiYWNrIHRvIHYke3NlbGVjdGVkVmVyc2lvbj8udmVyc2lvbl9udW1iZXIgfHwgJyd9YH0+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktNFwiPjxkaXYgY2xhc3NOYW1lPVwicC0zIHJvdW5kZWQtbGcgYm9yZGVyIGJvcmRlci1bdmFyKC0td2FybmluZyldIGJnLVt2YXIoLS10YWJsZS1oZWFkZXIpXSB0ZXh0LXhzXCI+PHN0cm9uZz5JbXBhY3Q6PC9zdHJvbmc+IHRoaXMgcmVzdG9yZXMgdGhlIHNlbGVjdGVkIGl0ZW0gb25seS4gVGhlIGN1cnJlbnQgc3RhdGUgaXMgc25hcHNob3R0ZWQgZmlyc3QsIG1ha2luZyB0aGUgb3BlcmF0aW9uIHJldmVyc2libGUuPC9kaXY+PGRpdj48aDQgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPlRhcmdldCBzbmFwc2hvdCDigJQge3NlbGVjdGVkVmVyc2lvbj8uaXRlbV9uYW1lIHx8IHNlbGVjdGVkVmVyc2lvbj8uaXRlbV9pZH08L2g0PjxwcmUgY2xhc3NOYW1lPVwicC0zIG1heC1oLTgwIG92ZXJmbG93LWF1dG8gcm91bmRlZC1sZyBiZy1bdmFyKC0tdGFibGUtaGVhZGVyKV0gYm9yZGVyIGJvcmRlci1bdmFyKC0tdGhlbWUtYm9yZGVyKV0gdGV4dC1bMTFweF1cIj57SlNPTi5zdHJpbmdpZnkoc2VsZWN0ZWRWZXJzaW9uPy5zbmFwc2hvdF9kYXRhIHx8IHt9LCBudWxsLCAyKX08L3ByZT48L2Rpdj48ZGl2IGNsYXNzTmFtZT1cIm1vZGFsLWZvb3RlclwiPjxidXR0b24gY2xhc3NOYW1lPVwiYnRuLXNlY29uZGFyeVwiIG9uQ2xpY2s9eygpID0+IHNldFNlbGVjdGVkVmVyc2lvbihudWxsKX0+Q2FuY2VsPC9idXR0b24+PGJ1dHRvbiBjbGFzc05hbWU9XCJidG4tcHJpbWFyeVwiIGRpc2FibGVkPXtyZXN0b3Jpbmd9IG9uQ2xpY2s9e3JvbGxiYWNrfT48Um90YXRlQ2N3IGNsYXNzTmFtZT1cInctNCBoLTRcIiAvPiB7cmVzdG9yaW5nID8gJ1Jlc3RvcmluZy4uLicgOiAnQ29uZmlybSBSb2xsYmFjayd9PC9idXR0b24+PC9kaXY+PC9kaXY+XG4gICAgPC9Nb2RhbD5cbiAgPC9kaXY+O1xufVxuIl0sImZpbGUiOiJEOi9FUlAvSWRoYXlhbS1FUlAvZnJvbnRlbmQvc3JjL2NvbXBvbmVudHMvdWkvVmVyc2lvblJvbGxiYWNrTWFuYWdlci5qc3gifQ==

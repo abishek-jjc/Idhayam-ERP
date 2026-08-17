@@ -1,0 +1,932 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/JournalStock.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=36603bcd"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=36603bcd"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import { JournalAPI, CoreAPI, MastersAPI } from "/src/api.js";
+import Modal from "/src/components/Modal.jsx";
+import Pagination from "/src/components/Pagination.jsx";
+import SearchInput from "/src/components/ui/SearchInput.jsx";
+import GenericFormRenderer from "/src/components/GenericFormRenderer.jsx";
+import { useConfiguration } from "/src/context/ConfigurationContext.jsx";
+import { BookOpenCheck, Boxes, Plus, Trash2, Eye } from "/node_modules/.vite/deps/lucide-react.js?v=36603bcd";
+export default function JournalStock() {
+  _s();
+  const { forms } = useConfiguration();
+  const journalForm = forms.find(
+    (form) => form.active && (["journal_entry_form", "journal_form", "stock_ledger_form"].includes(form.form_name) || form.module === "journal")
+  );
+  const [activeTab, setActiveTab] = useState("journal");
+  const [entries, setEntries] = useState([]);
+  const [stocks, setStocks] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [masterItems, setMasterItems] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const itemsPerPage = 10;
+  const [modalOpen, setModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [formData, setFormData] = useState({
+    movement_type: "external_in",
+    material_id: "",
+    from_department: "",
+    to_department: "",
+    quantity: 1e3,
+    unit: "KG",
+    remarks: ""
+  });
+  useEffect(() => {
+    loadLedgerData();
+  }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchQuery("");
+  }, [activeTab]);
+  async function loadLedgerData() {
+    try {
+      const [entRes, stockRes, deptRes, itemRes, empRes] = await Promise.all(
+        [
+          JournalAPI.getEntries(),
+          JournalAPI.getStocks(),
+          CoreAPI.getDepartments(),
+          MastersAPI.getItems(),
+          CoreAPI.getEmployees()
+        ]
+      );
+      const loadedEntries = entRes.data.results || entRes.data || [];
+      const loadedStocks = stockRes.data.results || stockRes.data || [];
+      const loadedDepts = deptRes.data.results || deptRes.data || [];
+      const loadedItems = itemRes.data.results || itemRes.data || [];
+      const loadedEmps = empRes.data.results || empRes.data || [];
+      setEntries(loadedEntries);
+      setStocks(loadedStocks);
+      setDepartments(loadedDepts);
+      setMasterItems(loadedItems);
+      setEmployees(loadedEmps);
+      if (loadedDepts.length > 0 && !formData.to_department) {
+        setFormData((prev) => ({
+          ...prev,
+          from_department: loadedDepts[0]?.id || "",
+          to_department: loadedDepts[1]?.id || loadedDepts[0]?.id || "",
+          material_id: loadedItems[0]?.id || ""
+        }));
+      }
+    } catch (err) {
+      console.error("Error loading journal data:", err);
+    }
+  }
+  const handleOpenCreateModal = () => {
+    setEditingEntry(null);
+    setFormData({
+      movement_type: "external_in",
+      material_id: masterItems[0]?.id || "",
+      from_department: departments[0]?.id || "",
+      to_department: departments[1]?.id || departments[0]?.id || "",
+      quantity: 1e3,
+      unit: "KG",
+      remarks: ""
+    });
+    setModalOpen(true);
+  };
+  const handleSaveEntry = async (eventOrValues) => {
+    const isEvent = typeof eventOrValues?.preventDefault === "function";
+    if (isEvent) eventOrValues.preventDefault();
+    const submittedValues = isEvent ? formData : { ...formData, ...eventOrValues || {} };
+    try {
+      const payload = {
+        ...submittedValues,
+        material_id: submittedValues.material_id || masterItems[0]?.id || null,
+        from_department: submittedValues.from_department || null,
+        to_department: submittedValues.to_department || null,
+        posted_by: employees[0]?.id || null
+      };
+      if (editingEntry) {
+        await JournalAPI.updateEntry(editingEntry.id, payload);
+      } else {
+        await JournalAPI.createEntry(payload);
+      }
+      setModalOpen(false);
+      setEditingEntry(null);
+      loadLedgerData();
+    } catch (err) {
+      alert("Failed to save ledger entry: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  const handleDeleteEntry = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this movement ledger entry?")) return;
+    try {
+      await JournalAPI.deleteEntry(id);
+      loadLedgerData();
+    } catch (err) {
+      alert("Failed to delete entry: " + (err.response?.data?.detail || err.message));
+    }
+  };
+  const openInspectModal = (e) => {
+    setSelectedEntry(e);
+    setViewModalOpen(true);
+  };
+  const currentList = activeTab === "journal" ? entries : stocks;
+  const filteredList = currentList.filter((item) => {
+    const term = searchQuery.toLowerCase();
+    return item.id && item.id.toLowerCase().includes(term) || item.remarks && item.remarks.toLowerCase().includes(term) || item.movement_type && item.movement_type.toLowerCase().includes(term) || item.material_id && item.material_id.toLowerCase().includes(term) || item.unit && item.unit.toLowerCase().includes(term);
+  });
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
+  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  return /* @__PURE__ */ jsxDEV("div", { className: "space-y-6 animate-fade-in font-sans", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("h1", { className: "page-title flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxDEV(BookOpenCheck, { className: "w-6 h-6 text-[#1B4E9B]" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 181,
+            columnNumber: 13
+          }, this),
+          " Universal Movement Journal & Stock"
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 180,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-xs text-[#6B7280]", children: "Integrated material & financial transaction postings and live bin balance caches." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 183,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 179,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "flex gap-2", children: /* @__PURE__ */ jsxDEV("button", { onClick: handleOpenCreateModal, className: "btn-primary", children: [
+        /* @__PURE__ */ jsxDEV(Plus, { className: "w-4 h-4" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 188,
+          columnNumber: 13
+        }, this),
+        " Post Universal Movement Entry"
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 187,
+        columnNumber: 11
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 186,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+      lineNumber: 178,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "standard-card space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "admin-console-menu", children: [
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: () => setActiveTab("journal"),
+              className: `admin-menu-item ${activeTab === "journal" ? "active" : ""}`,
+              children: [
+                /* @__PURE__ */ jsxDEV(BookOpenCheck, { className: "admin-menu-icon" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 203,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: "Journal Movement Entries" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 204,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "badge-count", children: entries.length }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 205,
+                  columnNumber: 15
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 198,
+              columnNumber: 13
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: () => setActiveTab("stock"),
+              className: `admin-menu-item ${activeTab === "stock" ? "active" : ""}`,
+              children: [
+                /* @__PURE__ */ jsxDEV(Boxes, { className: "admin-menu-icon" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 214,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: "Live Stock Balance Cache" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 215,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "badge-count", children: stocks.length }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 216,
+                  columnNumber: 15
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 209,
+              columnNumber: 13
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 197,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "w-full sm:w-64 shrink-0", children: /* @__PURE__ */ jsxDEV(
+          SearchInput,
+          {
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: `Search ${activeTab === "journal" ? "entries" : "stock cache"}...`
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 224,
+            columnNumber: 13
+          },
+          this
+        ) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 223,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 196,
+        columnNumber: 9
+      }, this),
+      activeTab === "journal" ? /* @__PURE__ */ jsxDEV("div", { className: "overflow-x-auto custom-scrollbar", children: /* @__PURE__ */ jsxDEV("table", { className: "custom-table", children: [
+        /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+          /* @__PURE__ */ jsxDEV("th", { children: "Entry ID" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 237,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Movement Type" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 238,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Material ID" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 239,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Quantity" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 240,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Unit" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 241,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Timestamp" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 242,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Actions" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 243,
+            columnNumber: 19
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 236,
+          columnNumber: 17
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 235,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("tbody", { children: paginatedList.length === 0 ? /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: "7", className: "text-center py-6 text-[#6B7280] italic", children: "No universal journal movement entries recorded." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 249,
+          columnNumber: 21
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 248,
+          columnNumber: 15
+        }, this) : paginatedList.map(
+          (e) => /* @__PURE__ */ jsxDEV("tr", { children: [
+            /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-xs text-[#1B4E9B] font-semibold", children: e.id }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 254,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "capitalize text-[#374151] font-semibold", children: e.movement_type?.replace("_", " ") }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 255,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-xs text-[#374151]", children: e.material_id }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 256,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "font-semibold text-[#1F2937]", children: Number(e.quantity).toLocaleString() }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 257,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-[#1B4E9B] font-semibold", children: e.unit || "KG" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 258,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "text-xs text-[#6B7280]", children: new Date(e.created_at || Date.now()).toLocaleString() }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 259,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsxDEV("button", { onClick: () => openInspectModal(e), className: "btn-action-view", title: "Inspect Record", children: [
+                /* @__PURE__ */ jsxDEV(Eye, { className: "w-3.5 h-3.5" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 263,
+                  columnNumber: 29
+                }, this),
+                " View"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                lineNumber: 262,
+                columnNumber: 27
+              }, this),
+              /* @__PURE__ */ jsxDEV("button", { onClick: () => handleDeleteEntry(e.id), className: "btn-action-delete", title: "Delete Entry", children: [
+                /* @__PURE__ */ jsxDEV(Trash2, { className: "w-3.5 h-3.5" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 266,
+                  columnNumber: 29
+                }, this),
+                " Delete"
+              ] }, void 0, true, {
+                fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                lineNumber: 265,
+                columnNumber: 27
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 261,
+              columnNumber: 25
+            }, this) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 260,
+              columnNumber: 23
+            }, this)
+          ] }, e.id, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 253,
+            columnNumber: 15
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 246,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 234,
+        columnNumber: 13
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 233,
+        columnNumber: 9
+      }, this) : /* @__PURE__ */ jsxDEV("div", { className: "overflow-x-auto custom-scrollbar", children: /* @__PURE__ */ jsxDEV("table", { className: "custom-table", children: [
+        /* @__PURE__ */ jsxDEV("thead", { children: /* @__PURE__ */ jsxDEV("tr", { children: [
+          /* @__PURE__ */ jsxDEV("th", { children: "Stock ID" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 281,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Plant Unit" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 282,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Department" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 283,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Material ID" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 284,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Current Stock Quantity" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 285,
+            columnNumber: 19
+          }, this),
+          /* @__PURE__ */ jsxDEV("th", { children: "Status" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 286,
+            columnNumber: 19
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 280,
+          columnNumber: 17
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 279,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("tbody", { children: paginatedList.length === 0 ? /* @__PURE__ */ jsxDEV("tr", { children: /* @__PURE__ */ jsxDEV("td", { colSpan: "6", className: "text-center py-6 text-[#6B7280] italic", children: "No live stock balances tracked." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 292,
+          columnNumber: 21
+        }, this) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 291,
+          columnNumber: 15
+        }, this) : paginatedList.map(
+          (s) => /* @__PURE__ */ jsxDEV("tr", { children: [
+            /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-xs text-[#1B4E9B] font-semibold", children: s.id }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 297,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: s.plant_name || s.plant || "-" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 298,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: s.department_name || s.department || "-" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 299,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "font-mono text-xs text-[#374151]", children: s.material_id }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 300,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { className: "font-semibold text-[#1F2937]", children: [
+              Number(s.quantity).toLocaleString(),
+              " KG"
+            ] }, void 0, true, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 301,
+              columnNumber: 23
+            }, this),
+            /* @__PURE__ */ jsxDEV("td", { children: /* @__PURE__ */ jsxDEV("span", { className: `badge ${s.stock_status === "available" ? "badge-success" : "badge-warning"}`, children: s.stock_status || "Available" }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 303,
+              columnNumber: 25
+            }, this) }, void 0, false, {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 302,
+              columnNumber: 23
+            }, this)
+          ] }, s.id, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 296,
+            columnNumber: 15
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 289,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 278,
+        columnNumber: 13
+      }, this) }, void 0, false, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 277,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        Pagination,
+        {
+          currentPage,
+          totalPages,
+          onPageChange: setCurrentPage,
+          totalItems: filteredList.length,
+          itemsPerPage: 10
+        },
+        void 0,
+        false,
+        {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 315,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+      lineNumber: 194,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: modalOpen, onClose: () => setModalOpen(false), size: "md", title: "Post Universal Movement Entry", children: journalForm ? /* @__PURE__ */ jsxDEV(
+      GenericFormRenderer,
+      {
+        formConfig: journalForm,
+        initialValues: formData,
+        onSubmit: handleSaveEntry,
+        onCancel: () => setModalOpen(false)
+      },
+      void 0,
+      false,
+      {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 327,
+        columnNumber: 9
+      },
+      this
+    ) : /* @__PURE__ */ jsxDEV("form", { onSubmit: handleSaveEntry, className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Movement Type *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 336,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("select", { value: formData.movement_type, onChange: (e) => setFormData({ ...formData, movement_type: e.target.value }), className: "form-input", children: [
+          /* @__PURE__ */ jsxDEV("option", { value: "external_in", children: "External Receipt (Inward)" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 338,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("option", { value: "external_out", children: "External Dispatch (Outward)" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 339,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("option", { value: "internal", children: "Internal Plant/Dept Transfer" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 340,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 337,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 335,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Material Item *" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 345,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("select", { value: formData.material_id, onChange: (e) => setFormData({ ...formData, material_id: e.target.value }), className: "form-input", children: masterItems.map(
+          (item) => /* @__PURE__ */ jsxDEV("option", { value: item.id, children: [
+            item.name,
+            " (",
+            item.code,
+            ")"
+          ] }, item.id, true, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 348,
+            columnNumber: 15
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 346,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 344,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "From Department" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 355,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: formData.from_department, onChange: (e) => setFormData({ ...formData, from_department: e.target.value }), className: "form-input", children: departments.map((d) => /* @__PURE__ */ jsxDEV("option", { value: d.id, children: d.name }, d.id, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 357,
+            columnNumber: 41
+          }, this)) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 356,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 354,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "To Department" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 361,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("select", { value: formData.to_department, onChange: (e) => setFormData({ ...formData, to_department: e.target.value }), className: "form-input", children: departments.map((d) => /* @__PURE__ */ jsxDEV("option", { value: d.id, children: d.name }, d.id, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 363,
+            columnNumber: 41
+          }, this)) }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 362,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 360,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 353,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-4", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Quantity *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 370,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "number",
+              min: "0",
+              step: "any",
+              required: true,
+              value: formData.quantity,
+              onChange: (e) => {
+                const val = e.target.value;
+                if (val === "" || Number(val) >= 0) setFormData({ ...formData, quantity: parseFloat(val) || 0 });
+              },
+              className: "form-input"
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 371,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 369,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Unit *" }, void 0, false, {
+            fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+            lineNumber: 385,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "select",
+            {
+              value: formData.unit,
+              onChange: (e) => setFormData({ ...formData, unit: e.target.value }),
+              className: "form-input",
+              children: [
+                /* @__PURE__ */ jsxDEV("option", { value: "KG", children: "KG (Kilograms)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 391,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "MT", children: "MT (Metric Tons)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 392,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "LITERS", children: "LITERS (Ltrs)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 393,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "BAGS", children: "BAGS (Bags)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 394,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "PCS", children: "PCS (Pieces)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 395,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "BOXES", children: "BOXES (Boxes)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 396,
+                  columnNumber: 17
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { value: "METERS", children: "METERS (Mtr)" }, void 0, false, {
+                  fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+                  lineNumber: 397,
+                  columnNumber: 17
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+              lineNumber: 386,
+              columnNumber: 15
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 384,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 368,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "form-label", children: "Movement Remarks" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 402,
+          columnNumber: 16
+        }, this),
+        /* @__PURE__ */ jsxDEV("textarea", { value: formData.remarks, onChange: (e) => setFormData({ ...formData, remarks: e.target.value }), className: "form-input h-20", placeholder: "Ledger remarks..." }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 402,
+          columnNumber: 70
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 402,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "modal-footer", children: [
+        /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: () => setModalOpen(false), className: "btn-secondary", children: "Cancel" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 405,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { type: "submit", className: "btn-primary", children: "Post Entry" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 406,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 404,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+      lineNumber: 334,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+      lineNumber: 325,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV(Modal, { isOpen: viewModalOpen, onClose: () => setViewModalOpen(false), size: "md", title: "Universal Journal Entry Inspection", children: selectedEntry && /* @__PURE__ */ jsxDEV("div", { className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Entry ID:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 415,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "font-mono text-[#1B4E9B] font-bold", children: selectedEntry.id }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 415,
+          columnNumber: 75
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 415,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Movement Type:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 416,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-[#1F2937] font-bold capitalize", children: selectedEntry.movement_type }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 416,
+          columnNumber: 80
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 416,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Quantity:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 417,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-[#16A34A] font-bold font-mono", children: Number(selectedEntry.quantity).toLocaleString() }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 417,
+          columnNumber: 75
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 417,
+        columnNumber: 13
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "text-xs text-[#6B7280]", children: "Unit:" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 418,
+          columnNumber: 18
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "text-[#1B4E9B] font-bold font-mono", children: selectedEntry.unit || "KG" }, void 0, false, {
+          fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+          lineNumber: 418,
+          columnNumber: 71
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+        lineNumber: 418,
+        columnNumber: 13
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+      lineNumber: 414,
+      columnNumber: 9
+    }, this) }, void 0, false, {
+      fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+      lineNumber: 412,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx",
+    lineNumber: 176,
+    columnNumber: 5
+  }, this);
+}
+_s(JournalStock, "1zT6/mau/vxO4oBskUeMnYfIl3I=", false, function() {
+  return [useConfiguration];
+});
+_c = JournalStock;
+var _c;
+$RefreshReg$(_c, "JournalStock");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/ERP/Idhayam-ERP/frontend/src/pages/JournalStock.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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UEkiLCJNYXN0ZXJzQVBJIiwiTW9kYWwiLCJQYWdpbmF0aW9uIiwiU2VhcmNoSW5wdXQiLCJHZW5lcmljRm9ybVJlbmRlcmVyIiwidXNlQ29uZmlndXJhdGlvbiIsIkJvb2tPcGVuQ2hlY2siLCJCb3hlcyIsIlBsdXMiLCJUcmFzaDIiLCJFeWUiLCJKb3VybmFsU3RvY2siLCJfcyIsImZvcm1zIiwiam91cm5hbEZvcm0iLCJmaW5kIiwiZm9ybSIsImFjdGl2ZSIsImluY2x1ZGVzIiwiZm9ybV9uYW1lIiwibW9kdWxlIiwiYWN0aXZlVGFiIiwic2V0QWN0aXZlVGFiIiwiZW50cmllcyIsInNldEVudHJpZXMiLCJzdG9ja3MiLCJzZXRTdG9ja3MiLCJkZXBhcnRtZW50cyIsInNldERlcGFydG1lbnRzIiwibWFzdGVySXRlbXMiLCJzZXRNYXN0ZXJJdGVtcyIsImVtcGxveWVlcyIsInNldEVtcGxveWVlcyIsImN1cnJlbnRQYWdlIiwic2V0Q3VycmVudFBhZ2UiLCJzZWFyY2hRdWVyeSIsInNldFNlYXJjaFF1ZXJ5IiwiaXRlbXNQZXJQYWdlIiwibW9kYWxPcGVuIiwic2V0TW9kYWxPcGVuIiwidmlld01vZGFsT3BlbiIsInNldFZpZXdNb2RhbE9wZW4iLCJzZWxlY3RlZEVudHJ5Iiwic2V0U2VsZWN0ZWRFbnRyeSIsImVkaXRpbmdFbnRyeSIsInNldEVkaXRpbmdFbnRyeSIsImZvcm1EYXRhIiwic2V0Rm9ybURhdGEiLCJtb3ZlbWVudF90eXBlIiwibWF0ZXJpYWxfaWQiLCJmcm9tX2RlcGFydG1lbnQiLCJ0b19kZXBhcnRtZW50IiwicXVhbnRpdHkiLCJ1bml0IiwicmVtYXJrcyIsImxvYWRMZWRnZXJEYXRhIiwiZW50UmVzIiwic3RvY2tSZXMiLCJkZXB0UmVzIiwiaXRlbVJlcyIsImVtcFJlcyIsIlByb21pc2UiLCJhbGwiLCJnZXRFbnRyaWVzIiwiZ2V0U3RvY2tzIiwiZ2V0RGVwYXJ0bWVudHMiLCJnZXRJdGVtcyIsImdldEVtcGxveWVlcyIsImxvYWRlZEVudHJpZXMiLCJkYXRhIiwicmVzdWx0cyIsImxvYWRlZFN0b2NrcyIsImxvYWRlZERlcHRzIiwibG9hZGVkSXRlbXMiLCJsb2FkZWRFbXBzIiwibGVuZ3RoIiwicHJldiIsImlkIiwiZXJyIiwiY29uc29sZSIsImVycm9yIiwiaGFuZGxlT3BlbkNyZWF0ZU1vZGFsIiwiaGFuZGxlU2F2ZUVudHJ5IiwiZXZlbnRPclZhbHVlcyIsImlzRXZlbnQiLCJwcmV2ZW50RGVmYXVsdCIsInN1Ym1pdHRlZFZhbHVlcyIsInBheWxvYWQiLCJwb3N0ZWRfYnkiLCJ1cGRhdGVFbnRyeSIsImNyZWF0ZUVudHJ5IiwiYWxlcnQiLCJyZXNwb25zZSIsImRldGFpbCIsIm1lc3NhZ2UiLCJoYW5kbGVEZWxldGVFbnRyeSIsIndpbmRvdyIsImNvbmZpcm0iLCJkZWxldGVFbnRyeSIsIm9wZW5JbnNwZWN0TW9kYWwiLCJlIiwiY3VycmVudExpc3QiLCJmaWx0ZXJlZExpc3QiLCJmaWx0ZXIiLCJpdGVtIiwidGVybSIsInRvTG93ZXJDYXNlIiwidG90YWxQYWdlcyIsIk1hdGgiLCJjZWlsIiwicGFnaW5hdGVkTGlzdCIsInNsaWNlIiwibWFwIiwicmVwbGFjZSIsIk51bWJlciIsInRvTG9jYWxlU3RyaW5nIiwiRGF0ZSIsImNyZWF0ZWRfYXQiLCJub3ciLCJzIiwicGxhbnRfbmFtZSIsInBsYW50IiwiZGVwYXJ0bWVudF9uYW1lIiwiZGVwYXJ0bWVudCIsInN0b2NrX3N0YXR1cyIsInRhcmdldCIsInZhbHVlIiwibmFtZSIsImNvZGUiLCJkIiwidmFsIiwicGFyc2VGbG9hdCIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIkpvdXJuYWxTdG9jay5qc3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFJlYWN0LCB7IHVzZUVmZmVjdCwgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCc7XHJcbmltcG9ydCB7IEpvdXJuYWxBUEksIENvcmVBUEksIE1hc3RlcnNBUEkgfSBmcm9tICcuLi9hcGknO1xyXG5pbXBvcnQgTW9kYWwgZnJvbSAnLi4vY29tcG9uZW50cy9Nb2RhbCc7XHJcbmltcG9ydCBQYWdpbmF0aW9uIGZyb20gJy4uL2NvbXBvbmVudHMvUGFnaW5hdGlvbic7XHJcbmltcG9ydCBTZWFyY2hJbnB1dCBmcm9tICcuLi9jb21wb25lbnRzL3VpL1NlYXJjaElucHV0JztcbmltcG9ydCBHZW5lcmljRm9ybVJlbmRlcmVyIGZyb20gJy4uL2NvbXBvbmVudHMvR2VuZXJpY0Zvcm1SZW5kZXJlcic7XG5pbXBvcnQgeyB1c2VDb25maWd1cmF0aW9uIH0gZnJvbSAnLi4vY29udGV4dC9Db25maWd1cmF0aW9uQ29udGV4dCc7XG5pbXBvcnQgeyBCb29rT3BlbkNoZWNrLCBCb3hlcywgUGx1cywgVHJhc2gyLCBFeWUgfSBmcm9tICdsdWNpZGUtcmVhY3QnO1xyXG5cclxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gSm91cm5hbFN0b2NrKCkge1xuICBjb25zdCB7IGZvcm1zIH0gPSB1c2VDb25maWd1cmF0aW9uKCk7XG4gIGNvbnN0IGpvdXJuYWxGb3JtID0gZm9ybXMuZmluZCgoZm9ybSkgPT4gZm9ybS5hY3RpdmUgJiYgKFxuICAgIFsnam91cm5hbF9lbnRyeV9mb3JtJywgJ2pvdXJuYWxfZm9ybScsICdzdG9ja19sZWRnZXJfZm9ybSddLmluY2x1ZGVzKGZvcm0uZm9ybV9uYW1lKSB8fCBmb3JtLm1vZHVsZSA9PT0gJ2pvdXJuYWwnXG4gICkpO1xuICBjb25zdCBbYWN0aXZlVGFiLCBzZXRBY3RpdmVUYWJdID0gdXNlU3RhdGUoJ2pvdXJuYWwnKTtcclxuICBjb25zdCBbZW50cmllcywgc2V0RW50cmllc10gPSB1c2VTdGF0ZShbXSk7XHJcbiAgY29uc3QgW3N0b2Nrcywgc2V0U3RvY2tzXSA9IHVzZVN0YXRlKFtdKTtcclxuXHJcbiAgY29uc3QgW2RlcGFydG1lbnRzLCBzZXREZXBhcnRtZW50c10gPSB1c2VTdGF0ZShbXSk7XHJcbiAgY29uc3QgW21hc3Rlckl0ZW1zLCBzZXRNYXN0ZXJJdGVtc10gPSB1c2VTdGF0ZShbXSk7XHJcbiAgY29uc3QgW2VtcGxveWVlcywgc2V0RW1wbG95ZWVzXSA9IHVzZVN0YXRlKFtdKTtcclxuXHJcbiAgY29uc3QgW2N1cnJlbnRQYWdlLCBzZXRDdXJyZW50UGFnZV0gPSB1c2VTdGF0ZSgxKTtcclxuICBjb25zdCBbc2VhcmNoUXVlcnksIHNldFNlYXJjaFF1ZXJ5XSA9IHVzZVN0YXRlKCcnKTtcclxuICBjb25zdCBpdGVtc1BlclBhZ2UgPSAxMDtcclxuXHJcbiAgY29uc3QgW21vZGFsT3Blbiwgc2V0TW9kYWxPcGVuXSA9IHVzZVN0YXRlKGZhbHNlKTtcclxuICBjb25zdCBbdmlld01vZGFsT3Blbiwgc2V0Vmlld01vZGFsT3Blbl0gPSB1c2VTdGF0ZShmYWxzZSk7XHJcbiAgY29uc3QgW3NlbGVjdGVkRW50cnksIHNldFNlbGVjdGVkRW50cnldID0gdXNlU3RhdGUobnVsbCk7XHJcbiAgY29uc3QgW2VkaXRpbmdFbnRyeSwgc2V0RWRpdGluZ0VudHJ5XSA9IHVzZVN0YXRlKG51bGwpO1xyXG5cclxuICBjb25zdCBbZm9ybURhdGEsIHNldEZvcm1EYXRhXSA9IHVzZVN0YXRlKHtcclxuICAgIG1vdmVtZW50X3R5cGU6ICdleHRlcm5hbF9pbicsXHJcbiAgICBtYXRlcmlhbF9pZDogJycsXHJcbiAgICBmcm9tX2RlcGFydG1lbnQ6ICcnLFxyXG4gICAgdG9fZGVwYXJ0bWVudDogJycsXHJcbiAgICBxdWFudGl0eTogMTAwMCxcclxuICAgIHVuaXQ6ICdLRycsXHJcbiAgICByZW1hcmtzOiAnJyxcclxuICB9KTtcclxuXHJcbiAgdXNlRWZmZWN0KCgpID0+IHtcclxuICAgIGxvYWRMZWRnZXJEYXRhKCk7XHJcbiAgfSwgW10pO1xyXG5cclxuICB1c2VFZmZlY3QoKCkgPT4ge1xyXG4gICAgc2V0Q3VycmVudFBhZ2UoMSk7XHJcbiAgICBzZXRTZWFyY2hRdWVyeSgnJyk7XHJcbiAgfSwgW2FjdGl2ZVRhYl0pO1xyXG5cclxuICBhc3luYyBmdW5jdGlvbiBsb2FkTGVkZ2VyRGF0YSgpIHtcclxuICAgIHRyeSB7XHJcbiAgICAgIGNvbnN0IFtlbnRSZXMsIHN0b2NrUmVzLCBkZXB0UmVzLCBpdGVtUmVzLCBlbXBSZXNdID0gYXdhaXQgUHJvbWlzZS5hbGwoW1xyXG4gICAgICAgIEpvdXJuYWxBUEkuZ2V0RW50cmllcygpLFxyXG4gICAgICAgIEpvdXJuYWxBUEkuZ2V0U3RvY2tzKCksXHJcbiAgICAgICAgQ29yZUFQSS5nZXREZXBhcnRtZW50cygpLFxyXG4gICAgICAgIE1hc3RlcnNBUEkuZ2V0SXRlbXMoKSxcclxuICAgICAgICBDb3JlQVBJLmdldEVtcGxveWVlcygpLFxyXG4gICAgICBdKTtcclxuXHJcbiAgICAgIGNvbnN0IGxvYWRlZEVudHJpZXMgPSBlbnRSZXMuZGF0YS5yZXN1bHRzIHx8IGVudFJlcy5kYXRhIHx8IFtdO1xyXG4gICAgICBjb25zdCBsb2FkZWRTdG9ja3MgPSBzdG9ja1Jlcy5kYXRhLnJlc3VsdHMgfHwgc3RvY2tSZXMuZGF0YSB8fCBbXTtcclxuICAgICAgY29uc3QgbG9hZGVkRGVwdHMgPSBkZXB0UmVzLmRhdGEucmVzdWx0cyB8fCBkZXB0UmVzLmRhdGEgfHwgW107XHJcbiAgICAgIGNvbnN0IGxvYWRlZEl0ZW1zID0gaXRlbVJlcy5kYXRhLnJlc3VsdHMgfHwgaXRlbVJlcy5kYXRhIHx8IFtdO1xyXG4gICAgICBjb25zdCBsb2FkZWRFbXBzID0gZW1wUmVzLmRhdGEucmVzdWx0cyB8fCBlbXBSZXMuZGF0YSB8fCBbXTtcclxuXHJcbiAgICAgIHNldEVudHJpZXMobG9hZGVkRW50cmllcyk7XHJcbiAgICAgIHNldFN0b2Nrcyhsb2FkZWRTdG9ja3MpO1xyXG4gICAgICBzZXREZXBhcnRtZW50cyhsb2FkZWREZXB0cyk7XHJcbiAgICAgIHNldE1hc3Rlckl0ZW1zKGxvYWRlZEl0ZW1zKTtcclxuICAgICAgc2V0RW1wbG95ZWVzKGxvYWRlZEVtcHMpO1xyXG5cclxuICAgICAgaWYgKGxvYWRlZERlcHRzLmxlbmd0aCA+IDAgJiYgIWZvcm1EYXRhLnRvX2RlcGFydG1lbnQpIHtcclxuICAgICAgICBzZXRGb3JtRGF0YShwcmV2ID0+ICh7XHJcbiAgICAgICAgICAuLi5wcmV2LFxyXG4gICAgICAgICAgZnJvbV9kZXBhcnRtZW50OiBsb2FkZWREZXB0c1swXT8uaWQgfHwgJycsXHJcbiAgICAgICAgICB0b19kZXBhcnRtZW50OiBsb2FkZWREZXB0c1sxXT8uaWQgfHwgbG9hZGVkRGVwdHNbMF0/LmlkIHx8ICcnLFxyXG4gICAgICAgICAgbWF0ZXJpYWxfaWQ6IGxvYWRlZEl0ZW1zWzBdPy5pZCB8fCAnJyxcclxuICAgICAgICB9KSk7XHJcbiAgICAgIH1cclxuICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICBjb25zb2xlLmVycm9yKFwiRXJyb3IgbG9hZGluZyBqb3VybmFsIGRhdGE6XCIsIGVycik7XHJcbiAgICB9XHJcbiAgfVxyXG5cclxuICBjb25zdCBoYW5kbGVPcGVuQ3JlYXRlTW9kYWwgPSAoKSA9PiB7XHJcbiAgICBzZXRFZGl0aW5nRW50cnkobnVsbCk7XHJcbiAgICBzZXRGb3JtRGF0YSh7XHJcbiAgICAgIG1vdmVtZW50X3R5cGU6ICdleHRlcm5hbF9pbicsXHJcbiAgICAgIG1hdGVyaWFsX2lkOiBtYXN0ZXJJdGVtc1swXT8uaWQgfHwgJycsXHJcbiAgICAgIGZyb21fZGVwYXJ0bWVudDogZGVwYXJ0bWVudHNbMF0/LmlkIHx8ICcnLFxyXG4gICAgICB0b19kZXBhcnRtZW50OiBkZXBhcnRtZW50c1sxXT8uaWQgfHwgZGVwYXJ0bWVudHNbMF0/LmlkIHx8ICcnLFxyXG4gICAgICBxdWFudGl0eTogMTAwMCxcclxuICAgICAgdW5pdDogJ0tHJyxcclxuICAgICAgcmVtYXJrczogJycsXHJcbiAgICB9KTtcclxuICAgIHNldE1vZGFsT3Blbih0cnVlKTtcclxuICB9O1xyXG5cclxuICBjb25zdCBoYW5kbGVTYXZlRW50cnkgPSBhc3luYyAoZXZlbnRPclZhbHVlcykgPT4ge1xuICAgIGNvbnN0IGlzRXZlbnQgPSB0eXBlb2YgZXZlbnRPclZhbHVlcz8ucHJldmVudERlZmF1bHQgPT09ICdmdW5jdGlvbic7XG4gICAgaWYgKGlzRXZlbnQpIGV2ZW50T3JWYWx1ZXMucHJldmVudERlZmF1bHQoKTtcbiAgICBjb25zdCBzdWJtaXR0ZWRWYWx1ZXMgPSBpc0V2ZW50ID8gZm9ybURhdGEgOiB7IC4uLmZvcm1EYXRhLCAuLi4oZXZlbnRPclZhbHVlcyB8fCB7fSkgfTtcbiAgICB0cnkge1xuICAgICAgY29uc3QgcGF5bG9hZCA9IHtcbiAgICAgICAgLi4uc3VibWl0dGVkVmFsdWVzLFxuICAgICAgICBtYXRlcmlhbF9pZDogc3VibWl0dGVkVmFsdWVzLm1hdGVyaWFsX2lkIHx8IG1hc3Rlckl0ZW1zWzBdPy5pZCB8fCBudWxsLFxuICAgICAgICBmcm9tX2RlcGFydG1lbnQ6IHN1Ym1pdHRlZFZhbHVlcy5mcm9tX2RlcGFydG1lbnQgfHwgbnVsbCxcbiAgICAgICAgdG9fZGVwYXJ0bWVudDogc3VibWl0dGVkVmFsdWVzLnRvX2RlcGFydG1lbnQgfHwgbnVsbCxcbiAgICAgICAgcG9zdGVkX2J5OiBlbXBsb3llZXNbMF0/LmlkIHx8IG51bGwsXHJcbiAgICAgIH07XHJcblxyXG4gICAgICBpZiAoZWRpdGluZ0VudHJ5KSB7XHJcbiAgICAgICAgYXdhaXQgSm91cm5hbEFQSS51cGRhdGVFbnRyeShlZGl0aW5nRW50cnkuaWQsIHBheWxvYWQpO1xyXG4gICAgICB9IGVsc2Uge1xyXG4gICAgICAgIGF3YWl0IEpvdXJuYWxBUEkuY3JlYXRlRW50cnkocGF5bG9hZCk7XHJcbiAgICAgIH1cclxuICAgICAgc2V0TW9kYWxPcGVuKGZhbHNlKTtcclxuICAgICAgc2V0RWRpdGluZ0VudHJ5KG51bGwpO1xyXG4gICAgICBsb2FkTGVkZ2VyRGF0YSgpO1xyXG4gICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgIGFsZXJ0KFwiRmFpbGVkIHRvIHNhdmUgbGVkZ2VyIGVudHJ5OiBcIiArIChlcnIucmVzcG9uc2U/LmRhdGE/LmRldGFpbCB8fCBlcnIubWVzc2FnZSkpO1xyXG4gICAgfVxyXG4gIH07XHJcblxyXG4gIGNvbnN0IGhhbmRsZURlbGV0ZUVudHJ5ID0gYXN5bmMgKGlkKSA9PiB7XHJcbiAgICBpZiAoIXdpbmRvdy5jb25maXJtKFwiQXJlIHlvdSBzdXJlIHlvdSB3YW50IHRvIGRlbGV0ZSB0aGlzIG1vdmVtZW50IGxlZGdlciBlbnRyeT9cIikpIHJldHVybjtcclxuICAgIHRyeSB7XHJcbiAgICAgIGF3YWl0IEpvdXJuYWxBUEkuZGVsZXRlRW50cnkoaWQpO1xyXG4gICAgICBsb2FkTGVkZ2VyRGF0YSgpO1xyXG4gICAgfSBjYXRjaCAoZXJyKSB7XHJcbiAgICAgIGFsZXJ0KFwiRmFpbGVkIHRvIGRlbGV0ZSBlbnRyeTogXCIgKyAoZXJyLnJlc3BvbnNlPy5kYXRhPy5kZXRhaWwgfHwgZXJyLm1lc3NhZ2UpKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICBjb25zdCBvcGVuSW5zcGVjdE1vZGFsID0gKGUpID0+IHtcclxuICAgIHNldFNlbGVjdGVkRW50cnkoZSk7XHJcbiAgICBzZXRWaWV3TW9kYWxPcGVuKHRydWUpO1xyXG4gIH07XHJcblxyXG4gIGNvbnN0IGN1cnJlbnRMaXN0ID0gYWN0aXZlVGFiID09PSAnam91cm5hbCcgPyBlbnRyaWVzIDogc3RvY2tzO1xyXG4gIGNvbnN0IGZpbHRlcmVkTGlzdCA9IGN1cnJlbnRMaXN0LmZpbHRlcihpdGVtID0+IHtcclxuICAgIGNvbnN0IHRlcm0gPSBzZWFyY2hRdWVyeS50b0xvd2VyQ2FzZSgpO1xyXG4gICAgcmV0dXJuIChcclxuICAgICAgKGl0ZW0uaWQgJiYgaXRlbS5pZC50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHRlcm0pKSB8fFxyXG4gICAgICAoaXRlbS5yZW1hcmtzICYmIGl0ZW0ucmVtYXJrcy50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHRlcm0pKSB8fFxyXG4gICAgICAoaXRlbS5tb3ZlbWVudF90eXBlICYmIGl0ZW0ubW92ZW1lbnRfdHlwZS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHRlcm0pKSB8fFxyXG4gICAgICAoaXRlbS5tYXRlcmlhbF9pZCAmJiBpdGVtLm1hdGVyaWFsX2lkLnRvTG93ZXJDYXNlKCkuaW5jbHVkZXModGVybSkpIHx8XHJcbiAgICAgIChpdGVtLnVuaXQgJiYgaXRlbS51bml0LnRvTG93ZXJDYXNlKCkuaW5jbHVkZXModGVybSkpXHJcbiAgICApO1xyXG4gIH0pO1xyXG5cclxuICBjb25zdCB0b3RhbFBhZ2VzID0gTWF0aC5jZWlsKGZpbHRlcmVkTGlzdC5sZW5ndGggLyBpdGVtc1BlclBhZ2UpIHx8IDE7XHJcbiAgY29uc3QgcGFnaW5hdGVkTGlzdCA9IGZpbHRlcmVkTGlzdC5zbGljZSgoY3VycmVudFBhZ2UgLSAxKSAqIGl0ZW1zUGVyUGFnZSwgY3VycmVudFBhZ2UgKiBpdGVtc1BlclBhZ2UpO1xyXG5cclxuICByZXR1cm4gKFxyXG4gICAgPGRpdiBjbGFzc05hbWU9XCJzcGFjZS15LTYgYW5pbWF0ZS1mYWRlLWluIGZvbnQtc2Fuc1wiPlxyXG4gICAgICB7LyogSGVhZGVyICovfVxyXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggZmxleC1jb2wgc206ZmxleC1yb3cgc206aXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBnYXAtNFwiPlxyXG4gICAgICAgIDxkaXY+XHJcbiAgICAgICAgICA8aDEgY2xhc3NOYW1lPVwicGFnZS10aXRsZSBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMlwiPlxyXG4gICAgICAgICAgICA8Qm9va09wZW5DaGVjayBjbGFzc05hbWU9XCJ3LTYgaC02IHRleHQtWyMxQjRFOUJdXCIgLz4gVW5pdmVyc2FsIE1vdmVtZW50IEpvdXJuYWwgJiBTdG9ja1xyXG4gICAgICAgICAgPC9oMT5cclxuICAgICAgICAgIDxwIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzZCNzI4MF1cIj5JbnRlZ3JhdGVkIG1hdGVyaWFsICYgZmluYW5jaWFsIHRyYW5zYWN0aW9uIHBvc3RpbmdzIGFuZCBsaXZlIGJpbiBiYWxhbmNlIGNhY2hlcy48L3A+XHJcbiAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBnYXAtMlwiPlxyXG4gICAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXtoYW5kbGVPcGVuQ3JlYXRlTW9kYWx9IGNsYXNzTmFtZT1cImJ0bi1wcmltYXJ5XCI+XHJcbiAgICAgICAgICAgIDxQbHVzIGNsYXNzTmFtZT1cInctNCBoLTRcIiAvPiBQb3N0IFVuaXZlcnNhbCBNb3ZlbWVudCBFbnRyeVxyXG4gICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgPC9kaXY+XHJcbiAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgey8qIE1haW4gR3JpZCAqL31cclxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJzdGFuZGFyZC1jYXJkIHNwYWNlLXktNFwiPlxyXG4gICAgICAgIHsvKiBUYWJzICYgU2VhcmNoIEhlYWRlciAqL31cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggZmxleC1jb2wgc206ZmxleC1yb3cgc206aXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBnYXAtNCBwYi0yIGJvcmRlci1iIGJvcmRlci1bI0UyRThGMF1cIj5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYWRtaW4tY29uc29sZS1tZW51XCI+XHJcbiAgICAgICAgICAgIDxidXR0b25cclxuICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRBY3RpdmVUYWIoJ2pvdXJuYWwnKX1cclxuICAgICAgICAgICAgICBjbGFzc05hbWU9e2BhZG1pbi1tZW51LWl0ZW0gJHthY3RpdmVUYWIgPT09ICdqb3VybmFsJyA/ICdhY3RpdmUnIDogJyd9YH1cclxuICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgIDxCb29rT3BlbkNoZWNrIGNsYXNzTmFtZT1cImFkbWluLW1lbnUtaWNvblwiIC8+XHJcbiAgICAgICAgICAgICAgPHNwYW4+Sm91cm5hbCBNb3ZlbWVudCBFbnRyaWVzPC9zcGFuPlxyXG4gICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cImJhZGdlLWNvdW50XCI+XHJcbiAgICAgICAgICAgICAgICB7ZW50cmllcy5sZW5ndGh9XHJcbiAgICAgICAgICAgICAgPC9zcGFuPlxyXG4gICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldEFjdGl2ZVRhYignc3RvY2snKX1cclxuICAgICAgICAgICAgICBjbGFzc05hbWU9e2BhZG1pbi1tZW51LWl0ZW0gJHthY3RpdmVUYWIgPT09ICdzdG9jaycgPyAnYWN0aXZlJyA6ICcnfWB9XHJcbiAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICA8Qm94ZXMgY2xhc3NOYW1lPVwiYWRtaW4tbWVudS1pY29uXCIgLz5cclxuICAgICAgICAgICAgICA8c3Bhbj5MaXZlIFN0b2NrIEJhbGFuY2UgQ2FjaGU8L3NwYW4+XHJcbiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiYmFkZ2UtY291bnRcIj5cclxuICAgICAgICAgICAgICAgIHtzdG9ja3MubGVuZ3RofVxyXG4gICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICB7LyogU2VhcmNoIElucHV0ICovfVxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJ3LWZ1bGwgc206dy02NCBzaHJpbmstMFwiPlxyXG4gICAgICAgICAgICA8U2VhcmNoSW5wdXRcclxuICAgICAgICAgICAgICB2YWx1ZT17c2VhcmNoUXVlcnl9XHJcbiAgICAgICAgICAgICAgb25DaGFuZ2U9e3NldFNlYXJjaFF1ZXJ5fVxyXG4gICAgICAgICAgICAgIHBsYWNlaG9sZGVyPXtgU2VhcmNoICR7YWN0aXZlVGFiID09PSAnam91cm5hbCcgPyAnZW50cmllcycgOiAnc3RvY2sgY2FjaGUnfS4uLmB9XHJcbiAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAge2FjdGl2ZVRhYiA9PT0gJ2pvdXJuYWwnID8gKFxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJvdmVyZmxvdy14LWF1dG8gY3VzdG9tLXNjcm9sbGJhclwiPlxyXG4gICAgICAgICAgICA8dGFibGUgY2xhc3NOYW1lPVwiY3VzdG9tLXRhYmxlXCI+XHJcbiAgICAgICAgICAgICAgPHRoZWFkPlxyXG4gICAgICAgICAgICAgICAgPHRyPlxyXG4gICAgICAgICAgICAgICAgICA8dGg+RW50cnkgSUQ8L3RoPlxyXG4gICAgICAgICAgICAgICAgICA8dGg+TW92ZW1lbnQgVHlwZTwvdGg+XHJcbiAgICAgICAgICAgICAgICAgIDx0aD5NYXRlcmlhbCBJRDwvdGg+XHJcbiAgICAgICAgICAgICAgICAgIDx0aD5RdWFudGl0eTwvdGg+XHJcbiAgICAgICAgICAgICAgICAgIDx0aD5Vbml0PC90aD5cclxuICAgICAgICAgICAgICAgICAgPHRoPlRpbWVzdGFtcDwvdGg+XHJcbiAgICAgICAgICAgICAgICAgIDx0aD5BY3Rpb25zPC90aD5cclxuICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgPC90aGVhZD5cclxuICAgICAgICAgICAgICA8dGJvZHk+XHJcbiAgICAgICAgICAgICAgICB7cGFnaW5hdGVkTGlzdC5sZW5ndGggPT09IDAgPyAoXHJcbiAgICAgICAgICAgICAgICAgIDx0cj5cclxuICAgICAgICAgICAgICAgICAgICA8dGQgY29sU3Bhbj1cIjdcIiBjbGFzc05hbWU9XCJ0ZXh0LWNlbnRlciBweS02IHRleHQtWyM2QjcyODBdIGl0YWxpY1wiPk5vIHVuaXZlcnNhbCBqb3VybmFsIG1vdmVtZW50IGVudHJpZXMgcmVjb3JkZWQuPC90ZD5cclxuICAgICAgICAgICAgICAgICAgPC90cj5cclxuICAgICAgICAgICAgICAgICkgOiAoXHJcbiAgICAgICAgICAgICAgICAgIHBhZ2luYXRlZExpc3QubWFwKChlKSA9PiAoXHJcbiAgICAgICAgICAgICAgICAgICAgPHRyIGtleT17ZS5pZH0+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwiZm9udC1tb25vIHRleHQteHMgdGV4dC1bIzFCNEU5Ql0gZm9udC1zZW1pYm9sZFwiPntlLmlkfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwiY2FwaXRhbGl6ZSB0ZXh0LVsjMzc0MTUxXSBmb250LXNlbWlib2xkXCI+e2UubW92ZW1lbnRfdHlwZT8ucmVwbGFjZSgnXycsICcgJyl9PC90ZD5cclxuICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC14cyB0ZXh0LVsjMzc0MTUxXVwiPntlLm1hdGVyaWFsX2lkfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwiZm9udC1zZW1pYm9sZCB0ZXh0LVsjMUYyOTM3XVwiPntOdW1iZXIoZS5xdWFudGl0eSkudG9Mb2NhbGVTdHJpbmcoKX08L3RkPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT1cImZvbnQtbW9ubyB0ZXh0LVsjMUI0RTlCXSBmb250LXNlbWlib2xkXCI+e2UudW5pdCB8fCAnS0cnfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwidGV4dC14cyB0ZXh0LVsjNkI3MjgwXVwiPntuZXcgRGF0ZShlLmNyZWF0ZWRfYXQgfHwgRGF0ZS5ub3coKSkudG9Mb2NhbGVTdHJpbmcoKX08L3RkPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPHRkPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsZXggaXRlbXMtY2VudGVyIGdhcC0yXCI+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBvcGVuSW5zcGVjdE1vZGFsKGUpfSBjbGFzc05hbWU9XCJidG4tYWN0aW9uLXZpZXdcIiB0aXRsZT1cIkluc3BlY3QgUmVjb3JkXCI+XHJcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8RXllIGNsYXNzTmFtZT1cInctMy41IGgtMy41XCIgLz4gVmlld1xyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICAgIDxidXR0b24gb25DbGljaz17KCkgPT4gaGFuZGxlRGVsZXRlRW50cnkoZS5pZCl9IGNsYXNzTmFtZT1cImJ0bi1hY3Rpb24tZGVsZXRlXCIgdGl0bGU9XCJEZWxldGUgRW50cnlcIj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxUcmFzaDIgY2xhc3NOYW1lPVwidy0zLjUgaC0zLjVcIiAvPiBEZWxldGVcclxuICAgICAgICAgICAgICAgICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8L3RkPlxyXG4gICAgICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgICAgICkpXHJcbiAgICAgICAgICAgICAgICApfVxyXG4gICAgICAgICAgICAgIDwvdGJvZHk+XHJcbiAgICAgICAgICAgIDwvdGFibGU+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICApIDogKFxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJvdmVyZmxvdy14LWF1dG8gY3VzdG9tLXNjcm9sbGJhclwiPlxyXG4gICAgICAgICAgICA8dGFibGUgY2xhc3NOYW1lPVwiY3VzdG9tLXRhYmxlXCI+XHJcbiAgICAgICAgICAgICAgPHRoZWFkPlxyXG4gICAgICAgICAgICAgICAgPHRyPlxyXG4gICAgICAgICAgICAgICAgICA8dGg+U3RvY2sgSUQ8L3RoPlxyXG4gICAgICAgICAgICAgICAgICA8dGg+UGxhbnQgVW5pdDwvdGg+XHJcbiAgICAgICAgICAgICAgICAgIDx0aD5EZXBhcnRtZW50PC90aD5cclxuICAgICAgICAgICAgICAgICAgPHRoPk1hdGVyaWFsIElEPC90aD5cclxuICAgICAgICAgICAgICAgICAgPHRoPkN1cnJlbnQgU3RvY2sgUXVhbnRpdHk8L3RoPlxyXG4gICAgICAgICAgICAgICAgICA8dGg+U3RhdHVzPC90aD5cclxuICAgICAgICAgICAgICAgIDwvdHI+XHJcbiAgICAgICAgICAgICAgPC90aGVhZD5cclxuICAgICAgICAgICAgICA8dGJvZHk+XHJcbiAgICAgICAgICAgICAgICB7cGFnaW5hdGVkTGlzdC5sZW5ndGggPT09IDAgPyAoXHJcbiAgICAgICAgICAgICAgICAgIDx0cj5cclxuICAgICAgICAgICAgICAgICAgICA8dGQgY29sU3Bhbj1cIjZcIiBjbGFzc05hbWU9XCJ0ZXh0LWNlbnRlciBweS02IHRleHQtWyM2QjcyODBdIGl0YWxpY1wiPk5vIGxpdmUgc3RvY2sgYmFsYW5jZXMgdHJhY2tlZC48L3RkPlxyXG4gICAgICAgICAgICAgICAgICA8L3RyPlxyXG4gICAgICAgICAgICAgICAgKSA6IChcclxuICAgICAgICAgICAgICAgICAgcGFnaW5hdGVkTGlzdC5tYXAoKHMpID0+IChcclxuICAgICAgICAgICAgICAgICAgICA8dHIga2V5PXtzLmlkfT5cclxuICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC14cyB0ZXh0LVsjMUI0RTlCXSBmb250LXNlbWlib2xkXCI+e3MuaWR9PC90ZD5cclxuICAgICAgICAgICAgICAgICAgICAgIDx0ZD57cy5wbGFudF9uYW1lIHx8IHMucGxhbnQgfHwgJy0nfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQ+e3MuZGVwYXJ0bWVudF9uYW1lIHx8IHMuZGVwYXJ0bWVudCB8fCAnLSd9PC90ZD5cclxuICAgICAgICAgICAgICAgICAgICAgIDx0ZCBjbGFzc05hbWU9XCJmb250LW1vbm8gdGV4dC14cyB0ZXh0LVsjMzc0MTUxXVwiPntzLm1hdGVyaWFsX2lkfTwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgICA8dGQgY2xhc3NOYW1lPVwiZm9udC1zZW1pYm9sZCB0ZXh0LVsjMUYyOTM3XVwiPntOdW1iZXIocy5xdWFudGl0eSkudG9Mb2NhbGVTdHJpbmcoKX0gS0c8L3RkPlxyXG4gICAgICAgICAgICAgICAgICAgICAgPHRkPlxyXG4gICAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9e2BiYWRnZSAke3Muc3RvY2tfc3RhdHVzID09PSAnYXZhaWxhYmxlJyA/ICdiYWRnZS1zdWNjZXNzJyA6ICdiYWRnZS13YXJuaW5nJ31gfT5cclxuICAgICAgICAgICAgICAgICAgICAgICAgICB7cy5zdG9ja19zdGF0dXMgfHwgJ0F2YWlsYWJsZSd9XHJcbiAgICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgICAgIDwvdGQ+XHJcbiAgICAgICAgICAgICAgICAgICAgPC90cj5cclxuICAgICAgICAgICAgICAgICAgKSlcclxuICAgICAgICAgICAgICAgICl9XHJcbiAgICAgICAgICAgICAgPC90Ym9keT5cclxuICAgICAgICAgICAgPC90YWJsZT5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICl9XHJcblxyXG4gICAgICAgIDxQYWdpbmF0aW9uXHJcbiAgICAgICAgICBjdXJyZW50UGFnZT17Y3VycmVudFBhZ2V9XHJcbiAgICAgICAgICB0b3RhbFBhZ2VzPXt0b3RhbFBhZ2VzfVxyXG4gICAgICAgICAgb25QYWdlQ2hhbmdlPXtzZXRDdXJyZW50UGFnZX1cclxuICAgICAgICAgIHRvdGFsSXRlbXM9e2ZpbHRlcmVkTGlzdC5sZW5ndGh9XHJcbiAgICAgICAgICBpdGVtc1BlclBhZ2U9ezEwfVxyXG4gICAgICAgIC8+XHJcbiAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgey8qIE1vZGFscyAqL31cbiAgICAgIDxNb2RhbCBpc09wZW49e21vZGFsT3Blbn0gb25DbG9zZT17KCkgPT4gc2V0TW9kYWxPcGVuKGZhbHNlKX0gc2l6ZT1cIm1kXCIgdGl0bGU9XCJQb3N0IFVuaXZlcnNhbCBNb3ZlbWVudCBFbnRyeVwiPlxuICAgICAgICB7am91cm5hbEZvcm0gPyAoXG4gICAgICAgICAgPEdlbmVyaWNGb3JtUmVuZGVyZXJcbiAgICAgICAgICAgIGZvcm1Db25maWc9e2pvdXJuYWxGb3JtfVxuICAgICAgICAgICAgaW5pdGlhbFZhbHVlcz17Zm9ybURhdGF9XG4gICAgICAgICAgICBvblN1Ym1pdD17aGFuZGxlU2F2ZUVudHJ5fVxuICAgICAgICAgICAgb25DYW5jZWw9eygpID0+IHNldE1vZGFsT3BlbihmYWxzZSl9XG4gICAgICAgICAgLz5cbiAgICAgICAgKSA6IChcbiAgICAgICAgPGZvcm0gb25TdWJtaXQ9e2hhbmRsZVNhdmVFbnRyeX0gY2xhc3NOYW1lPVwic3BhY2UteS00XCI+XG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5Nb3ZlbWVudCBUeXBlICo8L2xhYmVsPlxyXG4gICAgICAgICAgICA8c2VsZWN0IHZhbHVlPXtmb3JtRGF0YS5tb3ZlbWVudF90eXBlfSBvbkNoYW5nZT17KGUpID0+IHNldEZvcm1EYXRhKHsgLi4uZm9ybURhdGEsIG1vdmVtZW50X3R5cGU6IGUudGFyZ2V0LnZhbHVlIH0pfSBjbGFzc05hbWU9XCJmb3JtLWlucHV0XCI+XHJcbiAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cImV4dGVybmFsX2luXCI+RXh0ZXJuYWwgUmVjZWlwdCAoSW53YXJkKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJleHRlcm5hbF9vdXRcIj5FeHRlcm5hbCBEaXNwYXRjaCAoT3V0d2FyZCk8L29wdGlvbj5cclxuICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiaW50ZXJuYWxcIj5JbnRlcm5hbCBQbGFudC9EZXB0IFRyYW5zZmVyPC9vcHRpb24+XHJcbiAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgPC9kaXY+XHJcblxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5NYXRlcmlhbCBJdGVtICo8L2xhYmVsPlxyXG4gICAgICAgICAgICA8c2VsZWN0IHZhbHVlPXtmb3JtRGF0YS5tYXRlcmlhbF9pZH0gb25DaGFuZ2U9eyhlKSA9PiBzZXRGb3JtRGF0YSh7IC4uLmZvcm1EYXRhLCBtYXRlcmlhbF9pZDogZS50YXJnZXQudmFsdWUgfSl9IGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIj5cclxuICAgICAgICAgICAgICB7bWFzdGVySXRlbXMubWFwKChpdGVtKSA9PiAoXHJcbiAgICAgICAgICAgICAgICA8b3B0aW9uIGtleT17aXRlbS5pZH0gdmFsdWU9e2l0ZW0uaWR9PntpdGVtLm5hbWV9ICh7aXRlbS5jb2RlfSk8L29wdGlvbj5cclxuICAgICAgICAgICAgICApKX1cclxuICAgICAgICAgICAgPC9zZWxlY3Q+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImdyaWQgZ3JpZC1jb2xzLTIgZ2FwLTRcIj5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPkZyb20gRGVwYXJ0bWVudDwvbGFiZWw+XHJcbiAgICAgICAgICAgICAgPHNlbGVjdCB2YWx1ZT17Zm9ybURhdGEuZnJvbV9kZXBhcnRtZW50fSBvbkNoYW5nZT17KGUpID0+IHNldEZvcm1EYXRhKHsgLi4uZm9ybURhdGEsIGZyb21fZGVwYXJ0bWVudDogZS50YXJnZXQudmFsdWUgfSl9IGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIj5cclxuICAgICAgICAgICAgICAgIHtkZXBhcnRtZW50cy5tYXAoKGQpID0+IDxvcHRpb24ga2V5PXtkLmlkfSB2YWx1ZT17ZC5pZH0+e2QubmFtZX08L29wdGlvbj4pfVxyXG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZm9ybS1sYWJlbFwiPlRvIERlcGFydG1lbnQ8L2xhYmVsPlxyXG4gICAgICAgICAgICAgIDxzZWxlY3QgdmFsdWU9e2Zvcm1EYXRhLnRvX2RlcGFydG1lbnR9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0Rm9ybURhdGEoeyAuLi5mb3JtRGF0YSwgdG9fZGVwYXJ0bWVudDogZS50YXJnZXQudmFsdWUgfSl9IGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIj5cclxuICAgICAgICAgICAgICAgIHtkZXBhcnRtZW50cy5tYXAoKGQpID0+IDxvcHRpb24ga2V5PXtkLmlkfSB2YWx1ZT17ZC5pZH0+e2QubmFtZX08L29wdGlvbj4pfVxyXG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZ3JpZCBncmlkLWNvbHMtMiBnYXAtNFwiPlxyXG4gICAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJmb3JtLWxhYmVsXCI+UXVhbnRpdHkgKjwvbGFiZWw+XHJcbiAgICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgICB0eXBlPVwibnVtYmVyXCJcclxuICAgICAgICAgICAgICAgIG1pbj1cIjBcIlxyXG4gICAgICAgICAgICAgICAgc3RlcD1cImFueVwiXHJcbiAgICAgICAgICAgICAgICByZXF1aXJlZFxyXG4gICAgICAgICAgICAgICAgdmFsdWU9e2Zvcm1EYXRhLnF1YW50aXR5fVxyXG4gICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiB7XHJcbiAgICAgICAgICAgICAgICAgIGNvbnN0IHZhbCA9IGUudGFyZ2V0LnZhbHVlO1xyXG4gICAgICAgICAgICAgICAgICBpZiAodmFsID09PSAnJyB8fCBOdW1iZXIodmFsKSA+PSAwKSBzZXRGb3JtRGF0YSh7IC4uLmZvcm1EYXRhLCBxdWFudGl0eTogcGFyc2VGbG9hdCh2YWwpIHx8IDAgfSk7XHJcbiAgICAgICAgICAgICAgICB9fVxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZm9ybS1pbnB1dFwiXHJcbiAgICAgICAgICAgICAgLz5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5Vbml0ICo8L2xhYmVsPlxyXG4gICAgICAgICAgICAgIDxzZWxlY3RcclxuICAgICAgICAgICAgICAgIHZhbHVlPXtmb3JtRGF0YS51bml0fVxyXG4gICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRGb3JtRGF0YSh7IC4uLmZvcm1EYXRhLCB1bml0OiBlLnRhcmdldC52YWx1ZSB9KX1cclxuICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImZvcm0taW5wdXRcIlxyXG4gICAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJLR1wiPktHIChLaWxvZ3JhbXMpPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiTVRcIj5NVCAoTWV0cmljIFRvbnMpPC9vcHRpb24+XHJcbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiTElURVJTXCI+TElURVJTIChMdHJzKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cIkJBR1NcIj5CQUdTIChCYWdzKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cIlBDU1wiPlBDUyAoUGllY2VzKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cIkJPWEVTXCI+Qk9YRVMgKEJveGVzKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cIk1FVEVSU1wiPk1FVEVSUyAoTXRyKTwvb3B0aW9uPlxyXG4gICAgICAgICAgICAgIDwvc2VsZWN0PlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXY+PGxhYmVsIGNsYXNzTmFtZT1cImZvcm0tbGFiZWxcIj5Nb3ZlbWVudCBSZW1hcmtzPC9sYWJlbD48dGV4dGFyZWEgdmFsdWU9e2Zvcm1EYXRhLnJlbWFya3N9IG9uQ2hhbmdlPXsoZSkgPT4gc2V0Rm9ybURhdGEoeyAuLi5mb3JtRGF0YSwgcmVtYXJrczogZS50YXJnZXQudmFsdWUgfSl9IGNsYXNzTmFtZT1cImZvcm0taW5wdXQgaC0yMFwiIHBsYWNlaG9sZGVyPVwiTGVkZ2VyIHJlbWFya3MuLi5cIj48L3RleHRhcmVhPjwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibW9kYWwtZm9vdGVyXCI+XHJcbiAgICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9eygpID0+IHNldE1vZGFsT3BlbihmYWxzZSl9IGNsYXNzTmFtZT1cImJ0bi1zZWNvbmRhcnlcIj5DYW5jZWw8L2J1dHRvbj5cclxuICAgICAgICAgICAgPGJ1dHRvbiB0eXBlPVwic3VibWl0XCIgY2xhc3NOYW1lPVwiYnRuLXByaW1hcnlcIj5Qb3N0IEVudHJ5PC9idXR0b24+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICA8L2Zvcm0+XG4gICAgICAgICl9XG4gICAgICA8L01vZGFsPlxuXHJcbiAgICAgIDxNb2RhbCBpc09wZW49e3ZpZXdNb2RhbE9wZW59IG9uQ2xvc2U9eygpID0+IHNldFZpZXdNb2RhbE9wZW4oZmFsc2UpfSBzaXplPVwibWRcIiB0aXRsZT1cIlVuaXZlcnNhbCBKb3VybmFsIEVudHJ5IEluc3BlY3Rpb25cIj5cclxuICAgICAgICB7c2VsZWN0ZWRFbnRyeSAmJiAoXHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNwYWNlLXktNFwiPlxyXG4gICAgICAgICAgICA8ZGl2PjxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzZCNzI4MF1cIj5FbnRyeSBJRDo8L3NwYW4+PHAgY2xhc3NOYW1lPVwiZm9udC1tb25vIHRleHQtWyMxQjRFOUJdIGZvbnQtYm9sZFwiPntzZWxlY3RlZEVudHJ5LmlkfTwvcD48L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj48c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+TW92ZW1lbnQgVHlwZTo8L3NwYW4+PHAgY2xhc3NOYW1lPVwidGV4dC1bIzFGMjkzN10gZm9udC1ib2xkIGNhcGl0YWxpemVcIj57c2VsZWN0ZWRFbnRyeS5tb3ZlbWVudF90eXBlfTwvcD48L2Rpdj5cclxuICAgICAgICAgICAgPGRpdj48c3BhbiBjbGFzc05hbWU9XCJ0ZXh0LXhzIHRleHQtWyM2QjcyODBdXCI+UXVhbnRpdHk6PC9zcGFuPjxwIGNsYXNzTmFtZT1cInRleHQtWyMxNkEzNEFdIGZvbnQtYm9sZCBmb250LW1vbm9cIj57TnVtYmVyKHNlbGVjdGVkRW50cnkucXVhbnRpdHkpLnRvTG9jYWxlU3RyaW5nKCl9PC9wPjwvZGl2PlxyXG4gICAgICAgICAgICA8ZGl2PjxzcGFuIGNsYXNzTmFtZT1cInRleHQteHMgdGV4dC1bIzZCNzI4MF1cIj5Vbml0Ojwvc3Bhbj48cCBjbGFzc05hbWU9XCJ0ZXh0LVsjMUI0RTlCXSBmb250LWJvbGQgZm9udC1tb25vXCI+e3NlbGVjdGVkRW50cnkudW5pdCB8fCAnS0cnfTwvcD48L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICl9XHJcbiAgICAgIDwvTW9kYWw+XHJcbiAgICA8L2Rpdj5cclxuICApO1xyXG59XHJcbiJdLCJmaWxlIjoiRDovRVJQL0lkaGF5YW0tRVJQL2Zyb250ZW5kL3NyYy9wYWdlcy9Kb3VybmFsU3RvY2suanN4In0=

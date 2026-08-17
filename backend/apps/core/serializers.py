@@ -3,7 +3,8 @@ from .models import (
     Company, Plant, Department, Designation, Employee, EmployeeDetail,
     EmployeeBankAccount, Role, EmployeeRole, Permission, Vendor, Machine,
     StorageLocationBlock, StorageLocation, Document, ChartOfAccount,
-    UIMenu, UIMenuPermission, UINavbar, UIForm, UIFormField, UIModal, UIWidget, UITheme
+    UIMenu, UIMenuPermission, UINavbar, UIForm, UIFormField, UIModal, UIWidget, UITheme,
+    ConfigAuditLog, ConfigVersion, UIDashboardLayout, GlobalSearchConfiguration
 )
 
 class BaseSanitizingSerializer(serializers.ModelSerializer):
@@ -13,7 +14,7 @@ class BaseSanitizingSerializer(serializers.ModelSerializer):
             for k, v in data.items():
                 if v == "":
                     field = self.fields.get(k)
-                    if field:
+                    if field and getattr(field, 'allow_null', False):
                         cleaned[k] = None
                     else:
                         cleaned[k] = v
@@ -221,6 +222,11 @@ class UIModalSerializer(BaseSanitizingSerializer):
 
 
 class UIWidgetSerializer(BaseSanitizingSerializer):
+    role_names = serializers.SerializerMethodField()
+
+    def get_role_names(self, obj):
+        return list(obj.roles.values_list('name', flat=True))
+
     class Meta:
         model = UIWidget
         fields = '__all__'
@@ -230,4 +236,52 @@ class UIThemeSerializer(BaseSanitizingSerializer):
     class Meta:
         model = UITheme
         fields = '__all__'
+
+
+class ConfigAuditLogSerializer(BaseSanitizingSerializer):
+    class Meta:
+        model = ConfigAuditLog
+        fields = '__all__'
+
+
+class ConfigVersionSerializer(BaseSanitizingSerializer):
+    class Meta:
+        model = ConfigVersion
+        fields = '__all__'
+
+
+class UIDashboardLayoutSerializer(BaseSanitizingSerializer):
+    role_name = serializers.ReadOnlyField(source='role.name')
+
+    class Meta:
+        model = UIDashboardLayout
+        fields = '__all__'
+
+
+class GlobalSearchConfigurationSerializer(BaseSanitizingSerializer):
+    role_names = serializers.SerializerMethodField()
+
+    def get_role_names(self, obj):
+        return list(obj.roles.values_list('name', flat=True))
+
+    def validate(self, attrs):
+        from .search_service import SEARCH_ENTITY_DEFINITIONS
+        model_label = attrs.get('model_label', getattr(self.instance, 'model_label', None))
+        definition = SEARCH_ENTITY_DEFINITIONS.get(model_label)
+        if not definition:
+            raise serializers.ValidationError({'model_label': 'This model is not approved for global search.'})
+        for key in ['searchable_fields', 'display_fields']:
+            values = attrs.get(key, getattr(self.instance, key, []) if self.instance else []) or []
+            invalid = sorted(set(values) - set(definition['fields']))
+            if invalid:
+                raise serializers.ValidationError({key: f"Unsupported fields: {', '.join(invalid)}"})
+        status_field = attrs.get('status_field', getattr(self.instance, 'status_field', '') if self.instance else '')
+        if status_field and status_field not in definition['fields']:
+            raise serializers.ValidationError({'status_field': 'Status field is not approved for this entity.'})
+        return attrs
+
+    class Meta:
+        model = GlobalSearchConfiguration
+        fields = '__all__'
+
 

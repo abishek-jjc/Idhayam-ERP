@@ -3,13 +3,15 @@ import axios from 'axios';
 import {
   Plus, Edit3, Trash2, Eye, CheckCircle2, RefreshCw, FileCode, Layers, Settings,
   Type, AlignLeft, Hash, Calendar, Clock, CalendarDays, CheckSquare, ChevronDownSquare,
-  Link as LinkIcon, Mail, Phone, Banknote, Upload, Globe, Lock, Database
+  Mail, Phone, Banknote, Upload, Globe, Lock, Database, Network,
+  Search, GripVertical, Copy, ArrowUp, ArrowDown, Send
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
 import GenericFormRenderer from '../components/GenericFormRenderer';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
+import WhereUsedModal from '../components/ui/WhereUsedModal';
 
 export const MASTER_TABLE_OPTIONS = [
   { value: 'companies', label: 'Companies / Legal Entities (/api/core/companies/)' },
@@ -38,6 +40,8 @@ export default function FormBuilder() {
   const [editingFormId, setEditingFormId] = useState(null);
   const [editingFieldId, setEditingFieldId] = useState(null);
   const [notification, setNotification] = useState('');
+  const [whereUsedState, setWhereUsedState] = useState({ isOpen: false, itemId: '', itemName: '' });
+  const [fieldSearch, setFieldSearch] = useState('');
 
   const [optionSourceType, setOptionSourceType] = useState('master_table'); // 'master_table' | 'static_options'
 
@@ -57,6 +61,9 @@ export default function FormBuilder() {
     default_value: '',
     options: '',
     reference_table: '',
+    placeholder: '', help_text: '', validation_regex: '', validation_message: '',
+    min_length: '', max_length: '', min_value: '', max_value: '', read_only: false,
+    conditional_field: '', conditional_value: '', column_span: 1,
     field_order: 1,
     active: true,
   });
@@ -65,8 +72,12 @@ export default function FormBuilder() {
     { type: 'text', label: 'Text Input', icon: Type },
     { type: 'textarea', label: 'Textarea', icon: AlignLeft },
     { type: 'number', label: 'Number', icon: Hash },
+    { type: 'decimal', label: 'Decimal Number', icon: Hash },
     { type: 'select', label: 'Dropdown / Select', icon: ChevronDownSquare },
     { type: 'reference', label: 'Master Table Reference', icon: Database },
+    { type: 'relationship', label: 'Relationship', icon: Database },
+    { type: 'multiselect', label: 'Multi-select', icon: CheckSquare },
+    { type: 'radio', label: 'Radio Group', icon: CheckSquare },
     { type: 'date', label: 'Date Picker', icon: Calendar },
     { type: 'time', label: 'Time Picker', icon: Clock },
     { type: 'datetime', label: 'Date & Time', icon: CalendarDays },
@@ -75,6 +86,7 @@ export default function FormBuilder() {
     { type: 'phone', label: 'Phone Number', icon: Phone },
     { type: 'currency', label: 'Currency (₹)', icon: Banknote },
     { type: 'file', label: 'File Upload', icon: Upload },
+    { type: 'image', label: 'Image Upload', icon: Upload },
     { type: 'url', label: 'Website URL', icon: Globe },
     { type: 'password', label: 'Password Input', icon: Lock },
   ];
@@ -131,9 +143,9 @@ export default function FormBuilder() {
 
   const handleAddFieldClick = (typeObj) => {
     if (!selectedForm) return;
-    const isRefOrSelect = typeObj?.type === 'select' || typeObj?.type === 'reference';
+    const isRefOrSelect = ['select', 'reference', 'relationship', 'multiselect', 'radio'].includes(typeObj?.type);
     setEditingFieldId(null);
-    setOptionSourceType(typeObj?.type === 'reference' ? 'master_table' : 'master_table');
+    setOptionSourceType(['reference', 'relationship'].includes(typeObj?.type) ? 'master_table' : 'static_options');
     setFieldInput({
       field_name: typeObj ? `New ${typeObj.label}` : '',
       field_code: typeObj ? `${typeObj.type}_${Date.now().toString().slice(-4)}` : '',
@@ -142,6 +154,9 @@ export default function FormBuilder() {
       default_value: '',
       options: '',
       reference_table: isRefOrSelect ? 'plants' : '',
+      placeholder: '', help_text: '', validation_regex: '', validation_message: '',
+      min_length: '', max_length: '', min_value: '', max_value: '', read_only: false,
+      conditional_field: '', conditional_value: '', column_span: 1,
       field_order: (selectedForm.fields?.length || 0) + 1,
       active: true,
     });
@@ -161,6 +176,11 @@ export default function FormBuilder() {
       default_value: field.default_value || '',
       options: field.options || '',
       reference_table: field.reference_table || (field.field_type === 'reference' ? 'plants' : ''),
+      placeholder: field.placeholder || '', help_text: field.help_text || '',
+      validation_regex: field.validation_regex || '', validation_message: field.validation_message || '',
+      min_length: field.min_length ?? '', max_length: field.max_length ?? '', min_value: field.min_value ?? '', max_value: field.max_value ?? '',
+      read_only: field.read_only || false, conditional_field: field.conditional_field || '', conditional_value: field.conditional_value || '',
+      column_span: field.column_span || 1,
       field_order: field.field_order || 1,
       active: field.active !== false,
     });
@@ -176,7 +196,7 @@ export default function FormBuilder() {
       form: selectedForm.id
     };
 
-    if (fieldInput.field_type === 'select' || fieldInput.field_type === 'reference') {
+    if (['select', 'reference', 'relationship', 'multiselect', 'radio'].includes(fieldInput.field_type)) {
       if (optionSourceType === 'master_table') {
         payload.reference_table = fieldInput.reference_table || 'plants';
         payload.options = '';
@@ -222,6 +242,54 @@ export default function FormBuilder() {
     }
   };
 
+  const handleDuplicateField = async (field) => {
+    if (!selectedForm || !field) return;
+    const { id, ...copy } = field;
+    await axios.post('http://127.0.0.1:8000/api/core/ui-form-fields/', {
+      ...copy,
+      form: selectedForm.id,
+      field_name: `${field.field_name} Copy`,
+      field_code: `${field.field_code}_copy_${Date.now().toString().slice(-3)}`,
+      field_order: (selectedForm.fields?.length || 0) + 1,
+    });
+    window.dispatchEvent(new Event('erp_ui_metadata_updated'));
+    setNotification('Field duplicated successfully.');
+    fetchForms();
+  };
+
+  const moveField = async (field, offset) => {
+    const ordered = [...(selectedForm?.fields || [])].sort((a, b) => a.field_order - b.field_order);
+    const index = ordered.findIndex((item) => item.id === field.id);
+    const target = ordered[index + offset];
+    if (!target) return;
+    await Promise.all([
+      axios.patch(`http://127.0.0.1:8000/api/core/ui-form-fields/${field.id}/`, { field_order: target.field_order }),
+      axios.patch(`http://127.0.0.1:8000/api/core/ui-form-fields/${target.id}/`, { field_order: field.field_order }),
+    ]);
+    window.dispatchEvent(new Event('erp_ui_metadata_updated'));
+    fetchForms();
+  };
+
+  const publishForm = async () => {
+    if (!selectedForm) return;
+    await axios.patch(`http://127.0.0.1:8000/api/core/ui-forms/${selectedForm.id}/`, { active: true });
+    window.dispatchEvent(new Event('erp_ui_metadata_updated'));
+    setNotification(`'${selectedForm.title}' is published and available to its configured ERP module.`);
+    fetchForms();
+  };
+
+  const renderCanvasControl = (field) => {
+    const placeholder = field.placeholder || `Enter ${field.field_name.toLowerCase()}`;
+    if (field.field_type === 'textarea') return <textarea className="form-input" rows="2" placeholder={placeholder} disabled />;
+    if (['select', 'multiselect', 'reference', 'relationship'].includes(field.field_type)) return <select className="form-input" disabled><option>{field.reference_table ? `Select from ${field.reference_table}` : `Select ${field.field_name}`}</option></select>;
+    if (field.field_type === 'radio') return <div className="builder-radio-preview">{(field.options || 'Option one,Option two').split(',').slice(0, 3).map((option) => <label key={option}><input type="radio" disabled /> {option.trim()}</label>)}</div>;
+    if (field.field_type === 'boolean') return <label className="builder-checkbox-preview"><input type="checkbox" disabled /> {field.help_text || 'Enabled'}</label>;
+    const inputType = ['date', 'time', 'email', 'url', 'password', 'file'].includes(field.field_type) ? field.field_type : ['number', 'decimal', 'currency'].includes(field.field_type) ? 'number' : 'text';
+    return <input className="form-input" type={inputType} placeholder={placeholder} disabled />;
+  };
+
+  const filteredTypes = supportedTypes.filter((item) => `${item.label} ${item.type}`.toLowerCase().includes(fieldSearch.toLowerCase()));
+
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
@@ -249,16 +317,16 @@ export default function FormBuilder() {
       />
 
       {notification && (
-        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
+        <div className="inline-notice">
+          <CheckCircle2 className="w-4 h-4" />
           {notification}
         </div>
       )}
 
       {/* Select active form bar */}
-      <div className="standard-card flex flex-wrap items-center justify-between gap-4 p-4">
+      <div className="builder-toolbar standard-card flex flex-wrap items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
-          <span className="form-label mb-0 text-[#1B4E9B] font-bold">Active Form:</span>
+          <span className="workspace-kicker">Form</span>
           <select
             value={selectedForm?.id || ''}
             onChange={(e) => {
@@ -276,15 +344,61 @@ export default function FormBuilder() {
 
         {selectedForm && (
           <div className="flex items-center gap-2">
-            <Button variant="secondary" icon={Eye} onClick={() => setIsPreviewOpen(true)}>
-              Preview & Test Live Form
+            <Button variant="ghost" icon={Edit3} onClick={() => { setEditingFormId(selectedForm.id); setFormInput({ form_name: selectedForm.form_name, module: selectedForm.module, title: selectedForm.title, description: selectedForm.description || '', active: selectedForm.active }); setIsFormModalOpen(true); }}>Edit Form</Button>
+            <Button
+              variant="secondary"
+              icon={Network}
+              onClick={() => setWhereUsedState({ isOpen: true, itemId: selectedForm.id, itemName: selectedForm.title })}
+            >
+              Impact
             </Button>
+            <Button variant="secondary" icon={Eye} onClick={() => setIsPreviewOpen(true)}>
+              Preview
+            </Button>
+            <Button variant="primary" icon={Send} onClick={publishForm}>Publish</Button>
           </div>
         )}
       </div>
 
+      {/* Three-panel visual builder workspace */}
+      <div className="form-builder-workspace">
+        <aside className="workspace-panel builder-palette-panel">
+          <div className="workspace-panel-header"><p className="workspace-kicker">Field palette</p><h3 className="card-title mt-2">Add form controls</h3><p className="helper-text mt-1">Select or drag a control into the canvas.</p></div>
+          <div className="workspace-panel-body">
+            <div className="builder-field-search"><Search /><input value={fieldSearch} onChange={(event) => setFieldSearch(event.target.value)} placeholder="Search fields..." aria-label="Search field types" /></div>
+            <div className="builder-palette-grid">
+              {filteredTypes.map((item) => { const Icon = item.icon; return <button key={item.type} type="button" draggable onDragStart={(event) => event.dataTransfer.setData('fieldType', item.type)} onClick={() => handleAddFieldClick(item)}><span><Icon /></span><strong>{item.label}</strong><small>{item.type}</small></button>; })}
+            </div>
+            {filteredTypes.length === 0 && <p className="builder-empty">No field types match “{fieldSearch}”.</p>}
+          </div>
+        </aside>
+
+        <section className="workspace-panel builder-canvas-panel" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const type = event.dataTransfer.getData('fieldType'); const found = supportedTypes.find((item) => item.type === type); if (found) handleAddFieldClick(found); }}>
+          <div className="workspace-panel-header builder-canvas-header"><div><p className="workspace-kicker">Form canvas</p><h3 className="card-title mt-2">{selectedForm?.title || 'Select a form'}</h3><p className="helper-text mt-1">{selectedForm ? `${selectedForm.form_name} · ${selectedForm.module}` : 'Choose a form from the toolbar to begin.'}</p></div><span className={`badge ${selectedForm?.active ? 'badge-success' : 'badge-warning'}`}>{selectedForm?.active ? 'Published' : 'Draft'}</span></div>
+          <div className="builder-canvas">
+            {!selectedForm ? <div className="builder-empty-state"><FileCode /><h4>No form selected</h4><p>Select or create a form using the toolbar above.</p></div> : (selectedForm.fields || []).length === 0 ? <div className="builder-empty-state"><Layers /><h4>Your canvas is empty</h4><p>Add a field from the palette or drop it here.</p></div> : <div className="builder-field-layout">{[...(selectedForm.fields || [])].sort((a, b) => a.field_order - b.field_order).map((field) => <article key={field.id} className={`builder-canvas-field ${selectedField?.id === field.id ? 'selected' : ''}`} style={{ gridColumn: `span ${Math.max(1, Math.min(2, field.column_span || 1))}` }} onClick={() => setSelectedField(field)}>
+              <div className="builder-field-heading"><span className="builder-drag-handle"><GripVertical /></span><label>{field.field_name} {field.required && <b>*</b>}</label><div className="builder-field-actions"><button type="button" title="Move up" onClick={(event) => { event.stopPropagation(); moveField(field, -1); }}><ArrowUp /></button><button type="button" title="Move down" onClick={(event) => { event.stopPropagation(); moveField(field, 1); }}><ArrowDown /></button><button type="button" title="Duplicate field" onClick={(event) => { event.stopPropagation(); handleDuplicateField(field); }}><Copy /></button><button type="button" title="Edit field" onClick={(event) => { event.stopPropagation(); handleEditFieldClick(field); }}><Edit3 /></button></div></div>
+              <div className="builder-control-preview">{renderCanvasControl(field)}</div>
+              <div className="builder-field-meta"><code>{field.field_code}</code><span>{field.field_type}</span>{field.read_only && <span>read only</span>}</div>
+            </article>)}</div>}
+          </div>
+        </section>
+
+        <aside className="workspace-panel builder-properties-panel">
+          <div className="workspace-panel-header"><p className="workspace-kicker">Field properties</p><h3 className="card-title mt-2">{selectedField?.field_name || 'Nothing selected'}</h3><p className="helper-text mt-1">Select a canvas field to inspect and configure it.</p></div>
+          <div className="workspace-panel-body">{selectedField ? <div className="builder-property-groups">
+            <section><h4>Definition</h4><dl><div><dt>Label</dt><dd>{selectedField.field_name}</dd></div><div><dt>Code</dt><dd><code>{selectedField.field_code}</code></dd></div><div><dt>Type</dt><dd>{selectedField.field_type}</dd></div><div><dt>Order</dt><dd>#{selectedField.field_order}</dd></div></dl></section>
+            <section><h4>Behavior</h4><div className="builder-property-flags"><span className={selectedField.required ? 'on' : ''}><CheckSquare /> Required</span><span className={selectedField.read_only ? 'on' : ''}><Lock /> Read only</span><span className={selectedField.active ? 'on' : ''}><Eye /> Visible</span></div></section>
+            {(selectedField.placeholder || selectedField.help_text || selectedField.validation_regex) && <section><h4>Guidance & validation</h4>{selectedField.placeholder && <p><b>Placeholder</b>{selectedField.placeholder}</p>}{selectedField.help_text && <p><b>Help text</b>{selectedField.help_text}</p>}{selectedField.validation_regex && <p><b>Pattern</b><code>{selectedField.validation_regex}</code></p>}</section>}
+            {selectedField.reference_table && <section><h4>Relationship source</h4><p className="builder-source"><Database /> {selectedField.reference_table}</p></section>}
+            <div className="builder-inspector-actions"><Button variant="primary" icon={Edit3} onClick={() => handleEditFieldClick(selectedField)}>Configure</Button><Button variant="ghost" icon={Copy} onClick={() => handleDuplicateField(selectedField)}>Duplicate</Button><Button variant="danger" icon={Trash2} onClick={() => handleDeleteField(selectedField.id)}>Delete</Button></div>
+          </div> : <div className="builder-empty-state compact"><Settings /><h4>Select a field</h4><p>Its definition, validation, visibility, and actions will appear here.</p></div>}</div>
+        </aside>
+      </div>
+
+      {/* Legacy canvas is retained for compatibility but superseded by the unified workspace. */}
       {/* FIELD PALETTE */}
-      <div className="standard-card space-y-4">
+      <div className="legacy-form-builder standard-card space-y-4">
         <div>
           <h3 className="section-title text-sm font-bold flex items-center gap-2 text-[#172033]">
             <Layers className="w-5 h-5 text-[#1B4E9B]" /> Field Palette
@@ -316,7 +430,7 @@ export default function FormBuilder() {
       </div>
 
       {/* Form Canvas & Field Config Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="legacy-form-builder grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* CENTER COLUMN: Form Preview / Canvas (7 Cols) */}
         <div className="lg:col-span-7 standard-card space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
@@ -531,7 +645,7 @@ export default function FormBuilder() {
                   setFieldInput({
                     ...fieldInput,
                     field_type: newType,
-                    reference_table: (newType === 'reference' || newType === 'select') ? (fieldInput.reference_table || 'plants') : '',
+                    reference_table: ['reference', 'relationship', 'select'].includes(newType) ? (fieldInput.reference_table || 'plants') : '',
                   });
                 }}
                 className="form-input"
@@ -556,7 +670,7 @@ export default function FormBuilder() {
           </div>
 
           {/* Special Configuration for Dropdown / Reference fields */}
-          {(fieldInput.field_type === 'select' || fieldInput.field_type === 'reference') && (
+          {['select', 'reference', 'relationship', 'multiselect', 'radio'].includes(fieldInput.field_type) && (
             <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg space-y-3">
               <label className="form-label text-xs uppercase tracking-wider text-[#1B4E9B] font-bold mb-1">
                 Dropdown Options Source
@@ -622,7 +736,19 @@ export default function FormBuilder() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label className="form-label">Placeholder</label><input className="form-input" value={fieldInput.placeholder} onChange={(e) => setFieldInput({ ...fieldInput, placeholder: e.target.value })} /></div>
+            <div><label className="form-label">Help Text</label><input className="form-input" value={fieldInput.help_text} onChange={(e) => setFieldInput({ ...fieldInput, help_text: e.target.value })} /></div>
+            <div><label className="form-label">Validation Regex</label><input className="form-input font-mono" value={fieldInput.validation_regex} onChange={(e) => setFieldInput({ ...fieldInput, validation_regex: e.target.value })} placeholder="e.g. ^[A-Z]{3}-\d+$" /></div>
+            <div><label className="form-label">Validation Message</label><input className="form-input" value={fieldInput.validation_message} onChange={(e) => setFieldInput({ ...fieldInput, validation_message: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-2"><div><label className="form-label">Min Length</label><input type="number" min="0" className="form-input" value={fieldInput.min_length} onChange={(e) => setFieldInput({ ...fieldInput, min_length: e.target.value })} /></div><div><label className="form-label">Max Length</label><input type="number" min="0" className="form-input" value={fieldInput.max_length} onChange={(e) => setFieldInput({ ...fieldInput, max_length: e.target.value })} /></div></div>
+            <div className="grid grid-cols-2 gap-2"><div><label className="form-label">Min Value</label><input type="number" step="any" className="form-input" value={fieldInput.min_value} onChange={(e) => setFieldInput({ ...fieldInput, min_value: e.target.value })} /></div><div><label className="form-label">Max Value</label><input type="number" step="any" className="form-input" value={fieldInput.max_value} onChange={(e) => setFieldInput({ ...fieldInput, max_value: e.target.value })} /></div></div>
+            <div><label className="form-label">Conditional Field Code</label><input className="form-input" value={fieldInput.conditional_field} onChange={(e) => setFieldInput({ ...fieldInput, conditional_field: e.target.value })} placeholder="Show when this field..." /></div>
+            <div><label className="form-label">Conditional Value</label><input className="form-input" value={fieldInput.conditional_value} onChange={(e) => setFieldInput({ ...fieldInput, conditional_value: e.target.value })} placeholder="...equals this value" /></div>
+            <div><label className="form-label">Column Span</label><select className="form-input" value={fieldInput.column_span} onChange={(e) => setFieldInput({ ...fieldInput, column_span: Number(e.target.value) })}><option value={1}>One column</option><option value={2}>Full row</option></select></div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-5 pt-2">
             <input
               type="checkbox"
               id="reqCheck"
@@ -633,6 +759,7 @@ export default function FormBuilder() {
             <label htmlFor="reqCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
               Mark Field as Mandatory / Required
             </label>
+            <label className="flex items-center gap-2 text-xs text-[var(--text-primary)] cursor-pointer font-semibold"><input type="checkbox" checked={fieldInput.read_only} onChange={(e) => setFieldInput({ ...fieldInput, read_only: e.target.checked })} /> Read-only field</label>
           </div>
 
           <div className="modal-footer">
@@ -661,6 +788,13 @@ export default function FormBuilder() {
           </div>
         </Modal>
       )}
+      <WhereUsedModal
+        isOpen={whereUsedState.isOpen}
+        onClose={() => setWhereUsedState({ ...whereUsedState, isOpen: false })}
+        configType="form"
+        itemId={whereUsedState.itemId}
+        itemName={whereUsedState.itemName}
+      />
     </div>
   );
 }

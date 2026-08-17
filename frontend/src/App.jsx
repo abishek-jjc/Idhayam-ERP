@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import axios from 'axios';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ConfigurationProvider, useConfiguration } from './context/ConfigurationContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -16,49 +16,82 @@ import UserPage from './pages/UserPage';
 import ProcessAttributeValues from './pages/ProcessAttributeValues';
 import ProcessLinks from './pages/ProcessLinks';
 import ErrorBoundary from './components/ErrorBoundary';
+import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
+
+function AuthorizedPage({ moduleCode, Component }) {
+  const { user, isSuperAdmin, hasPermission } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isSuperAdmin && !['dashboard', 'user_page'].includes(moduleCode) && !hasPermission(moduleCode)) {
+    return <Navigate to="/user" replace />;
+  }
+  return <Component />;
+}
+
+function ConfigurationChangeNotice() {
+  const { lastImpact, clearLastImpact } = useConfiguration();
+  React.useEffect(() => {
+    if (!lastImpact) return undefined;
+    const timer = window.setTimeout(clearLastImpact, 7000);
+    return () => window.clearTimeout(timer);
+  }, [clearLastImpact, lastImpact]);
+  if (!lastImpact) return null;
+  const connected = lastImpact.connected_to_live_pages;
+  return (
+    <div className={`configuration-change-notice ${connected ? 'connected' : 'unconnected'}`} role="status">
+      {connected ? <CheckCircle2 aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
+      <div>
+        <strong>{connected ? 'Configuration updated successfully' : 'Configuration saved with warning'}</strong>
+        {connected ? (
+          <p>Affected pages ({lastImpact.affected_page_count || lastImpact.affected_pages?.length || 0}): {(lastImpact.affected_pages || []).join(', ')}</p>
+        ) : (
+          <p>No real ERP page is connected to this setting yet.</p>
+        )}
+      </div>
+      <button type="button" onClick={clearLastImpact} aria-label="Dismiss configuration result"><X /></button>
+    </div>
+  );
+}
 
 function ProtectedLayout() {
-  useEffect(() => {
-    const applyActiveTheme = () => {
-      axios.get('http://127.0.0.1:8000/api/core/ui-themes/?active=true')
-        .then(res => {
-          const list = res.data?.results || res.data || [];
-          const activeTheme = list.find(t => t.active) || list[0];
-          if (activeTheme) {
-            const root = document.documentElement;
-            if (activeTheme.primary_color) root.style.setProperty('--theme-primary', activeTheme.primary_color);
-            if (activeTheme.secondary_color) root.style.setProperty('--theme-secondary', activeTheme.secondary_color);
-            if (activeTheme.background_color) root.style.setProperty('--theme-bg', activeTheme.background_color);
-            if (activeTheme.card_bg_color) root.style.setProperty('--theme-card', activeTheme.card_bg_color);
-            if (activeTheme.text_color) root.style.setProperty('--theme-text', activeTheme.text_color);
-            if (activeTheme.border_color) root.style.setProperty('--theme-border', activeTheme.border_color);
-          }
-        })
-        .catch(() => {});
-    };
-
-    applyActiveTheme();
-    window.addEventListener('erp_theme_updated', applyActiveTheme);
-    return () => window.removeEventListener('erp_theme_updated', applyActiveTheme);
-  }, []);
+  const { menus, loading } = useConfiguration();
+  const pageComponents = {
+    dashboard: Dashboard,
+    user_page: UserPage,
+    admin: AdminConsole,
+    structural_masters: StructuralMasters,
+    dynamic_masters: DynamicMasters,
+    process_engine: ProcessEngine,
+    workflow: WorkflowApprovals,
+    journal: JournalStock,
+    process_attribute_values: ProcessAttributeValues,
+    process_links: ProcessLinks,
+  };
+  const configuredRoutes = menus
+    .map((menu) => ({ ...menu, Component: pageComponents[menu.page_key || menu.module_code] }))
+    .filter((menu) => menu.menu_path && menu.Component);
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Loading ERP configuration...</div>;
   return (
     <div className="app-container">
       <Sidebar />
       <div className="main-content">
         <Navbar title="ERP v3 Metadata Platform" />
+        <ConfigurationChangeNotice />
         <div className="page-container">
           <ErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/user" element={<UserPage />} />
-              <Route path="/admin-console" element={<AdminConsole />} />
-              <Route path="/structural-masters" element={<StructuralMasters />} />
-              <Route path="/dynamic-masters" element={<DynamicMasters />} />
-              <Route path="/process-engine" element={<ProcessEngine />} />
-              <Route path="/workflow-approvals" element={<WorkflowApprovals />} />
-              <Route path="/journal-stock" element={<JournalStock />} />
-              <Route path="/process-attribute-values" element={<ProcessAttributeValues />} />
-              <Route path="/process-links" element={<ProcessLinks />} />
+              {configuredRoutes.map(({ id, menu_path, module_code, Component }) => (
+                <Route key={id || menu_path} path={menu_path} element={<AuthorizedPage moduleCode={module_code} Component={Component} />} />
+              ))}
+              <Route path="/" element={<AuthorizedPage moduleCode="dashboard" Component={Dashboard} />} />
+              <Route path="/user" element={<AuthorizedPage moduleCode="user_page" Component={UserPage} />} />
+              <Route path="/admin-console" element={<AuthorizedPage moduleCode="admin" Component={AdminConsole} />} />
+              <Route path="/structural-masters" element={<AuthorizedPage moduleCode="structural_masters" Component={StructuralMasters} />} />
+              <Route path="/dynamic-masters" element={<AuthorizedPage moduleCode="dynamic_masters" Component={DynamicMasters} />} />
+              <Route path="/process-engine" element={<AuthorizedPage moduleCode="process_engine" Component={ProcessEngine} />} />
+              <Route path="/workflow-approvals" element={<AuthorizedPage moduleCode="workflow" Component={WorkflowApprovals} />} />
+              <Route path="/journal-stock" element={<AuthorizedPage moduleCode="journal" Component={JournalStock} />} />
+              <Route path="/process-attribute-values" element={<AuthorizedPage moduleCode="process_engine" Component={ProcessAttributeValues} />} />
+              <Route path="/process-links" element={<AuthorizedPage moduleCode="process_engine" Component={ProcessLinks} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </ErrorBoundary>
@@ -71,12 +104,14 @@ function ProtectedLayout() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<ProtectedLayout />} />
-        </Routes>
-      </Router>
+      <ConfigurationProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/*" element={<ProtectedLayout />} />
+          </Routes>
+        </Router>
+      </ConfigurationProvider>
     </AuthProvider>
   );
 }

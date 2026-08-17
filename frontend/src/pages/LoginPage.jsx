@@ -1,203 +1,108 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowRight, Building2, Eye, EyeOff, KeyRound, Loader2, ShieldCheck, UserCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useConfiguration } from '../context/ConfigurationContext';
 import { CoreAPI } from '../api';
-import { ShieldCheck, UserCheck, KeyRound, Building2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import Button from '../components/ui/Button';
+
+const isDevelopment = import.meta.env.DEV;
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { theme } = useConfiguration();
   const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState('superadmin'); // 'superadmin' | 'designation'
-  const [username, setUsername] = useState('superadmin');
-  const [password, setPassword] = useState('SuperAdminPassword123!');
+  const [activeTab, setActiveTab] = useState('superadmin');
+  const [username, setUsername] = useState(isDevelopment ? 'superadmin' : '');
+  const [password, setPassword] = useState(isDevelopment ? 'SuperAdminPassword123!' : '');
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedDesignation, setSelectedDesignation] = useState('');
   const [designations, setDesignations] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadDesignations();
+    CoreAPI.getDesignations().then((response) => {
+      const list = response.data.results || response.data || [];
+      setDesignations(list);
+      if (list.length) setSelectedDesignation(list[0].id);
+    }).catch(() => setDesignations([]));
   }, []);
 
-  async function loadDesignations() {
-    try {
-      const res = await CoreAPI.getDesignations();
-      const list = res.data.results || res.data || [];
-      setDesignations(list);
-      if (list.length > 0) {
-        setSelectedDesignation(list[0].id);
-      }
-    } catch (err) {
-      console.error("Failed to load designations for login page:", err);
-    }
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const chooseLoginMode = (mode) => {
+    setActiveTab(mode);
     setErrorMsg('');
-    setSubmitting(true);
-
-    let payload = {};
-    if (activeTab === 'superadmin') {
-      payload = { username, password };
-    } else {
-      payload = { designation_id: selectedDesignation };
-    }
-
-    const res = await login(payload);
-    setSubmitting(false);
-
-    if (res.success) {
-      if (res.user.is_superadmin) {
-        navigate('/admin-console');
-      } else {
-        navigate('/user');
-      }
-    } else {
-      setErrorMsg(res.error || 'Authentication failed. Please check credentials.');
+    if (mode === 'superadmin' && isDevelopment) {
+      setUsername('superadmin');
+      setPassword('SuperAdminPassword123!');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center p-4 relative font-sans text-[#1F2937]">
-      {/* Main Container */}
-      <div className="w-full max-w-md relative z-10 space-y-6">
-        
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-[#1B4E9B] text-white font-black text-2xl shadow-md mb-1">
-            E3
-          </div>
-          <h1 className="text-2xl font-bold text-[#1F2937] tracking-tight">
-            ERP v3 Corporate System
-          </h1>
-          <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wider">Enterprise Resource Planning & Metadata Engine</p>
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (submitting) return;
+    setErrorMsg('');
+    setSubmitting(true);
+    const payload = activeTab === 'superadmin' ? { username, password } : { designation_id: selectedDesignation };
+    try {
+      const result = await login(payload);
+      if (result.success) navigate(result.user.is_superadmin ? '/admin-console' : '/user');
+      else setErrorMsg(result.error || 'Authentication failed. Check your details and try again.');
+    } catch {
+      setErrorMsg('Unable to reach the ERP authentication service.');
+    } finally { setSubmitting(false); }
+  };
+
+  return <main className="login-shell">
+    <div className="login-product-mark" aria-hidden="true" />
+    <section className="login-stage" aria-labelledby="login-product-title">
+      <header className="login-brand">
+        <div className="login-logo">{theme?.logo_text || 'E3'}</div>
+        <div>
+          <p className="login-eyebrow">Enterprise platform</p>
+          <h1 id="login-product-title">{theme?.application_name || 'ERP V3'} <span>Corporate System</span></h1>
+          <p>Enterprise Resource Planning &amp; Metadata Engine</p>
+        </div>
+      </header>
+
+      <div className="login-card">
+        <div className="login-card-heading">
+          <p className="workspace-kicker">Secure access</p>
+          <h2>Welcome back</h2>
+          <p>Sign in with your administrative credentials or assigned designation.</p>
         </div>
 
-        {/* Login Card */}
-        <div className="standard-card space-y-6">
-          
-          {/* Tab Selector */}
-          <div className="grid grid-cols-2 p-1 bg-[#F1F5F9] rounded-lg border border-[#E5E7EB] text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => { setActiveTab('superadmin'); setUsername('superadmin'); setPassword('SuperAdminPassword123!'); }}
-              className={`py-2 rounded-md transition-all flex items-center justify-center gap-2 ${
-                activeTab === 'superadmin'
-                  ? 'bg-[#1B4E9B] text-white font-bold'
-                  : 'text-[#6B7280] hover:text-[#1F2937]'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" /> SuperAdmin
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('designation')}
-              className={`py-2 rounded-md transition-all flex items-center justify-center gap-2 ${
-                activeTab === 'designation'
-                  ? 'bg-[#1B4E9B] text-white font-bold'
-                  : 'text-[#6B7280] hover:text-[#1F2937]'
-              }`}
-            >
-              <UserCheck className="w-4 h-4" /> Designation User
-            </button>
-          </div>
+        <div className="login-segmented" role="tablist" aria-label="Login method">
+          <button type="button" role="tab" aria-selected={activeTab === 'superadmin'} className={activeTab === 'superadmin' ? 'active' : ''} onClick={() => chooseLoginMode('superadmin')}><ShieldCheck /> Super Admin</button>
+          <button type="button" role="tab" aria-selected={activeTab === 'designation'} className={activeTab === 'designation' ? 'active' : ''} onClick={() => chooseLoginMode('designation')}><UserCheck /> Designation</button>
+        </div>
 
-          {errorMsg && (
-            <div className="p-3 rounded-lg bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] text-xs font-semibold flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#DC2626] shrink-0" />
-              {errorMsg}
+        {errorMsg && <div className="login-error" role="alert"><AlertCircle /><span>{errorMsg}</span></div>}
+
+        <form onSubmit={handleSubmit} className="login-form">
+          {activeTab === 'superadmin' ? <>
+            <div className="login-field">
+              <label htmlFor="erp-username">SuperAdmin username</label>
+              <div className="login-input-wrap"><ShieldCheck aria-hidden="true" /><input id="erp-username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Enter your username" required autoFocus /></div>
             </div>
-          )}
+            <div className="login-field">
+              <label htmlFor="erp-password">Password</label>
+              <div className="login-input-wrap"><KeyRound aria-hidden="true" /><input id="erp-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required /><button type="button" className="login-password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff /> : <Eye />}</button></div>
+            </div>
+          </> : <div className="login-field">
+            <label htmlFor="erp-designation">Assigned designation</label>
+            <div className="login-input-wrap"><Building2 aria-hidden="true" /><select id="erp-designation" value={selectedDesignation} onChange={(event) => setSelectedDesignation(event.target.value)} required>{designations.length === 0 && <option value="">No designations available</option>}{designations.map((designation) => <option key={designation.id} value={designation.id}>{designation.title} — Level {designation.hierarchy_level}</option>)}</select></div>
+            <p className="login-helper">Your designation loads its configured modules, processes, and data permissions.</p>
+          </div>}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {activeTab === 'superadmin' ? (
-              <>
-                <div className="space-y-1">
-                  <label className="form-label flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#1B4E9B]" /> SuperAdmin Username
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="form-input"
-                    placeholder="Enter superadmin"
-                  />
-                </div>
+          <Button type="submit" className="login-submit" disabled={submitting || (activeTab === 'designation' && !selectedDesignation)}>
+            {submitting ? <><Loader2 className="animate-spin" /> Signing in...</> : <>Sign In to ERP <ArrowRight /></>}
+          </Button>
+        </form>
 
-                <div className="space-y-1">
-                  <label className="form-label flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-[#1B4E9B]" /> SuperAdmin Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="form-input"
-                    placeholder="Enter password"
-                  />
-                </div>
-
-                {/* Notice Box with Credentials */}
-                <div className="p-3 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] text-xs space-y-1 text-[#1F2937]">
-                  <p className="font-bold text-[#1B4E9B] flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#16A34A]" /> Default SuperAdmin Credentials:
-                  </p>
-                  <p className="font-mono text-[11px]">Username: <span className="font-bold text-[#16A34A]">superadmin</span></p>
-                  <p className="font-mono text-[11px]">Password: <span className="font-bold text-[#CA8A04]">SuperAdminPassword123!</span></p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-1">
-                  <label className="form-label flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-[#1B4E9B]" /> Select User Designation
-                  </label>
-                  <select
-                    value={selectedDesignation}
-                    onChange={(e) => setSelectedDesignation(e.target.value)}
-                    className="form-input"
-                  >
-                    {designations.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.title} ({d.department_name || 'General'}) - Level {d.hierarchy_level}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-[#6B7280] italic">
-                  Logging in with this designation loads configured Process Engine and Master Type permissions.
-                </p>
-              </>
-            )}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary w-full h-[40px] text-sm"
-            >
-              {submitting ? (
-                <span>Authenticating...</span>
-              ) : (
-                <>
-                  <span>Sign In to {activeTab === 'superadmin' ? 'SuperAdmin Console' : 'User Portal'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
-
-        </div>
-
-        <p className="text-center text-xs text-[#6B7280]">
-          ERP v3 System Matrix &bull; Enterprise Resource Architecture
-        </p>
-
+        {isDevelopment && activeTab === 'superadmin' && <details className="development-credentials"><summary>Development credentials</summary><div><span>Username <code>superadmin</code></span><span>Password <code>SuperAdminPassword123!</code></span></div></details>}
       </div>
-    </div>
-  );
+      <footer>Protected enterprise access · Authorized users only</footer>
+    </section>
+  </main>;
 }

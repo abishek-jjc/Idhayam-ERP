@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Maximize2, Plus, Edit3, Trash2, Eye, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Maximize2, Plus, Edit3, Trash2, Eye, CheckCircle2, RefreshCw, Network } from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
 import GenericFormRenderer from '../components/GenericFormRenderer';
+import WhereUsedModal from '../components/ui/WhereUsedModal';
 
 export default function ModalDesigner() {
   const [modals, setModals] = useState([]);
@@ -13,6 +14,7 @@ export default function ModalDesigner() {
   const [editingId, setEditingId] = useState(null);
   const [previewModal, setPreviewModal] = useState(null);
   const [notification, setNotification] = useState('');
+  const [whereUsedState, setWhereUsedState] = useState({ isOpen: false, itemId: '', itemName: '' });
 
   const [formData, setFormData] = useState({
     modal_name: '',
@@ -184,6 +186,13 @@ export default function ModalDesigner() {
                       <td className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => setWhereUsedState({ isOpen: true, itemId: m.id, itemName: m.title })}
+                            className="btn-action-view"
+                            title="View Impact & Where Used"
+                          >
+                            <Network className="w-3.5 h-3.5" /> Impact
+                          </button>
+                          <button
                             onClick={() => setPreviewModal(m)}
                             className="btn-action-view"
                             title="Preview Modal Live"
@@ -347,6 +356,13 @@ export default function ModalDesigner() {
           </div>
         </Modal>
       )}
+      <WhereUsedModal
+        isOpen={whereUsedState.isOpen}
+        onClose={() => setWhereUsedState({ ...whereUsedState, isOpen: false })}
+        configType="modal"
+        itemId={whereUsedState.itemId}
+        itemName={whereUsedState.itemName}
+      />
     </div>
   );
 }

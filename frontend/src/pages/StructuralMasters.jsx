@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { CoreAPI } from '../api';
+import { useConfiguration } from '../context/ConfigurationContext';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/ui/PageHeader';
@@ -14,6 +14,7 @@ import GenericFormRenderer from '../components/GenericFormRenderer';
 import { Building2, MapPin, Users, Truck, Store, Plus, Trash2, Landmark, Sparkles, Sliders } from 'lucide-react';
 
 export default function StructuralMasters() {
+  const { forms: uiForms } = useConfiguration();
   const [activeTab, setActiveTab] = useState('companies');
   const [companies, setCompanies] = useState([]);
   const [plants, setPlants] = useState([]);
@@ -23,7 +24,6 @@ export default function StructuralMasters() {
   const [machines, setMachines] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [storageLocations, setStorageLocations] = useState([]);
-  const [uiForms, setUiForms] = useState([]);
   const [useDynamicFormMode, setUseDynamicFormMode] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,7 +53,7 @@ export default function StructuralMasters() {
 
   async function loadStructuralData() {
     try {
-      const [compRes, plRes, dpRes, dsRes, empRes, macRes, venRes, strRes, formsRes] = await Promise.all([
+      const [compRes, plRes, dpRes, dsRes, empRes, macRes, venRes, strRes] = await Promise.all([
         CoreAPI.getCompanies().catch(() => ({ data: [] })),
         CoreAPI.getPlants().catch(() => ({ data: [] })),
         CoreAPI.getDepartments().catch(() => ({ data: [] })),
@@ -62,7 +62,6 @@ export default function StructuralMasters() {
         CoreAPI.getMachines().catch(() => ({ data: [] })),
         CoreAPI.getVendors().catch(() => ({ data: [] })),
         CoreAPI.getStorageLocations().catch(() => ({ data: [] })),
-        axios.get('http://127.0.0.1:8000/api/core/ui-forms/').catch(() => ({ data: [] })),
       ]);
       const compList = compRes.data.results || compRes.data || [];
       const plList = plRes.data.results || plRes.data || [];
@@ -72,7 +71,6 @@ export default function StructuralMasters() {
       const macList = macRes.data.results || macRes.data || [];
       const venList = venRes.data.results || venRes.data || [];
       const strList = strRes.data.results || strRes.data || [];
-      const formsList = formsRes.data?.results || formsRes.data || [];
 
       setCompanies(compList);
       setPlants(plList);
@@ -82,7 +80,6 @@ export default function StructuralMasters() {
       setMachines(macList);
       setVendors(venList);
       setStorageLocations(strList);
-      setUiForms(formsList);
     } catch (err) {
       console.error("Error loading structural data:", err);
     }

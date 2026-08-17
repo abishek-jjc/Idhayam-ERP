@@ -1,25 +1,35 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthAPI } from '../api';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
+    if (!localStorage.getItem('erp_v2_token')) return null;
     const saved = localStorage.getItem('erp_v2_user');
     return saved ? JSON.parse(saved) : null;
   });
 
   const [designation, setDesignation] = useState(() => {
+    if (!localStorage.getItem('erp_v2_token')) return null;
     const saved = localStorage.getItem('erp_v2_designation');
     return saved ? JSON.parse(saved) : null;
   });
 
   const [permissions, setPermissions] = useState(() => {
+    if (!localStorage.getItem('erp_v2_token')) return [];
     const saved = localStorage.getItem('erp_v2_permissions');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('erp_v2_token');
+    if (token) axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+    else delete axios.defaults.headers.common.Authorization;
+  }, [user]);
 
   const isSuperAdmin = user?.is_superadmin || designation?.id === 'DSG-SUPERADMIN' || designation?.hierarchy_level >= 99;
 
@@ -39,6 +49,11 @@ export function AuthProvider({ children }) {
         localStorage.setItem('erp_v2_user', JSON.stringify(u));
         localStorage.setItem('erp_v2_designation', JSON.stringify(d));
         localStorage.setItem('erp_v2_permissions', JSON.stringify(p));
+        if (res.data.token) {
+          localStorage.setItem('erp_v2_token', res.data.token);
+          axios.defaults.headers.common.Authorization = `Bearer ${res.data.token}`;
+        }
+        window.dispatchEvent(new Event('erp_auth_changed'));
 
         return { success: true, user: u };
       } else {
@@ -59,6 +74,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('erp_v2_user');
     localStorage.removeItem('erp_v2_designation');
     localStorage.removeItem('erp_v2_permissions');
+    localStorage.removeItem('erp_v2_token');
+    delete axios.defaults.headers.common.Authorization;
+    window.dispatchEvent(new Event('erp_auth_changed'));
   };
 
   const updatePermissionsState = (newPerms) => {

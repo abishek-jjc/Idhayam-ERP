@@ -2,9 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { WorkflowAPI, ProcessEngineAPI, CoreAPI } from '../api';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
+import GenericFormRenderer from '../components/GenericFormRenderer';
+import { useConfiguration } from '../context/ConfigurationContext';
 import { GitPullRequest, CheckCircle2, XCircle, Clock, Plus, Upload, FileText, Eye, Search, BarChart3 } from 'lucide-react';
 
 export default function WorkflowApprovals() {
+  const { forms } = useConfiguration();
+  const workflowForm = forms.find((form) => form.active && (
+    ['workflow_proposal_form', 'proposal_form', 'approval_form'].includes(form.form_name) || form.module === 'workflow'
+  ));
   const [proposals, setProposals] = useState([]);
   const [instances, setInstances] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -151,16 +157,20 @@ export default function WorkflowApprovals() {
     return newProposal.vendor_allocations.reduce((sum, item) => sum + (parseFloat(item.percentage) || 0), 0);
   };
 
-  const handleCreateProposal = async (e) => {
-    e.preventDefault();
-    const totalAlloc = getTotalAllocationSum();
-    if (newProposal.vendor_mode === 'multiple' && totalAlloc !== 100) {
+  const handleCreateProposal = async (eventOrValues) => {
+    const isEvent = typeof eventOrValues?.preventDefault === 'function';
+    if (isEvent) eventOrValues.preventDefault();
+    const proposalValues = isEvent ? newProposal : { ...newProposal, ...(eventOrValues || {}) };
+    const totalAlloc = proposalValues.vendor_mode === 'single'
+      ? 100
+      : proposalValues.vendor_allocations.reduce((sum, item) => sum + (parseFloat(item.percentage) || 0), 0);
+    if (proposalValues.vendor_mode === 'multiple' && totalAlloc !== 100) {
       alert(`Vendor allocation total must equal exactly 100%. Current total is ${totalAlloc}%.`);
       return;
     }
 
     try {
-      let instId = newProposal.process_instance;
+      let instId = proposalValues.process_instance;
       if (!instId) {
         if (instances.length > 0) {
           instId = instances[0].id;
@@ -172,12 +182,12 @@ export default function WorkflowApprovals() {
 
       await WorkflowAPI.createProposal({
         process_instance: instId,
-        requested_by: newProposal.requested_by || employees[0]?.id || null,
-        plant: newProposal.plant || plants[0]?.id || null,
-        department: newProposal.department || departments[0]?.id || null,
+        requested_by: proposalValues.requested_by || employees[0]?.id || null,
+        plant: proposalValues.plant || plants[0]?.id || null,
+        department: proposalValues.department || departments[0]?.id || null,
         status: 'pending',
-        vendor_mode: newProposal.vendor_mode,
-        remarks: newProposal.remarks || `Standard proposal initiated (${newProposal.vendor_mode} vendor mode)`,
+        vendor_mode: proposalValues.vendor_mode,
+        remarks: proposalValues.remarks || `Standard proposal initiated (${proposalValues.vendor_mode} vendor mode)`,
       });
 
       setProposalModalOpen(false);
@@ -455,6 +465,14 @@ export default function WorkflowApprovals() {
 
       {/* Modals */}
       <Modal isOpen={proposalModalOpen} onClose={() => setProposalModalOpen(false)} size="md" title="Initiate Approval Proposal">
+        {workflowForm ? (
+          <GenericFormRenderer
+            formConfig={workflowForm}
+            initialValues={newProposal}
+            onSubmit={handleCreateProposal}
+            onCancel={() => setProposalModalOpen(false)}
+          />
+        ) : (
         <form onSubmit={handleCreateProposal} className="space-y-4">
           <div>
             <label className="form-label">Process Execution Instance *</label>
@@ -558,6 +576,7 @@ export default function WorkflowApprovals() {
             </button>
           </div>
         </form>
+        )}
       </Modal>
 
       <Modal isOpen={quotationModalOpen} onClose={() => setQuotationModalOpen(false)} size="md" title={`Upload Quotation Copy for Proposal ${selectedProposal?.id}`}>

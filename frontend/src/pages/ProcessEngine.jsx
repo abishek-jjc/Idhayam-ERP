@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { ProcessEngineAPI, CoreAPI, MastersAPI } from '../api';
+import { useConfiguration } from '../context/ConfigurationContext';
 import Modal from '../components/Modal';
 import DynamicForm from '../components/DynamicForm';
 import GenericFormRenderer from '../components/GenericFormRenderer';
@@ -9,12 +9,12 @@ import SearchInput from '../components/ui/SearchInput';
 import { Cpu, Plus, Play, Trash2, Eye, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function ProcessEngine() {
+  const { forms: uiForms } = useConfiguration();
   const [activeSubTab, setActiveSubTab] = useState('instances');
   const [processTypes, setProcessTypes] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
   const [instances, setInstances] = useState([]);
   const [verifications, setVerifications] = useState([]);
-  const [uiForms, setUiForms] = useState([]);
   const [useDynamicFormMode, setUseDynamicFormMode] = useState(true);
 
   const [plants, setPlants] = useState([]);
@@ -49,7 +49,7 @@ export default function ProcessEngine() {
 
   async function loadEngineData() {
     try {
-      const [ptRes, instRes, verRes, plantRes, deptRes, empRes, itemRes, binRes, formsRes] = await Promise.all([
+      const [ptRes, instRes, verRes, plantRes, deptRes, empRes, itemRes, binRes] = await Promise.all([
         ProcessEngineAPI.getProcessTypes().catch(() => ({ data: [] })),
         ProcessEngineAPI.getInstances().catch(() => ({ data: [] })),
         ProcessEngineAPI.getVerifications().catch(() => ({ data: [] })),
@@ -58,7 +58,6 @@ export default function ProcessEngine() {
         CoreAPI.getEmployees().catch(() => ({ data: [] })),
         MastersAPI.getItems().catch(() => ({ data: [] })),
         CoreAPI.getStorageLocations().catch(() => ({ data: [] })),
-        axios.get('http://127.0.0.1:8000/api/core/ui-forms/').catch(() => ({ data: [] })),
       ]);
 
       const types = ptRes.data.results || ptRes.data || [];
@@ -71,7 +70,6 @@ export default function ProcessEngine() {
       setEmployees(empRes.data.results || empRes.data || []);
       setMasterItems(itemRes.data.results || itemRes.data || []);
       setStorageLocations(binRes.data.results || binRes.data || []);
-      setUiForms(formsRes.data?.results || formsRes.data || []);
 
       if (types.length > 0 && !selectedType) {
         setSelectedType(types[0]);

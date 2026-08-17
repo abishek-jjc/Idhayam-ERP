@@ -7,9 +7,9 @@
 }
 
 .custom-table th {
-  height: 42px;
-  background-color: #F1F5F9;
-  color: #374151;
+  height: 46px;
+  background-color: var(--table-header, #F1F5F9);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
   padding: 0 16px;
@@ -18,17 +18,18 @@
 }
 
 .custom-table td {
-  height: 44px;
+  min-height: 48px;
   font-size: 13px;
   font-weight: 400;
-  color: #374151;
+  color: var(--text-primary);
   padding: 0 16px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  background-color: var(--table-row, var(--surface));
 }
 
 .custom-table tr:hover td {
-  background-color: #F8FAFC;
+  background-color: color-mix(in srgb, var(--primary) 3%, var(--table-row, var(--surface)));
 }
 
 .table-container {

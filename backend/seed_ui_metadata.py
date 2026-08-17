@@ -11,16 +11,16 @@ def seed():
 
     # 1. Seed Dynamic Menus
     menus_data = [
-        {'menu_name': 'Dashboard', 'menu_path': '/', 'module_code': 'dashboard', 'menu_icon': 'LayoutDashboard', 'display_order': 1},
-        {'menu_name': 'User Portal', 'menu_path': '/user', 'module_code': 'user_page', 'menu_icon': 'UserCheck', 'display_order': 2},
-        {'menu_name': 'Admin Console', 'menu_path': '/admin-console', 'module_code': 'admin', 'menu_icon': 'ShieldCheck', 'display_order': 3},
-        {'menu_name': 'Structural Masters', 'menu_path': '/structural-masters', 'module_code': 'structural_masters', 'menu_icon': 'Building2', 'display_order': 4},
-        {'menu_name': 'Dynamic Masters (EAV)', 'menu_path': '/dynamic-masters', 'module_code': 'dynamic_masters', 'menu_icon': 'Layers', 'display_order': 5},
-        {'menu_name': 'Process Engine', 'menu_path': '/process-engine', 'module_code': 'process_engine', 'menu_icon': 'Cpu', 'display_order': 6},
-        {'menu_name': 'Workflow & Approvals', 'menu_path': '/workflow-approvals', 'module_code': 'workflow', 'menu_icon': 'GitPullRequest', 'display_order': 7},
-        {'menu_name': 'Journal & Stock Ledger', 'menu_path': '/journal-stock', 'module_code': 'journal', 'menu_icon': 'BookOpenCheck', 'display_order': 8},
-        {'menu_name': 'Process Attribute Values', 'menu_path': '/process-attribute-values', 'module_code': 'process_engine', 'menu_icon': 'ListFilter', 'display_order': 9},
-        {'menu_name': 'Process Links', 'menu_path': '/process-links', 'module_code': 'process_engine', 'menu_icon': 'GitCommit', 'display_order': 10},
+        {'menu_name': 'Dashboard', 'menu_path': '/', 'module_code': 'dashboard', 'page_key': 'dashboard', 'menu_icon': 'LayoutDashboard', 'display_order': 1},
+        {'menu_name': 'User Portal', 'menu_path': '/user', 'module_code': 'user_page', 'page_key': 'user_page', 'menu_icon': 'UserCheck', 'display_order': 2},
+        {'menu_name': 'Admin Console', 'menu_path': '/admin-console', 'module_code': 'admin', 'page_key': 'admin', 'menu_icon': 'ShieldCheck', 'display_order': 3},
+        {'menu_name': 'Structural Masters', 'menu_path': '/structural-masters', 'module_code': 'structural_masters', 'page_key': 'structural_masters', 'menu_icon': 'Building2', 'display_order': 4},
+        {'menu_name': 'Dynamic Masters (EAV)', 'menu_path': '/dynamic-masters', 'module_code': 'dynamic_masters', 'page_key': 'dynamic_masters', 'menu_icon': 'Layers', 'display_order': 5},
+        {'menu_name': 'Process Engine', 'menu_path': '/process-engine', 'module_code': 'process_engine', 'page_key': 'process_engine', 'menu_icon': 'Cpu', 'display_order': 6},
+        {'menu_name': 'Workflow & Approvals', 'menu_path': '/workflow-approvals', 'module_code': 'workflow', 'page_key': 'workflow', 'menu_icon': 'GitPullRequest', 'display_order': 7},
+        {'menu_name': 'Journal & Stock Ledger', 'menu_path': '/journal-stock', 'module_code': 'journal', 'page_key': 'journal', 'menu_icon': 'BookOpenCheck', 'display_order': 8},
+        {'menu_name': 'Process Attribute Values', 'menu_path': '/process-attribute-values', 'module_code': 'process_engine', 'page_key': 'process_attribute_values', 'menu_icon': 'ListFilter', 'display_order': 9},
+        {'menu_name': 'Process Links', 'menu_path': '/process-links', 'module_code': 'process_engine', 'page_key': 'process_links', 'menu_icon': 'GitCommit', 'display_order': 10},
     ]
 
     for m in menus_data:

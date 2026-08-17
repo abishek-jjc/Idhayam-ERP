@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { MastersAPI } from '../api';
+import { useConfiguration } from '../context/ConfigurationContext';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/ui/PageHeader';
@@ -39,6 +40,7 @@ const MASTER_TABLE_MAP = {
 };
 
 export default function DynamicMasters() {
+  const { forms: uiForms } = useConfiguration();
   const [activeTab, setActiveTab] = useState('legacy_json'); // 'legacy_json' | 'eav_converted'
 
   const [categories, setCategories] = useState([]);
@@ -46,7 +48,6 @@ export default function DynamicMasters() {
   const [versions, setVersions] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [instances, setInstances] = useState([]);
-  const [uiForms, setUiForms] = useState([]);
   const [useDynamicFormMode, setUseDynamicFormMode] = useState(true);
   const [masterOptions, setMasterOptions] = useState({});
 
@@ -118,19 +119,17 @@ export default function DynamicMasters() {
 
   async function loadMastersData() {
     try {
-      const [catRes, itemRes, verRes, instRes, formsRes] = await Promise.all([
+      const [catRes, itemRes, verRes, instRes] = await Promise.all([
         MastersAPI.getCategories().catch(() => ({ data: [] })),
         MastersAPI.getItems().catch(() => ({ data: [] })),
         MastersAPI.getVersions().catch(() => ({ data: [] })),
         MastersAPI.getInstances().catch(() => ({ data: [] })),
-        axios.get('http://127.0.0.1:8000/api/core/ui-forms/').catch(() => ({ data: [] })),
       ]);
       const loadedCats = catRes.data.results || catRes.data || [];
       setCategories(loadedCats);
       setItems(itemRes.data.results || itemRes.data || []);
       setVersions(verRes.data.results || verRes.data || []);
       setInstances(instRes.data.results || instRes.data || []);
-      setUiForms(formsRes.data?.results || formsRes.data || []);
 
       if (loadedCats.length > 0 && !selectedCategory) {
         setSelectedCategory(loadedCats[0].code);

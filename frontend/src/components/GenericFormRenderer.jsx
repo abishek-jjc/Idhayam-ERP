@@ -35,6 +35,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
   const [formData, setFormData] = useState({});
   const [masterOptions, setMasterOptions] = useState({});
   const [loadingMasters, setLoadingMasters] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     if (initialValues) {
@@ -46,7 +47,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
     if (!formConfig || !formConfig.fields) return;
 
     const refFields = formConfig.fields.filter(
-      (f) => f.active && (f.field_type === 'reference' || (f.field_type === 'select' && f.reference_table))
+      (f) => f.active && (f.field_type === 'reference' || f.field_type === 'relationship' || (f.field_type === 'select' && f.reference_table))
     );
 
     const tablesToFetch = [...new Set(refFields.map((f) => f.reference_table?.toLowerCase().trim()).filter(Boolean))];
@@ -82,6 +83,21 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const errors = {};
+    fields.filter((field) => field.active !== false).forEach((field) => {
+      if (field.conditional_field && String(formData[field.conditional_field] ?? '') !== String(field.conditional_value ?? '')) return;
+      const value = formData[field.field_code] ?? field.default_value ?? '';
+      if (field.required && (value === '' || value === null || (Array.isArray(value) && value.length === 0))) errors[field.field_code] = `${field.field_name} is required.`;
+      if (value !== '' && field.validation_regex) {
+        try { if (!new RegExp(field.validation_regex).test(String(value))) errors[field.field_code] = field.validation_message || `${field.field_name} has an invalid format.`; } catch { errors[field.field_code] = 'Administrator configured an invalid validation pattern.'; }
+      }
+      if (field.min_length && String(value).length < field.min_length) errors[field.field_code] = `${field.field_name} must contain at least ${field.min_length} characters.`;
+      if (field.max_length && String(value).length > field.max_length) errors[field.field_code] = `${field.field_name} cannot exceed ${field.max_length} characters.`;
+      if (field.min_value !== null && field.min_value !== undefined && value !== '' && Number(value) < Number(field.min_value)) errors[field.field_code] = `${field.field_name} must be at least ${field.min_value}.`;
+      if (field.max_value !== null && field.max_value !== undefined && value !== '' && Number(value) > Number(field.max_value)) errors[field.field_code] = `${field.field_name} cannot exceed ${field.max_value}.`;
+    });
+    setValidationErrors(errors);
+    if (Object.keys(errors).length) return;
     if (onSubmit) onSubmit(formData);
   };
 
@@ -103,10 +119,13 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         {fields.filter((f) => f.active !== false).map((field) => {
+          if (field.conditional_field && String(formData[field.conditional_field] ?? '') !== String(field.conditional_value ?? '')) return null;
           const val = formData[field.field_code] !== undefined ? formData[field.field_code] : (field.default_value || '');
           const type = field.field_type;
           const refTable = field.reference_table?.toLowerCase().trim();
-          const isMasterRef = (type === 'reference' || (type === 'select' && refTable)) && refTable;
+          const isMasterRef = (type === 'reference' || type === 'relationship' || (type === 'select' && refTable)) && refTable;
+          const spanStyle = { gridColumn: `span ${Math.max(1, Math.min(2, Number(field.column_span || 1)))}` };
+          const help = field.help_text || validationErrors[field.field_code];
 
           // Master Reference Dropdown
           if (isMasterRef) {
@@ -115,7 +134,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
             const masterInfo = MASTER_TABLE_MAP[refTable];
 
             return (
-              <div key={field.id || field.field_code} className="col-span-1 space-y-1">
+              <div key={field.id || field.field_code} className="space-y-1" style={spanStyle}>
                 <div className="flex items-center justify-between">
                   <label className="form-label mb-0">
                     {field.field_name} {field.required && <span className="text-[#DC2626]">*</span>}
@@ -131,7 +150,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                     onChange={(e) => handleChange(field.field_code, e.target.value)}
                     className="form-input"
                     required={field.required}
-                    disabled={isLoading}
+                    disabled={isLoading || field.read_only}
                   >
                     <option value="">
                       {isLoading ? 'Loading master options...' : `-- Select ${field.field_name} --`}
@@ -156,26 +175,30 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                     No records found in master table '{refTable}'.
                   </p>
                 )}
+                {help && <p className={`text-[10px] ${validationErrors[field.field_code] ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>{help}</p>}
               </div>
             );
           }
 
           // Custom Select Dropdown
-          if (type === 'select') {
+          if (type === 'select' || type === 'multiselect' || type === 'radio') {
             const opts = (field.options || '')
               .split(',')
               .map((o) => o.trim())
               .filter(Boolean);
+            if (type === 'radio') return <div key={field.id || field.field_code} className="space-y-2" style={spanStyle}><label className="form-label">{field.field_name} {field.required && <span className="text-[var(--danger)]">*</span>}</label><div className="flex flex-wrap gap-4">{opts.map((option) => <label key={option} className="flex items-center gap-2 text-xs"><input type="radio" name={field.field_code} value={option} checked={val === option} disabled={field.read_only} onChange={(e) => handleChange(field.field_code, e.target.value)} /> {option}</label>)}</div>{help && <p className={`text-[10px] ${validationErrors[field.field_code] ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>{help}</p>}</div>;
             return (
-              <div key={field.id || field.field_code} className="col-span-1 space-y-1">
+              <div key={field.id || field.field_code} className="space-y-1" style={spanStyle}>
                 <label className="form-label mb-0">
                   {field.field_name} {field.required && <span className="text-[#DC2626]">*</span>}
                 </label>
                 <select
-                  value={val}
-                  onChange={(e) => handleChange(field.field_code, e.target.value)}
+                  value={type === 'multiselect' ? (Array.isArray(val) ? val : (val ? String(val).split(',') : [])) : val}
                   className="form-input"
                   required={field.required}
+                  multiple={type === 'multiselect'}
+                  disabled={field.read_only}
+                  onChange={(e) => handleChange(field.field_code, type === 'multiselect' ? Array.from(e.target.selectedOptions, (option) => option.value) : e.target.value)}
                 >
                   <option value="">-- Select {field.field_name} --</option>
                   {opts.map((o, idx) => (
@@ -184,6 +207,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                     </option>
                   ))}
                 </select>
+                {help && <p className={`text-[10px] ${validationErrors[field.field_code] ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>{help}</p>}
               </div>
             );
           }
@@ -191,7 +215,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
           // Textarea
           if (type === 'textarea') {
             return (
-              <div key={field.id || field.field_code} className="col-span-2 space-y-1">
+              <div key={field.id || field.field_code} className="space-y-1" style={{ gridColumn: `span ${Math.max(1, Math.min(2, Number(field.column_span || 2)))}` }}>
                 <label className="form-label mb-0">
                   {field.field_name} {field.required && <span className="text-[#DC2626]">*</span>}
                 </label>
@@ -201,8 +225,12 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                   className="form-input"
                   rows="3"
                   required={field.required}
-                  placeholder={`Enter ${field.field_name}`}
+                  placeholder={field.placeholder || `Enter ${field.field_name}`}
+                  readOnly={field.read_only}
+                  minLength={field.min_length || undefined}
+                  maxLength={field.max_length || undefined}
                 ></textarea>
+                {help && <p className={`text-[10px] ${validationErrors[field.field_code] ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>{help}</p>}
               </div>
             );
           }
@@ -216,6 +244,7 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                   id={field.field_code}
                   checked={val === true || val === 'true' || val === 1}
                   onChange={(e) => handleChange(field.field_code, e.target.checked)}
+                  disabled={field.read_only}
                   className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
                 />
                 <label htmlFor={field.field_code} className="text-xs font-semibold text-[#374151] cursor-pointer">
@@ -226,9 +255,9 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
           }
 
           // Number
-          if (type === 'number' || type === 'currency') {
+          if (type === 'number' || type === 'currency' || type === 'decimal') {
             return (
-              <div key={field.id || field.field_code} className="col-span-1 space-y-1">
+              <div key={field.id || field.field_code} className="space-y-1" style={spanStyle}>
                 <label className="form-label mb-0">
                   {field.field_name} {type === 'currency' && '(₹)'} {field.required && <span className="text-[#DC2626]">*</span>}
                 </label>
@@ -239,8 +268,12 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                   onChange={(e) => handleChange(field.field_code, e.target.value)}
                   className="form-input"
                   required={field.required}
-                  placeholder="0.00"
+                  placeholder={field.placeholder || '0.00'}
+                  readOnly={field.read_only}
+                  min={field.min_value ?? undefined}
+                  max={field.max_value ?? undefined}
                 />
+                {help && <p className={`text-[10px] ${validationErrors[field.field_code] ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>{help}</p>}
               </div>
             );
           }
@@ -254,10 +287,10 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
           else if (type === 'phone') inputType = 'tel';
           else if (type === 'password') inputType = 'password';
           else if (type === 'url') inputType = 'url';
-          else if (type === 'file') inputType = 'file';
+          else if (type === 'file' || type === 'image') inputType = 'file';
 
           return (
-            <div key={field.id || field.field_code} className="col-span-1 space-y-1">
+            <div key={field.id || field.field_code} className="space-y-1" style={spanStyle}>
               <label className="form-label mb-0">
                 {field.field_name} {field.required && <span className="text-[#DC2626]">*</span>}
               </label>
@@ -272,8 +305,16 @@ export default function GenericFormRenderer({ formConfig, initialValues = {}, on
                 }
                 className="form-input"
                 required={field.required}
-                placeholder={`Enter ${field.field_name}`}
+                placeholder={field.placeholder || `Enter ${field.field_name}`}
+                readOnly={field.read_only}
+                disabled={field.read_only && inputType === 'file'}
+                minLength={field.min_length || undefined}
+                maxLength={field.max_length || undefined}
+                pattern={field.validation_regex || undefined}
+                title={field.validation_message || undefined}
+                accept={type === 'image' ? 'image/*' : undefined}
               />
+              {help && <p className={`text-[10px] ${validationErrors[field.field_code] ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>{help}</p>}
             </div>
           );
         })}

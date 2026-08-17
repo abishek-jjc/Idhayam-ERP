@@ -9,12 +9,19 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('erp_v2_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 export const AuthAPI = {
   login: (data) => api.post('/core/login/', data),
   syncPermissions: (data) => api.post('/core/sync-permissions/', data),
 };
 
 export const CoreAPI = {
+  globalSearch: (query, limit = 30) => api.get('/core/global-search/', { params: { q: query, limit } }),
   getCompanies: () => api.get('/core/companies/'),
   createCompany: (data) => api.post('/core/companies/', data),
   updateCompany: (id, data) => api.patch(`/core/companies/${id}/`, data),
@@ -40,6 +47,7 @@ export const CoreAPI = {
   deleteEmployee: (id) => api.delete(`/core/employees/${id}/`),
 
   getPermissions: (params) => api.get('/core/permissions/', { params }),
+  getRoles: () => api.get('/core/roles/'),
   createPermission: (data) => api.post('/core/permissions/', data),
   deletePermission: (id) => api.delete(`/core/permissions/${id}/`),
 
