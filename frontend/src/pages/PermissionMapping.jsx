@@ -74,81 +74,81 @@ export default function PermissionMapping() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
+    <div className="space-y-6 font-sans">
+      <div className="standard-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <span className="p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]">
               <ShieldCheck className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Dynamic Menu Permission Mapping</h1>
+            <h1 className="page-title">Dynamic Menu Permission Mapping</h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#6B7280] mt-1">
             Map sidebar menu visibility dynamically to specific user roles.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchData} className="btn-secondary text-xs flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={fetchData} className="btn-secondary">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button onClick={handleOpenAdd} className="btn-primary text-xs flex items-center gap-2">
+          <button onClick={handleOpenAdd} className="btn-primary">
             <Plus className="w-4 h-4" /> Add Permission Mapping
           </button>
         </div>
       </div>
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
 
       {/* Permission Table */}
-      <div className="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+      <div className="standard-card p-0 overflow-hidden">
         {loading ? (
           <div className="p-6">
             <SkeletonLoader rows={4} columns={5} />
           </div>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
+            <table className="custom-table">
               <thead>
-                <tr className="bg-slate-950/80 border-b border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">ID</th>
-                  <th className="p-4">Menu Name</th>
-                  <th className="p-4">Target Role</th>
-                  <th className="p-4">Permission Type</th>
-                  <th className="p-4">Can View?</th>
-                  <th className="p-4 text-right">Actions</th>
+                <tr>
+                  <th>ID</th>
+                  <th>Menu Name</th>
+                  <th>Target Role</th>
+                  <th>Permission Type</th>
+                  <th>Can View?</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+              <tbody>
                 {permissions.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="p-8 text-center text-slate-400 italic">
+                    <td colSpan="6" className="p-8 text-center text-[#6B7280] italic">
                       No menu permission mappings found. Add rules to restrict menu access per role.
                     </td>
                   </tr>
                 ) : (
                   permissions.map((p) => (
-                    <tr key={p.id} className="hover:bg-white/5 transition-all">
-                      <td className="p-4 font-mono text-[11px] text-slate-400">{p.id}</td>
-                      <td className="p-4 font-bold text-white">{p.menu_name || p.menu}</td>
-                      <td className="p-4 font-semibold text-indigo-300">{p.role_name || p.role || 'All Roles'}</td>
-                      <td className="p-4 font-mono text-purple-400">{p.permission}</td>
-                      <td className="p-4">
-                        <span className={`badge ${p.can_view ? 'badge-active' : 'badge-inactive'}`}>
+                    <tr key={p.id}>
+                      <td className="font-mono text-xs text-[#6B7280]">{p.id}</td>
+                      <td className="font-bold text-[#1F2937]">{p.menu_name || p.menu}</td>
+                      <td className="font-semibold text-[#1B4E9B]">{p.role_name || p.role || 'All Roles'}</td>
+                      <td className="font-mono text-xs text-[#374151]">{p.permission}</td>
+                      <td>
+                        <span className={`badge ${p.can_view ? 'badge-success' : 'badge-danger'}`}>
                           {p.can_view ? 'Allowed' : 'Denied'}
                         </span>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="text-right">
                         <button
                           onClick={() => handleDelete(p.id)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
+                          className="btn-action-delete"
                           title="Delete Mapping"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                       </td>
                     </tr>
@@ -160,7 +160,7 @@ export default function PermissionMapping() {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Menu Permission Rule">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title="Add Menu Permission Rule">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="form-label">Target Sidebar Menu *</label>
@@ -190,24 +190,24 @@ export default function PermissionMapping() {
             </select>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-2 pt-2">
             <input
               type="checkbox"
               id="canViewCheck"
               checked={formData.can_view}
               onChange={(e) => setFormData({ ...formData, can_view: e.target.checked })}
-              className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+              className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
             />
-            <label htmlFor="canViewCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+            <label htmlFor="canViewCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
               Allow menu visibility for this role
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               Save Rule
             </button>
           </div>

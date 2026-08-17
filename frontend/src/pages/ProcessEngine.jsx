@@ -3,7 +3,8 @@ import { ProcessEngineAPI, CoreAPI, MastersAPI } from '../api';
 import Modal from '../components/Modal';
 import DynamicForm from '../components/DynamicForm';
 import Pagination from '../components/Pagination';
-import { Cpu, Plus, Play, ChevronRight, Download, ShieldCheck, BarChart3, Trash2, Eye, Search } from 'lucide-react';
+import SearchInput from '../components/ui/SearchInput';
+import { Cpu, Plus, Play, Trash2, Eye, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function ProcessEngine() {
   const [activeSubTab, setActiveSubTab] = useState('instances');
@@ -111,18 +112,18 @@ export default function ProcessEngine() {
       const deptObj = departments[0];
       const empObj = employees[0];
 
-      const attributesPayload = Object.entries(formData).map(([key, val]) => ({
+      const attributesPayload = Object.entries(formData.values || {}).map(([key, val]) => ({
         attribute_code: key,
         value: val,
       }));
 
       await ProcessEngineAPI.createInstance({
         process_type: selectedType.id,
-        plant: plantObj ? plantObj.id : null,
-        department: deptObj ? deptObj.id : null,
-        performed_by: empObj ? empObj.id : null,
+        plant: formData.plant || (plantObj ? plantObj.id : null),
+        department: formData.department || (deptObj ? deptObj.id : null),
+        performed_by: formData.performed_by || (empObj ? empObj.id : null),
         status: 'pending',
-        remarks: 'Executed via dynamic UI process runner',
+        remarks: formData.remarks || 'Executed via dynamic UI process runner',
         attributes: attributesPayload,
       });
 
@@ -177,52 +178,50 @@ export default function ProcessEngine() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Cpu className="w-7 h-7 text-blue-400" /> Generic Process Engine
+          <h1 className="page-title flex items-center gap-2">
+            <Cpu className="w-6 h-6 text-[#1B4E9B]" /> Generic Process Engine
           </h1>
-          <p className="text-xs text-slate-400">Dynamic EAV attribute definitions, execution runner, and admin sign-off verification.</p>
+          <p className="text-xs text-[#6B7280]">Dynamic EAV attribute definitions, execution runner, and admin sign-off verification.</p>
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => setTypeModalOpen(true)} className="btn-secondary text-xs">
-            <Plus className="w-4 h-4 text-emerald-400" /> Add Process Type
+          <button onClick={() => setTypeModalOpen(true)} className="btn-secondary">
+            <Plus className="w-4 h-4 text-[#16A34A]" /> Add Process Type
           </button>
-          <button onClick={() => setAttrModalOpen(true)} className="btn-secondary text-xs">
-            <Plus className="w-4 h-4 text-purple-400" /> Add Attribute Def
+          <button onClick={() => setAttrModalOpen(true)} className="btn-secondary">
+            <Plus className="w-4 h-4 text-[#2563EB]" /> Add Attribute Def
           </button>
-          <button onClick={() => setLaunchModalOpen(true)} className="btn-primary text-xs">
+          <button onClick={() => setLaunchModalOpen(true)} className="btn-primary">
             <Play className="w-4 h-4" /> Run Process Execution
           </button>
         </div>
       </div>
 
-      {/* Process Type Navbar Dropdown */}
-      <div className="glass-panel p-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/90 border border-blue-500/30">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <span className="text-xs font-bold uppercase text-blue-400 tracking-wider whitespace-nowrap">Select Process Type:</span>
+      {/* Process Type Selector Bar */}
+      <div className="filter-search-toolbar">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold uppercase text-[#1B4E9B] tracking-wider whitespace-nowrap">Select Process Type:</span>
           <select
             value={selectedType?.id}
             onChange={(e) => setSelectedType(processTypes.find(p => p.id === e.target.value))}
-            className="form-input text-xs py-2 px-3 bg-slate-950 border border-blue-500/50 text-white font-bold rounded-xl cursor-pointer w-full md:w-80"
+            className="filter-select-input"
+            style={{ minWidth: '240px' }}
           >
             {processTypes.map(pt => (
-              <option key={pt.id} value={pt.id} className="bg-slate-900 text-white font-semibold">
+              <option key={pt.id} value={pt.id}>
                 {pt.name} ({pt.code}) - [{pt.category?.toUpperCase()}]
               </option>
             ))}
           </select>
         </div>
 
-        <div className="flex border border-white/10 rounded-xl overflow-hidden bg-slate-950 p-1 gap-1 overflow-x-auto w-full md:w-auto">
+        <div className="admin-console-menu">
           {processTypes.map((pt) => (
             <button
               key={pt.id}
+              type="button"
               onClick={() => setSelectedType(pt)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-lg transition-all whitespace-nowrap ${
-                selectedType?.id === pt.id
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg font-bold'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`admin-menu-item ${selectedType?.id === pt.id ? 'active' : ''}`}
             >
               <span>{pt.name}</span>
             </button>
@@ -232,151 +231,150 @@ export default function ProcessEngine() {
 
       {/* Main Content Area */}
       <div className="space-y-6">
-          {/* Sub-Tabs */}
-          <div className="flex border-b border-white/10 gap-2">
-            <button
-              onClick={() => setActiveSubTab('instances')}
-              className={`px-4 py-2.5 font-semibold text-xs rounded-t-xl transition-all ${
-                activeSubTab === 'instances' ? 'bg-blue-600/20 text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'
-              }`}
-            >
-              Execution Instances ({filteredInstances.length})
-            </button>
-            <button
-              onClick={() => setActiveSubTab('verifications')}
-              className={`px-4 py-2.5 font-semibold text-xs rounded-t-xl transition-all ${
-                activeSubTab === 'verifications' ? 'bg-purple-600/20 text-purple-400 border-b-2 border-purple-500' : 'text-slate-400'
-              }`}
-            >
-              Sign-Off Verifications ({verifications.length})
-            </button>
-          </div>
-
-          {activeSubTab === 'instances' && (
-            <div className="glass-panel p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span>{selectedType?.name || 'Process Executions'}</span>
-                </h3>
-
-                <div className="relative w-64">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="Search executions..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="form-input pl-9 py-1.5 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>Instance ID</th>
-                      <th>Plant Unit</th>
-                      <th>Department</th>
-                      <th>Status</th>
-                      <th>Timestamp</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedInstances.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center py-6 text-slate-500 italic">No execution instances recorded for this process.</td>
-                      </tr>
-                    ) : (
-                      paginatedInstances.map((inst) => (
-                        <tr key={inst.id}>
-                          <td className="font-mono text-xs text-blue-400">{inst.id}</td>
-                          <td>{inst.plant_name || '-'}</td>
-                          <td>{inst.department_name || '-'}</td>
-                          <td>
-                            <span className={`badge badge-${inst.status}`}>
-                              {inst.status}
-                            </span>
-                          </td>
-                          <td className="text-xs text-slate-400">{new Date(inst.created_at).toLocaleString()}</td>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => openInspectModal(inst)} className="p-1 hover:text-blue-400 text-slate-400">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => handleDeleteInstance(inst.id)} className="p-1 hover:text-red-400 text-slate-400">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={filteredInstances.length}
-                itemsPerPage={10}
-              />
-            </div>
-          )}
-
-          {activeSubTab === 'verifications' && (
-            <div className="glass-panel p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white">Admin Verification Sign-Offs</h3>
-              
-              <div className="overflow-x-auto">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>Verification ID</th>
-                      <th>Target Process Instance</th>
-                      <th>Verified By</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {verifications.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="text-center py-6 text-slate-500 italic">No admin verification sign-offs.</td>
-                      </tr>
-                    ) : (
-                      verifications.map((v) => (
-                        <tr key={v.id}>
-                          <td className="font-mono text-xs text-purple-400">{v.id?.substring(0, 8)}...</td>
-                          <td className="font-mono text-xs text-blue-400">{v.process_instance}</td>
-                          <td>{v.verified_by_name || 'Admin'}</td>
-                          <td>
-                            <span className={`badge ${v.status === 'verified' ? 'badge-approved' : 'badge-pending'}`}>
-                              {v.status}
-                            </span>
-                          </td>
-                          <td>
-                            {v.status !== 'verified' && (
-                              <button onClick={() => handleVerify(v.process_instance)} className="btn-primary text-xs py-1 px-3">
-                                <ShieldCheck className="w-3.5 h-3.5" /> Verify Sign-Off
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+        {/* Sub-Tabs */}
+        <div className="admin-console-menu">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('instances')}
+            className={`admin-menu-item ${activeSubTab === 'instances' ? 'active' : ''}`}
+          >
+            <Cpu className="admin-menu-icon" />
+            <span>Execution Instances</span>
+            <span className="badge-count">{filteredInstances.length}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('verifications')}
+            className={`admin-menu-item ${activeSubTab === 'verifications' ? 'active' : ''}`}
+          >
+            <ShieldCheck className="admin-menu-icon" />
+            <span>Sign-Off Verifications</span>
+            <span className="badge-count">{verifications.length}</span>
+          </button>
         </div>
 
+        {activeSubTab === 'instances' && (
+          <div className="standard-card space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]">
+              <h3 className="card-title text-sm">
+                <span>{selectedType?.name || 'Process Executions'}</span>
+              </h3>
+
+              <div className="w-full sm:w-64">
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search executions..."
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Instance ID</th>
+                    <th>Plant Unit</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedInstances.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-6 text-[#6B7280] italic">No execution instances recorded for this process.</td>
+                    </tr>
+                  ) : (
+                    paginatedInstances.map((inst) => (
+                      <tr key={inst.id}>
+                        <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{inst.id}</td>
+                        <td>{inst.plant_name || '-'}</td>
+                        <td>{inst.department_name || '-'}</td>
+                        <td>
+                          <span className={`badge ${inst.status === 'completed' || inst.status === 'approved' ? 'badge-success' : 'badge-warning'}`}>
+                            {inst.status}
+                          </span>
+                        </td>
+                        <td className="text-xs text-[#6B7280]">{new Date(inst.created_at).toLocaleString()}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => openInspectModal(inst)} className="btn-action-view" title="Inspect Record">
+                              <Eye className="w-3.5 h-3.5" /> View
+                            </button>
+                            <button onClick={() => handleDeleteInstance(inst.id)} className="btn-action-delete" title="Delete Instance">
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredInstances.length}
+              itemsPerPage={10}
+            />
+          </div>
+        )}
+
+        {activeSubTab === 'verifications' && (
+          <div className="standard-card space-y-4">
+            <h3 className="section-title">Admin Verification Sign-Offs</h3>
+            
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Verification ID</th>
+                    <th>Target Process Instance</th>
+                    <th>Verified By</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {verifications.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-6 text-[#6B7280] italic">No admin verification sign-offs.</td>
+                    </tr>
+                  ) : (
+                    verifications.map((v) => (
+                      <tr key={v.id}>
+                        <td className="font-mono text-xs text-[#2563EB]">{v.id?.substring(0, 8)}...</td>
+                        <td className="font-mono text-xs text-[#1B4E9B]">{v.process_instance}</td>
+                        <td>{v.verified_by_name || 'Admin'}</td>
+                        <td>
+                          <span className={`badge ${v.status === 'verified' ? 'badge-success' : 'badge-warning'}`}>
+                            {v.status}
+                          </span>
+                        </td>
+                        <td>
+                          {v.status !== 'verified' && (
+                            <button onClick={() => handleVerify(v.process_instance)} className="btn-approve">
+                              <ShieldCheck className="w-3.5 h-3.5" /> Verify Sign-Off
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Modals */}
-      <Modal isOpen={typeModalOpen} onClose={() => setTypeModalOpen(false)} title="Create Process Engine Type">
+      <Modal isOpen={typeModalOpen} onClose={() => setTypeModalOpen(false)} size="md" title="Create Process Engine Type">
         <form onSubmit={handleCreateProcessType} className="space-y-4">
           <div><label className="form-label">Type Code *</label><input type="text" required value={newType.code} onChange={(e) => setNewType({ ...newType, code: e.target.value })} className="form-input" placeholder="e.g. qc_incoming_load" /></div>
           <div><label className="form-label">Type Name *</label><input type="text" required value={newType.name} onChange={(e) => setNewType({ ...newType, name: e.target.value })} className="form-input" placeholder="e.g. QC Incoming Load Inspection" /></div>
@@ -391,14 +389,14 @@ export default function ProcessEngine() {
               <option value="hr">HR & Payroll</option>
             </select>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="modal-footer">
             <button type="button" onClick={() => setTypeModalOpen(false)} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary">Create Type</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={attrModalOpen} onClose={() => setAttrModalOpen(false)} title={`Add Attribute Definition for ${selectedType?.name}`}>
+      <Modal isOpen={attrModalOpen} onClose={() => setAttrModalOpen(false)} size="md" title={`Add Attribute Definition for ${selectedType?.name}`}>
         <form onSubmit={handleAddAttribute} className="space-y-4">
           <div><label className="form-label">Attribute Code *</label><input type="text" required value={newAttr.attribute_code} onChange={(e) => setNewAttr({ ...newAttr, attribute_code: e.target.value })} className="form-input" placeholder="e.g. moisture_level" /></div>
           <div><label className="form-label">Attribute Name *</label><input type="text" required value={newAttr.attribute_name} onChange={(e) => setNewAttr({ ...newAttr, attribute_name: e.target.value })} className="form-input" placeholder="e.g. Moisture Level (%)" /></div>
@@ -425,37 +423,36 @@ export default function ProcessEngine() {
               </select>
             </div>
           )}
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="modal-footer">
             <button type="button" onClick={() => setAttrModalOpen(false)} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary">Add Attribute</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={launchModalOpen} onClose={() => setLaunchModalOpen(false)} title={`Execute ${selectedType?.name}`}>
+      <Modal isOpen={launchModalOpen} onClose={() => setLaunchModalOpen(false)} size="lg" title={`Execute ${selectedType?.name}`}>
         <DynamicForm
-          attributeDefinitions={selectedType?.attribute_definitions || []}
+          definitions={selectedType?.attribute_definitions || []}
           plants={plants}
           departments={departments}
           employees={employees}
-          masterItems={masterItems}
-          storageLocations={storageLocations}
           onSubmit={handleExecuteProcess}
+          onCancel={() => setLaunchModalOpen(false)}
         />
       </Modal>
 
-      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Process Execution Details">
+      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} size="md" title="Process Execution Details">
         {selectedInstance && (
           <div className="space-y-4">
-            <div><span className="text-xs text-slate-400">Instance ID:</span><p className="font-mono text-blue-400 font-bold">{selectedInstance.id}</p></div>
-            <div><span className="text-xs text-slate-400">Process Type:</span><p className="text-white font-bold">{selectedInstance.process_type_name}</p></div>
+            <div><span className="text-xs text-[#6B7280]">Instance ID:</span><p className="font-mono text-[#1B4E9B] font-bold">{selectedInstance.id}</p></div>
+            <div><span className="text-xs text-[#6B7280]">Process Type:</span><p className="text-[#1F2937] font-bold">{selectedInstance.process_type_name}</p></div>
             <div>
-              <span className="text-xs text-slate-400">Attribute Values:</span>
-              <div className="bg-slate-950 p-3 rounded-lg space-y-2 mt-1">
+              <span className="text-xs text-[#6B7280]">Attribute Values:</span>
+              <div className="bg-[#F8FAFC] p-3 rounded-lg border border-[#E5E7EB] space-y-2 mt-1">
                 {(selectedInstance.attribute_values || []).map((val, idx) => (
-                  <div key={idx} className="flex justify-between border-b border-white/5 pb-1 text-xs">
-                    <span className="text-slate-400">{val.attribute_name || val.attribute_code}:</span>
-                    <span className="text-emerald-400 font-mono">{String(val.display_value || val.value_text || val.value_number || '-')}</span>
+                  <div key={idx} className="flex justify-between border-b border-[#E5E7EB] pb-1 text-xs">
+                    <span className="text-[#6B7280]">{val.attribute_name || val.attribute_code}:</span>
+                    <span className="text-[#16A34A] font-mono">{String(val.display_value || val.value_text || val.value_number || '-')}</span>
                   </div>
                 ))}
               </div>

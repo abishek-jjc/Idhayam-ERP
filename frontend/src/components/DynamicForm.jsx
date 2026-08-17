@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function DynamicForm({ definitions, onSubmit, onCancel, plants, departments, employees, masterItems, storageLocations }) {
+export default function DynamicForm({ definitions, onSubmit, onCancel, plants, departments, employees }) {
   const [formData, setFormData] = useState({
     plant: plants[0]?.id || '',
     department: departments[0]?.id || '',
@@ -26,7 +26,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4 pb-4 border-b border-white/10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-[#E5E7EB]">
         <div>
           <label className="form-label">Plant *</label>
           <select
@@ -57,7 +57,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
           </select>
         </div>
 
-        <div className="col-span-2">
+        <div className="md:col-span-2">
           <label className="form-label">Performed By (Employee)</label>
           <select
             value={formData.performed_by}
@@ -73,10 +73,10 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
       </div>
 
       <div className="space-y-4 pt-2">
-        <h4 className="text-sm font-bold text-blue-400 uppercase tracking-wider">Dynamic Process Attributes</h4>
+        <h4 className="text-[13px] font-bold text-[#1B4E9B] uppercase tracking-wider">Dynamic Process Attributes</h4>
 
         {definitions.length === 0 && (
-          <p className="text-xs text-slate-500 italic">No dynamic attributes defined for this process type yet.</p>
+          <p className="text-xs text-[#6B7280] italic">No dynamic attributes defined for this process type yet.</p>
         )}
 
         {definitions.map((def) => {
@@ -93,16 +93,11 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
 
                 <select
                   value={val}
-                  onChange={(e) =>
-                    handleValueChange(def.attribute_code, e.target.value)
-                  }
+                  onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
                   className="form-input"
                   required={def.is_required}
                 >
-                  <option value="">
-                    Select {def.attribute_name}
-                  </option>
-
+                  <option value="">Select {def.attribute_name}</option>
                   {refOptions.map((opt) => (
                     <option key={opt.id} value={opt.id}>
                       {opt.name}
@@ -117,7 +112,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
             return (
               <div key={def.id}>
                 <label className="form-label">
-                  {def.attribute_name}
+                  {def.attribute_name} {def.is_required && '*'}
                 </label>
 
                 <input
@@ -127,19 +122,15 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
                   value={val}
                   onChange={(e) => {
                     const value = e.target.value;
-
                     if (value === '' || Number(value) >= 0) {
-                      handleValueChange(
-                        def.attribute_code,
-                        value
-                      );
+                      handleValueChange(def.attribute_code, value);
                     }
                   }}
                   className="form-input"
+                  required={def.is_required}
                 />
               </div>
             );
-
           }
 
           if (def.data_type === 'date') {
@@ -156,6 +147,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
               </div>
             );
           }
+
           if (def.data_type === 'time') {
             return (
               <div key={def.id}>
@@ -170,6 +162,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
               </div>
             );
           }
+
           if (def.data_type === 'datetime') {
             return (
               <div key={def.id}>
@@ -185,18 +178,17 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
             );
           }
 
-
           if (def.data_type === 'boolean') {
             return (
-              <div key={def.id} className="flex items-center gap-3 pt-2">
+              <div key={def.id} className="flex items-center gap-2.5 pt-2">
                 <input
                   type="checkbox"
                   id={def.attribute_code}
                   checked={!!val}
                   onChange={(e) => handleValueChange(def.attribute_code, e.target.checked)}
-                  className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+                  className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
                 />
-                <label htmlFor={def.attribute_code} className="text-sm text-slate-200 cursor-pointer">
+                <label htmlFor={def.attribute_code} className="text-[13px] text-[#374151] font-medium cursor-pointer">
                   {def.attribute_name}
                 </label>
               </div>
@@ -276,12 +268,18 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
               <div key={def.id}>
                 <label className="form-label">{def.attribute_name} (₹) {def.is_required && '*'}</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-sm">₹</span>
+                  <span className="absolute left-3 top-2.5 text-[#6B7280] font-bold text-sm">₹</span>
                   <input
                     type="number"
+                    min="0"
                     step="0.01"
                     value={val}
-                    onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || Number(value) >= 0) {
+                        handleValueChange(def.attribute_code, value);
+                      }
+                    }}
                     className="form-input pl-8"
                     placeholder="0.00"
                     required={def.is_required}
@@ -298,39 +296,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
                 <input
                   type="file"
                   onChange={(e) => handleValueChange(def.attribute_code, e.target.files[0]?.name || '')}
-                  className="form-input text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500"
-                  required={def.is_required}
-                />
-              </div>
-            );
-          }
-
-          if (def.data_type === 'url') {
-            return (
-              <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
-                <input
-                  type="url"
-                  value={val}
-                  onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
-                  className="form-input"
-                  placeholder="https://example.com"
-                  required={def.is_required}
-                />
-              </div>
-            );
-          }
-
-          if (def.data_type === 'password') {
-            return (
-              <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
-                <input
-                  type="password"
-                  value={val}
-                  onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
-                  className="form-input"
-                  placeholder="••••••••"
+                  className="form-input file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#1B4E9B] file:text-white"
                   required={def.is_required}
                 />
               </div>
@@ -364,7 +330,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+      <div className="modal-footer">
         <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
         <button type="submit" className="btn-primary">Launch Instance</button>
       </div>

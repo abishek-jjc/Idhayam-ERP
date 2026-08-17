@@ -2,7 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { CoreAPI } from '../api';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
-import { Building2, MapPin, Users, Truck, Store, Plus, Search, Trash2 } from 'lucide-react';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import Tabs from '../components/ui/Tabs';
+import FilterBar from '../components/ui/FilterBar';
+import Table from '../components/ui/Table';
+import Badge from '../components/ui/Badge';
+import IconButton from '../components/ui/IconButton';
+import { Building2, MapPin, Users, Truck, Store, Plus, Trash2 } from 'lucide-react';
 
 export default function StructuralMasters() {
   const [activeTab, setActiveTab] = useState('plants');
@@ -23,11 +30,8 @@ export default function StructuralMasters() {
 
   const [plantForm, setPlantForm] = useState({ name: '', code: '', plant_type: 'processing' });
   const [deptForm, setDeptForm] = useState({ name: '', code: '', is_shared_across_plants: false });
-  const [desigForm, setDesigForm] = useState({ title: '', code: '', hierarchy_level: 1 });
   const [empForm, setEmpForm] = useState({ name: '', designation: '', department: '', plant: '', status: 'active' });
   const [machForm, setMachForm] = useState({ name: '', code: '', machine_type: 'single_machine', registration_number: '' });
-  const [venForm, setVenForm] = useState({ name: '', code: '', gst_number: '' });
-  const [storForm, setStorForm] = useState({ code: '', name: '', bin_capacity_kg: 10000 });
 
   useEffect(() => {
     loadStructuralData();
@@ -104,15 +108,6 @@ export default function StructuralMasters() {
     } catch (err) { alert(err.message); }
   };
 
-  const handleCreateDesignation = async (e) => {
-    e.preventDefault();
-    try {
-      await CoreAPI.createDesignation(desigForm);
-      setModalOpen(false);
-      loadStructuralData();
-    } catch (err) { alert(err.message); }
-  };
-
   const handleCreateEmployee = async (e) => {
     e.preventDefault();
     try {
@@ -126,24 +121,6 @@ export default function StructuralMasters() {
     e.preventDefault();
     try {
       await CoreAPI.createMachine(machForm);
-      setModalOpen(false);
-      loadStructuralData();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleCreateVendor = async (e) => {
-    e.preventDefault();
-    try {
-      await CoreAPI.createVendor(venForm);
-      setModalOpen(false);
-      loadStructuralData();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleCreateStorage = async (e) => {
-    e.preventDefault();
-    try {
-      await CoreAPI.createStorageLocation(storForm);
       setModalOpen(false);
       loadStructuralData();
     } catch (err) { alert(err.message); }
@@ -193,7 +170,7 @@ export default function StructuralMasters() {
   const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
   const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const tabs = [
+  const tabItems = [
     { id: 'plants', label: 'Plants & Facilities', icon: Building2, count: plants.length },
     { id: 'departments', label: 'Departments', icon: MapPin, count: departments.length },
     { id: 'designations', label: 'Designations', icon: Users, count: designations.length },
@@ -204,291 +181,154 @@ export default function StructuralMasters() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Building2 className="w-7 h-7 text-blue-400" /> Structural Enterprise Masters
-          </h1>
-          <p className="text-xs text-slate-400">Core organizational backbone, hierarchy, workforce, and asset infrastructure.</p>
-        </div>
+    <div className="space-y-6 animate-fade-in font-sans">
+      <PageHeader
+        title="Structural Enterprise Masters"
+        description="Core organizational backbone, hierarchy, workforce, and asset infrastructure."
+        icon={Building2}
+        actions={
+          <Button variant="primary" icon={Plus} onClick={() => openCreateModal(getModalTypeFromTab(activeTab))}>
+            Add {activeTab === 'storage' ? 'STORAGE BIN' : activeTab === 'employees' ? 'EMPLOYEE' : activeTab.slice(0, -1).toUpperCase()}
+          </Button>
+        }
+      />
 
-        <div className="flex gap-2">
-          <button onClick={() => openCreateModal(getModalTypeFromTab(activeTab))} className="btn-primary text-xs">
-            <Plus className="w-4 h-4" /> Add {activeTab === 'storage' ? 'STORAGE BIN' : activeTab === 'employees' ? 'EMPLOYEE' : activeTab.slice(0, -1).toUpperCase()}
-          </button>
-        </div>
+      {/* Navigation Tabs */}
+      <div className="standard-card p-2">
+        <Tabs tabs={tabItems} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      {/* Sub-Navigation Navbar & Dropdown */}
-      <div className="glass-panel p-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/90 border border-blue-500/30">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <span className="text-xs font-bold uppercase text-blue-400 tracking-wider whitespace-nowrap">Select Master View:</span>
-          <select
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-            className="form-input text-xs py-2 px-3 bg-slate-950 border border-blue-500/50 text-white font-bold rounded-xl cursor-pointer w-full md:w-64"
-          >
-            {tabs.map(t => (
-              <option key={t.id} value={t.id} className="bg-slate-900 text-white font-semibold">
-                {t.label} ({t.count} items)
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Filter Bar */}
+      <FilterBar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder={`Search ${activeTab}...`}
+      />
 
-        <div className="flex border border-white/10 rounded-xl overflow-hidden bg-slate-950 p-1 gap-1 overflow-x-auto w-full md:w-auto">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-lg transition-all whitespace-nowrap ${
-                  activeTab === t.id
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{t.label}</span>
-                <span className="text-[10px] opacity-80 bg-slate-900/80 px-1.5 py-0.5 rounded-full">{t.count}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-        <input
-          type="text"
-          placeholder={`Search ${activeTab}...`}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="form-input pl-9 text-xs"
-        />
-      </div>
-
-      {/* Content View */}
-      <div className="glass-panel p-4 space-y-4">
-        {/* Plants Tab */}
+      {/* Table Data */}
+      <div className="standard-card p-0 overflow-hidden">
         {activeTab === 'plants' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Facility Name</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Actions</th>
+          <Table headers={['Primary Key', 'Facility Name', 'Type', 'Status', { label: 'Actions', align: 'right' }]}>
+            {paginatedList.map((p) => (
+              <tr key={p.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{p.id}</td>
+                <td className="font-bold text-[#1F2937]">{p.name}</td>
+                <td className="capitalize text-[#374151]">{p.plant_type || 'Processing'}</td>
+                <td><Badge variant={p.is_active ? 'success' : 'danger'}>{p.is_active ? 'Active' : 'Inactive'}</Badge></td>
+                <td className="text-right">
+                  <IconButton variant="delete" icon={Trash2} onClick={() => handleDeletePlant(p.id)} title="Delete Plant" />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((p) => (
-                <tr key={p.id}>
-                  <td className="pk-badge">{p.id}</td>
-                  <td className="font-bold text-white">{p.name}</td>
-                  <td className="capitalize text-slate-300">{p.plant_type || 'Processing'}</td>
-                  <td><span className={`badge badge-${p.is_active ? 'completed' : 'rejected'}`}>{p.is_active ? 'Active' : 'Inactive'}</span></td>
-                  <td>
-                    <button onClick={() => handleDeletePlant(p.id)} className="btn-action-delete" title="Delete">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        {/* Departments Tab */}
         {activeTab === 'departments' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Department Name</th>
-                <th>Assigned Plant</th>
-                <th>Shared Status</th>
-                <th>Actions</th>
+          <Table headers={['Primary Key', 'Department Name', 'Assigned Plant', 'Shared Status', { label: 'Actions', align: 'right' }]}>
+            {paginatedList.map((d) => (
+              <tr key={d.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{d.id}</td>
+                <td className="font-bold text-[#1F2937]">{d.name}</td>
+                <td>{d.plant_name || 'All Plants (Shared)'}</td>
+                <td><Badge variant={d.is_shared_across_plants ? 'success' : 'info'}>{d.is_shared_across_plants ? 'Shared' : 'Plant Specific'}</Badge></td>
+                <td className="text-right">
+                  <IconButton variant="delete" icon={Trash2} onClick={() => handleDeleteDepartment(d.id)} title="Delete Dept" />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((d) => (
-                <tr key={d.id}>
-                  <td className="pk-badge">{d.id}</td>
-                  <td className="font-bold text-white">{d.name}</td>
-                  <td>{d.plant_name || 'All Plants (Shared)'}</td>
-                  <td><span className={`badge badge-${d.is_shared_across_plants ? 'completed' : 'info'}`}>{d.is_shared_across_plants ? 'Shared Across Plants' : 'Plant Specific'}</span></td>
-                  <td>
-                    <button onClick={() => handleDeleteDepartment(d.id)} className="btn-action-delete" title="Delete">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        {/* Designations Tab */}
         {activeTab === 'designations' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Title</th>
-                <th>Department</th>
-                <th>Hierarchy Level</th>
+          <Table headers={['Primary Key', 'Title', 'Department', 'Hierarchy Level']}>
+            {paginatedList.map((des) => (
+              <tr key={des.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{des.id}</td>
+                <td className="font-bold text-[#1F2937]">{des.title}</td>
+                <td>{des.department_name || '-'}</td>
+                <td><Badge variant="info">Level {des.hierarchy_level}</Badge></td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((des) => (
-                <tr key={des.id}>
-                  <td className="pk-badge">{des.id}</td>
-                  <td className="font-bold text-white">{des.title}</td>
-                  <td>{des.department_name || '-'}</td>
-                  <td><span className="badge badge-info">Level {des.hierarchy_level}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        {/* Employees Tab */}
         {activeTab === 'employees' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Employee Name</th>
-                <th>Designation</th>
-                <th>Department</th>
-                <th>Plant</th>
-                <th>Status</th>
-                <th>Actions</th>
+          <Table headers={['Primary Key', 'Employee Name', 'Designation', 'Department', 'Plant', 'Status', { label: 'Actions', align: 'right' }]}>
+            {paginatedList.map((emp) => (
+              <tr key={emp.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{emp.id}</td>
+                <td className="font-bold text-[#1F2937]">{emp.name}</td>
+                <td className="text-[#1B4E9B]">{emp.designation_title || 'Staff'}</td>
+                <td>{emp.department_name || '-'}</td>
+                <td>{emp.plant_name || 'Corporate'}</td>
+                <td><Badge variant={emp.status === 'active' ? 'success' : 'danger'}>{emp.status}</Badge></td>
+                <td className="text-right">
+                  <IconButton variant="delete" icon={Trash2} onClick={() => handleDeleteEmployee(emp.id)} title="Delete Employee" />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((emp) => (
-                <tr key={emp.id}>
-                  <td className="pk-badge">{emp.id}</td>
-                  <td className="font-bold text-white">{emp.name}</td>
-                  <td className="text-blue-400">{emp.designation_title || 'Staff'}</td>
-                  <td>{emp.department_name || '-'}</td>
-                  <td>{emp.plant_name || 'Corporate'}</td>
-                  <td><span className={`badge badge-${emp.status}`}>{emp.status}</span></td>
-                  <td>
-                    <button onClick={() => handleDeleteEmployee(emp.id)} className="btn-action-delete" title="Delete">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        {/* Machines & Vehicles Tab */}
         {activeTab === 'machines' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Plant</th>
-                <th>Registration No (Vehicle)</th>
-                <th>Status</th>
-                <th>Actions</th>
+          <Table headers={['Primary Key', 'Code', 'Name', 'Plant', 'Registration No', 'Status', { label: 'Actions', align: 'right' }]}>
+            {paginatedList.map((m) => (
+              <tr key={m.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{m.id}</td>
+                <td className="font-mono text-xs text-[#1B4E9B]">{m.code}</td>
+                <td className="font-bold text-[#1F2937]">{m.name}</td>
+                <td>{m.plant_name || '-'}</td>
+                <td className="font-semibold text-[#16A34A]">{m.registration_number || 'N/A (Machine)'}</td>
+                <td><Badge variant={m.status === 'active' ? 'success' : 'danger'}>{m.status}</Badge></td>
+                <td className="text-right">
+                  <IconButton variant="delete" icon={Trash2} onClick={() => handleDeleteMachine(m.id)} title="Delete Machine" />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((m) => (
-                <tr key={m.id}>
-                  <td className="pk-badge">{m.id}</td>
-                  <td className="font-mono text-xs text-blue-400">{m.code}</td>
-                  <td className="font-bold text-white">{m.name}</td>
-                  <td>{m.plant_name || '-'}</td>
-                  <td className="font-semibold text-emerald-400">{m.registration_number || 'N/A (Machine)'}</td>
-                  <td><span className={`badge badge-${m.status}`}>{m.status}</span></td>
-                  <td>
-                    <button onClick={() => handleDeleteMachine(m.id)} className="btn-action-delete" title="Delete">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        {/* Vendors Tab */}
         {activeTab === 'vendors' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Vendor Name</th>
-                <th>GST Number</th>
-                <th>Status</th>
-                <th>Registered Date</th>
+          <Table headers={['Primary Key', 'Vendor Name', 'GST Number', 'Status', 'Registered Date']}>
+            {paginatedList.map((v) => (
+              <tr key={v.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{v.id}</td>
+                <td className="font-bold text-[#1F2937]">{v.name}</td>
+                <td className="font-mono text-xs text-[#16A34A]">{v.gst_number || 'GST Pending'}</td>
+                <td><Badge variant={v.status === 'active' ? 'success' : 'danger'}>{v.status}</Badge></td>
+                <td className="text-xs text-[#6B7280]">{v.created_at?.slice(0, 10) || '2026-08-13'}</td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((v) => (
-                <tr key={v.id}>
-                  <td className="pk-badge">{v.id}</td>
-                  <td className="font-bold text-white">{v.name}</td>
-                  <td className="font-mono text-xs text-emerald-400">{v.gst_number || 'GST Pending'}</td>
-                  <td><span className={`badge badge-${v.status}`}>{v.status}</span></td>
-                  <td className="text-xs text-slate-400">{v.created_at?.slice(0, 10) || '2026-08-13'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        {/* Storage Bins Tab */}
         {activeTab === 'storage' && (
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Custom PK (XXX-DD-MM-YYYY-1234)</th>
-                <th>Bin Code</th>
-                <th>Bin Name</th>
-                <th>Department</th>
-                <th>Capacity (KG)</th>
+          <Table headers={['Primary Key', 'Bin Code', 'Bin Name', 'Department', 'Capacity (KG)']}>
+            {paginatedList.map((st) => (
+              <tr key={st.id}>
+                <td className="font-mono text-[#1B4E9B] font-semibold">{st.id}</td>
+                <td className="font-mono text-xs text-[#1B4E9B]">{st.code}</td>
+                <td className="font-bold text-[#1F2937]">{st.name}</td>
+                <td>{st.department_name || 'Main Warehouse'}</td>
+                <td className="font-mono text-xs text-[#16A34A]">{st.bin_capacity_kg} KG</td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedList.map((st) => (
-                <tr key={st.id}>
-                  <td className="pk-badge">{st.id}</td>
-                  <td className="font-mono text-xs text-blue-400">{st.code}</td>
-                  <td className="font-bold text-white">{st.name}</td>
-                  <td>{st.department_name || 'Main Warehouse'}</td>
-                  <td className="font-mono text-xs text-emerald-400">{st.bin_capacity_kg} KG</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </Table>
         )}
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={filteredList.length}
-          itemsPerPage={itemsPerPage}
-        />
+        <div className="p-4 border-t border-[#E5E7EB]">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredList.length}
+            itemsPerPage={itemsPerPage}
+          />
+        </div>
       </div>
 
       {/* Pop-Up Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={`Create New ${modalType.toUpperCase()}`}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} size="md" title={`Create New ${modalType.toUpperCase()}`}>
         {modalType === 'plant' && (
           <form onSubmit={handleCreatePlant} className="space-y-4">
             <div><label className="form-label">Plant Code *</label><input type="text" required value={plantForm.code} onChange={(e) => setPlantForm({ ...plantForm, code: e.target.value })} className="form-input" placeholder="e.g. PLN-DELHI-01" /></div>
@@ -501,9 +341,9 @@ export default function StructuralMasters() {
                 <option value="storage">Central Cold Storage</option>
               </select>
             </div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Create Plant</button>
+            <div className="modal-footer">
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary">Create Plant</Button>
             </div>
           </form>
         )}
@@ -512,9 +352,9 @@ export default function StructuralMasters() {
           <form onSubmit={handleCreateDepartment} className="space-y-4">
             <div><label className="form-label">Department Code *</label><input type="text" required value={deptForm.code} onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value })} className="form-input" placeholder="e.g. DPT-QC" /></div>
             <div><label className="form-label">Department Name *</label><input type="text" required value={deptForm.name} onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })} className="form-input" placeholder="e.g. Quality Assurance" /></div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Create Department</button>
+            <div className="modal-footer">
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary">Create Department</Button>
             </div>
           </form>
         )}
@@ -587,9 +427,9 @@ export default function StructuralMasters() {
                 </select>
               </div>
             </div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Create Employee</button>
+            <div className="modal-footer">
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary">Create Employee</Button>
             </div>
           </form>
         )}
@@ -598,9 +438,9 @@ export default function StructuralMasters() {
           <form onSubmit={handleCreateMachine} className="space-y-4">
             <div><label className="form-label">Machine / Vehicle Code *</label><input type="text" required value={machForm.code} onChange={(e) => setMachForm({ ...machForm, code: e.target.value })} className="form-input" placeholder="e.g. MCH-001 or TRK-99" /></div>
             <div><label className="form-label">Display Name *</label><input type="text" required value={machForm.name} onChange={(e) => setMachForm({ ...machForm, name: e.target.value })} className="form-input" placeholder="e.g. Bhuler Sorting Machine" /></div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
-              <button type="submit" className="btn-primary">Create Machine / Vehicle</button>
+            <div className="modal-footer">
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary">Create Machine / Vehicle</Button>
             </div>
           </form>
         )}

@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Menu, Plus, Edit3, Trash2, CheckCircle2, ArrowUp, ArrowDown, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Menu, Plus, Edit3, Trash2, CheckCircle2, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
+import IconButton from '../components/ui/IconButton';
+import Table from '../components/ui/Table';
+import Badge from '../components/ui/Badge';
+import EmptyState from '../components/ui/EmptyState';
 
 export default function MenuManagement() {
   const [menus, setMenus] = useState([]);
@@ -114,117 +120,81 @@ export default function MenuManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-              <Menu className="w-5 h-5" />
-            </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Dynamic Sidebar Menu Management</h1>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Configure application navigation menus, order, visibility, icons, and submenus without altering React source code.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchMenus} className="btn-secondary text-xs flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          <button onClick={handleOpenAdd} className="btn-primary text-xs flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Create New Menu
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6 font-sans">
+      <PageHeader
+        title="Dynamic Sidebar Menu Management"
+        description="Configure navigation menus, ordering, visibility, icons and submenus without altering React source code."
+        icon={Menu}
+        breadcrumbItems={[
+          { label: 'Admin Console', path: '/admin-console' },
+          { label: 'Menu Management', path: '#' }
+        ]}
+        actions={
+          <>
+            <Button variant="secondary" icon={RefreshCw} onClick={fetchMenus}>
+              Refresh
+            </Button>
+            <Button variant="primary" icon={Plus} onClick={handleOpenAdd}>
+              Create New Menu
+            </Button>
+          </>
+        }
+      />
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
 
       {/* Dynamic Menus Table */}
-      <div className="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+      <div className="standard-card p-0 overflow-hidden">
         {loading ? (
           <div className="p-6">
             <SkeletonLoader rows={5} columns={6} />
           </div>
         ) : (
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-950/80 border-b border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">Order</th>
-                  <th className="p-4">Menu Name</th>
-                  <th className="p-4">Path Route</th>
-                  <th className="p-4">Module Code</th>
-                  <th className="p-4">Icon Name</th>
-                  <th className="p-4">Parent Menu</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
+          <Table headers={['Order', 'Menu Name', 'Path Route', 'Module Code', 'Icon Name', 'Parent Menu', 'Status', { label: 'Actions', align: 'right' }]}>
+            {menus.length === 0 ? (
+              <tr>
+                <td colSpan="8">
+                  <EmptyState title="No sidebar menus registered" message="Click 'Create New Menu' to add navigation items." />
+                </td>
+              </tr>
+            ) : (
+              menus.map((m) => (
+                <tr key={m.id}>
+                  <td className="font-mono font-bold text-[#1B4E9B]">#{m.display_order}</td>
+                  <td className="font-bold text-[#1F2937]">{m.menu_name}</td>
+                  <td className="font-mono text-xs text-[#374151]">{m.menu_path}</td>
+                  <td><Badge variant="neutral">{m.module_code}</Badge></td>
+                  <td className="font-mono text-[#6B7280]">{m.menu_icon || 'LayoutDashboard'}</td>
+                  <td className="text-[#6B7280]">{m.parent_menu_name || 'Top-Level'}</td>
+                  <td>
+                    <button
+                      onClick={() => handleToggleActive(m)}
+                      className={`badge ${m.active ? 'badge-success' : 'badge-danger'} flex items-center gap-1 cursor-pointer`}
+                    >
+                      {m.active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                      {m.active ? 'Active' : 'Disabled'}
+                    </button>
+                  </td>
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <IconButton variant="edit" icon={Edit3} onClick={() => handleOpenEdit(m)} title="Edit Menu" />
+                      <IconButton variant="delete" icon={Trash2} onClick={() => handleDelete(m.id)} title="Delete Menu" />
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-slate-300">
-                {menus.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="p-8 text-center text-slate-400 italic">
-                      No sidebar menus registered. Click "Create New Menu" to add one.
-                    </td>
-                  </tr>
-                ) : (
-                  menus.map((m) => (
-                    <tr key={m.id} className="hover:bg-white/5 transition-all">
-                      <td className="p-4 font-mono font-bold text-blue-400">#{m.display_order}</td>
-                      <td className="p-4 font-bold text-white flex items-center gap-2">
-                        {m.menu_name}
-                      </td>
-                      <td className="p-4 font-mono text-[11px] text-purple-300">{m.menu_path}</td>
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300 border border-white/10">
-                          {m.module_code}
-                        </span>
-                      </td>
-                      <td className="p-4 font-mono text-slate-400">{m.menu_icon || 'LayoutDashboard'}</td>
-                      <td className="p-4 text-slate-400">{m.parent_menu_name || 'Top-Level'}</td>
-                      <td className="p-4">
-                        <button
-                          onClick={() => handleToggleActive(m)}
-                          className={`badge ${m.active ? 'badge-active' : 'badge-inactive'} flex items-center gap-1 cursor-pointer`}
-                        >
-                          {m.active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                          {m.active ? 'Active' : 'Disabled'}
-                        </button>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleOpenEdit(m)}
-                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
-                            title="Edit Menu"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(m.id)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
-                            title="Delete Menu"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))
+            )}
+          </Table>
         )}
       </div>
 
       {/* Add / Edit Menu Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Sidebar Menu" : "Create Sidebar Menu"}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title={editingId ? "Edit Sidebar Menu" : "Create Sidebar Menu"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -280,6 +250,7 @@ export default function MenuManagement() {
               <label className="form-label">Display Order *</label>
               <input
                 type="number"
+                min="1"
                 value={formData.display_order}
                 onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 1 })}
                 className="form-input"
@@ -301,26 +272,26 @@ export default function MenuManagement() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-2 pt-2">
             <input
               type="checkbox"
               id="activeMenuCheck"
               checked={formData.active}
               onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+              className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
             />
-            <label htmlFor="activeMenuCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+            <label htmlFor="activeMenuCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
               Enable menu in Sidebar navigation
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
               Cancel
-            </button>
-            <button type="submit" className="btn-primary text-xs">
+            </Button>
+            <Button type="submit" variant="primary">
               {editingId ? "Update Menu" : "Create Menu"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

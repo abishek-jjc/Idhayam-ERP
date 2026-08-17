@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Menu, Layout, Maximize2, FileCode, LayoutGrid, Palette, ListFilter, GitCommit, Lock, Database } from 'lucide-react';
+import {
+  ShieldCheck, Menu, PanelsTopLeft, Maximize2, FilePenLine, Grid2X2, Palette, SlidersHorizontal, GitBranch, LockKeyhole, RefreshCw
+} from 'lucide-react';
 import MenuManagement from './MenuManagement';
 import NavbarManagement from './NavbarManagement';
 import ModalDesigner from './ModalDesigner';
@@ -9,65 +11,65 @@ import ThemeManagement from './ThemeManagement';
 import ProcessAttributeValues from './ProcessAttributeValues';
 import ProcessLinks from './ProcessLinks';
 import PermissionMapping from './PermissionMapping';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
 
 export default function AdminConsole() {
   const [activeTab, setActiveTab] = useState('menu_management');
 
   const adminTabs = [
     { id: 'menu_management', label: 'Menu Management', icon: Menu },
-    { id: 'navbar_management', label: 'Navbar Management', icon: Layout },
+    { id: 'navbar_management', label: 'Navbar Management', icon: PanelsTopLeft },
     { id: 'modal_designer', label: 'Modal Designer', icon: Maximize2 },
-    { id: 'form_builder', label: 'Form Builder', icon: FileCode },
-    { id: 'widget_management', label: 'Widget Management', icon: LayoutGrid },
+    { id: 'form_builder', label: 'Form Builder', icon: FilePenLine },
+    { id: 'widget_management', label: 'Widget Management', icon: Grid2X2 },
     { id: 'theme_management', label: 'Theme Management', icon: Palette },
-    { id: 'process_attribute_values', label: 'Process Attribute Values', icon: ListFilter },
-    { id: 'process_links', label: 'Process Links', icon: GitCommit },
-    { id: 'permission_mapping', label: 'Permission Mapping', icon: Lock },
+    { id: 'process_attribute_values', label: 'Process Attribute Values', icon: SlidersHorizontal },
+    { id: 'process_links', label: 'Process Links', icon: GitBranch },
+    { id: 'permission_mapping', label: 'Permission Mapping', icon: LockKeyhole },
   ];
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Top Header Banner */}
-      <div className="p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">
-              ERP v3 <span className="gradient-text">Metadata Studio Console</span>
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Administrator UI control center for menus, navbar headers, form builders, dynamic modals, widgets, themes, and process links.
-            </p>
-          </div>
-        </div>
-      </div>
+  const activeTabObj = adminTabs.find(t => t.id === activeTab);
 
-      {/* Admin Sub-Module Navigation Bar */}
-      <div className="p-2 bg-slate-900/40 border border-white/10 rounded-2xl flex flex-wrap items-center gap-2 overflow-x-auto custom-scrollbar">
+  return (
+    <div className="space-y-6 animate-fade-in font-sans">
+      {/* Page Header */}
+      <PageHeader
+        title="Admin Console"
+        description="Manage menus, navigation, forms, modals, widgets, themes and dynamic metadata permissions."
+        icon={ShieldCheck}
+        breadcrumbItems={[
+          { label: 'Admin Console', path: '/admin-console' },
+          { label: activeTabObj?.label || 'Console', path: '#' }
+        ]}
+        actions={
+          <Button variant="secondary" icon={RefreshCw} onClick={() => window.location.reload()}>
+            Refresh Console
+          </Button>
+        }
+      />
+
+      {/* Admin Sub-Module Navigation Container */}
+      <div className="admin-console-menu">
         {adminTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shrink-0 ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                  : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
-              }`}
+              className={`admin-menu-item ${isActive ? 'active' : ''}`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="admin-menu-icon" />
               <span>{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Active Tab Sub-Component Studio View */}
-      <div className="pt-2">
+      {/* Active Tab View */}
+      <div className="pt-1">
         {activeTab === 'menu_management' && <MenuManagement />}
         {activeTab === 'navbar_management' && <NavbarManagement />}
         {activeTab === 'modal_designer' && <ModalDesigner />}

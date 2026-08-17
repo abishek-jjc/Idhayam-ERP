@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, Filter, Download, Edit3, Trash2, Plus, Sparkles, RefreshCw, FileText, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Download, Edit3, Trash2, RefreshCw, FileText, CheckCircle2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { exportToCSV, exportToPDF } from '../utils/exportUtils';
@@ -101,62 +101,64 @@ export default function ProcessAttributeValues() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
+      <div className="standard-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <span className="p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]">
               <FileText className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Process Attribute Values</h1>
+            <h1 className="page-title">Process Attribute Values</h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#6B7280] mt-1">
             View, search, filter, edit, delete, and export dynamic process attribute instances across all workflows.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleExportCSV} className="btn-secondary flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2">
+          <button onClick={handleExportCSV} className="btn-secondary">
             <Download className="w-4 h-4" /> Export CSV
           </button>
-          <button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2 text-xs">
+          <button onClick={handleExportPDF} className="btn-secondary">
             <FileText className="w-4 h-4" /> Print / PDF
           </button>
-          <button onClick={fetchValues} className="btn-primary flex items-center gap-2 text-xs">
+          <button onClick={fetchValues} className="btn-primary">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
         </div>
       </div>
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
 
       {/* Filter and Search Toolbar */}
-      <div className="p-4 bg-slate-900/40 border border-white/10 rounded-2xl flex flex-wrap items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex items-center gap-3 flex-1 min-w-[280px]">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+      <div className="filter-search-toolbar">
+        <form onSubmit={handleSearch} className="search-form-group">
+          <div className="search-input-wrapper" style={{ maxWidth: '480px', flex: 1 }}>
+            <Search className="search-input-icon" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search value text, attribute name, code..."
-              className="form-input pl-9"
+              className="search-input-field"
             />
           </div>
-          <button type="submit" className="btn-primary text-xs">Search</button>
+          <button type="submit" className="btn-primary">
+            Search
+          </button>
         </form>
 
-        <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-slate-400" />
+        <div className="filter-select-group">
+          <Filter className="filter-select-icon" />
           <select
             value={filterProcessType}
             onChange={(e) => setFilterProcessType(e.target.value)}
-            className="form-input text-xs w-56"
+            className="filter-select-input"
           >
             <option value="">All Process Types</option>
             {processTypes.map(pt => (
@@ -167,69 +169,69 @@ export default function ProcessAttributeValues() {
       </div>
 
       {/* Attribute Values Data Table */}
-      <div className="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+      <div className="standard-card p-0 overflow-hidden">
         {loading ? (
           <div className="p-6">
             <SkeletonLoader rows={6} columns={6} />
           </div>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
-            <table id="attr-values-table" className="w-full text-left border-collapse">
+            <table id="attr-values-table" className="custom-table">
               <thead>
-                <tr className="bg-slate-950/80 border-b border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">Process Instance</th>
-                  <th className="p-4">Attribute Name</th>
-                  <th className="p-4">Code</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Value</th>
-                  <th className="p-4">Created By</th>
-                  <th className="p-4">Created Date</th>
-                  <th className="p-4 text-right">Actions</th>
+                <tr>
+                  <th>Process Instance</th>
+                  <th>Attribute Name</th>
+                  <th>Code</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Created By</th>
+                  <th>Created Date</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+              <tbody>
                 {filteredValues.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="p-8 text-center text-slate-400 italic">
+                    <td colSpan="8" className="p-8 text-center text-[#6B7280] italic">
                       No process attribute values found.
                     </td>
                   </tr>
                 ) : (
                   filteredValues.map((val) => (
-                    <tr key={val.id} className="hover:bg-white/5 transition-all">
-                      <td className="p-4">
-                        <div className="font-bold text-white">{val.process_type_name || 'Process Instance'}</div>
-                        <div className="text-[10px] font-mono text-slate-400">{val.process_instance}</div>
+                    <tr key={val.id}>
+                      <td>
+                        <div className="font-bold text-[#1F2937]">{val.process_type_name || 'Process Instance'}</div>
+                        <div className="text-[11px] font-mono text-[#1B4E9B]">{val.process_instance}</div>
                       </td>
-                      <td className="p-4 font-semibold text-blue-300">{val.attribute_name || 'N/A'}</td>
-                      <td className="p-4 font-mono text-[11px] text-purple-300">{val.attribute_code}</td>
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase">
+                      <td className="font-semibold text-[#1B4E9B]">{val.attribute_name || 'N/A'}</td>
+                      <td className="font-mono text-xs text-[#374151]">{val.attribute_code}</td>
+                      <td>
+                        <span className="badge badge-info">
                           {val.data_type}
                         </span>
                       </td>
-                      <td className="p-4 max-w-xs truncate font-medium text-slate-100">
-                        {val.display_value || val.value_text || <span className="text-slate-500 italic">Empty</span>}
+                      <td className="max-w-xs truncate font-medium text-[#1F2937]">
+                        {val.display_value || val.value_text || <span className="text-[#6B7280] italic">Empty</span>}
                       </td>
-                      <td className="p-4 text-slate-400">{val.performed_by_name || 'System Operator'}</td>
-                      <td className="p-4 text-slate-400 font-mono text-[11px]">
+                      <td className="text-[#6B7280]">{val.performed_by_name || 'System Operator'}</td>
+                      <td className="text-[#6B7280] font-mono text-[11px]">
                         {val.created_at ? new Date(val.created_at).toLocaleString() : 'N/A'}
                       </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleEditClick(val)}
-                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
+                            className="btn-action-edit"
                             title="Edit Value"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button
                             onClick={() => handleDelete(val.id)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
+                            className="btn-action-delete"
                             title="Delete Value"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </td>
@@ -243,7 +245,7 @@ export default function ProcessAttributeValues() {
       </div>
 
       {/* Edit Value Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Edit Attribute Value">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title="Edit Attribute Value">
         <form onSubmit={handleSaveEdit} className="space-y-4">
           <div>
             <label className="form-label">Attribute Code & Name</label>
@@ -251,7 +253,7 @@ export default function ProcessAttributeValues() {
               type="text"
               readOnly
               value={`${editingItem?.attribute_code} - ${editingItem?.attribute_name}`}
-              className="form-input bg-slate-950/60 text-slate-400"
+              className="form-input bg-[#F8FAFC] text-[#6B7280]"
             />
           </div>
           <div>
@@ -264,11 +266,11 @@ export default function ProcessAttributeValues() {
               required
             ></textarea>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               Save Changes
             </button>
           </div>

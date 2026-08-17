@@ -2,47 +2,61 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-export default function Modal({ isOpen, onClose, title, width, height, modalConfig, children }) {
+export default function Modal({ isOpen, onClose, title, width, size = 'md', height, modalConfig, footer, children }) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const displayTitle = modalConfig?.title || title || 'Dialog Window';
-  const customWidth = modalConfig?.width || width || '600px';
-  const customHeight = modalConfig?.height || height || 'auto';
+  const modalSize = size || modalConfig?.size || (width && parseInt(width) <= 450 ? 'sm' : width && parseInt(width) >= 900 ? 'lg' : 'md');
+  const sizeClass = modalSize === 'sm' ? 'modal-sm' : modalSize === 'lg' ? 'modal-lg' : 'modal-md';
+
+  const customWidth = modalConfig?.width || width;
+  const customHeight = modalConfig?.height || height;
 
   return createPortal(
     <div className="modal-portal-overlay" onClick={onClose}>
-      {/* Modal Dialog Card with metadata-driven inline styling */}
       <div
-        className="modal-portal-card"
-        style={{ width: customWidth, maxHeight: customHeight === 'auto' ? '90vh' : customHeight }}
+        className={`modal-portal-card ${sizeClass}`}
+        style={{
+          ...(customWidth ? { width: customWidth } : {}),
+          ...(customHeight ? { maxHeight: customHeight } : {})
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-950/80 rounded-t-2xl shrink-0">
-          <h3 className="text-lg font-bold text-white tracking-tight">{displayTitle}</h3>
+        <div className="modal-header">
+          <h3 className="text-[18px] font-bold text-[#172033]">{displayTitle}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+            className="p-1.5 rounded-lg text-[#64748B] hover:text-[#172033] hover:bg-[#F1F5F9] transition-all cursor-pointer"
+            title="Close modal"
+            type="button"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Content Body - Scrollable inside window */}
-        <div className="modal-portal-body">
+        {/* Modal Content Body */}
+        <div className="modal-portal-body custom-scrollbar">
           {children}
         </div>
+
+        {/* Optional Footer */}
+        {footer && (
+          <div className="modal-footer">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

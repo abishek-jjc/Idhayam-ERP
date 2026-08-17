@@ -100,103 +100,103 @@ export default function NavbarManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
+    <div className="space-y-6 font-sans">
+      <div className="standard-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+            <span className="p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]">
               <Layout className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Dynamic Navbar Management</h1>
+            <h1 className="page-title">Dynamic Navbar Management</h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#6B7280] mt-1">
             Configure header bar titles, search inputs, notification badges, and profile toggles per application page route.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchNavbars} className="btn-secondary text-xs flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={fetchNavbars} className="btn-secondary">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button onClick={handleOpenAdd} className="btn-primary text-xs flex items-center gap-2">
+          <button onClick={handleOpenAdd} className="btn-primary">
             <Plus className="w-4 h-4" /> Create Navbar Config
           </button>
         </div>
       </div>
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
 
       {/* Navbars Table */}
-      <div className="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+      <div className="standard-card p-0 overflow-hidden">
         {loading ? (
           <div className="p-6">
             <SkeletonLoader rows={4} columns={6} />
           </div>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
+            <table className="custom-table">
               <thead>
-                <tr className="bg-slate-950/80 border-b border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">Page Key</th>
-                  <th className="p-4">Header Title</th>
-                  <th className="p-4">Search</th>
-                  <th className="p-4">Notifications</th>
-                  <th className="p-4">Profile</th>
-                  <th className="p-4">Logout</th>
-                  <th className="p-4 text-right">Actions</th>
+                <tr>
+                  <th>Page Key</th>
+                  <th>Header Title</th>
+                  <th>Search</th>
+                  <th>Notifications</th>
+                  <th>Profile</th>
+                  <th>Logout</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+              <tbody>
                 {navbars.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="p-8 text-center text-slate-400 italic">
+                    <td colSpan="7" className="p-8 text-center text-[#6B7280] italic">
                       No dynamic navbar configs created yet.
                     </td>
                   </tr>
                 ) : (
                   navbars.map((n) => (
-                    <tr key={n.id} className="hover:bg-white/5 transition-all">
-                      <td className="p-4 font-mono font-bold text-cyan-300">{n.page_name}</td>
-                      <td className="p-4 font-extrabold text-white">{n.title}</td>
-                      <td className="p-4">
-                        <span className={`badge ${n.show_search ? 'badge-active' : 'badge-inactive'}`}>
+                    <tr key={n.id}>
+                      <td className="font-mono font-bold text-[#1B4E9B]">{n.page_name}</td>
+                      <td className="font-bold text-[#1F2937]">{n.title}</td>
+                      <td>
+                        <span className={`badge ${n.show_search ? 'badge-success' : 'badge-neutral'}`}>
                           {n.show_search ? 'On' : 'Off'}
                         </span>
                       </td>
-                      <td className="p-4">
-                        <span className={`badge ${n.show_notification ? 'badge-active' : 'badge-inactive'}`}>
+                      <td>
+                        <span className={`badge ${n.show_notification ? 'badge-success' : 'badge-neutral'}`}>
                           {n.show_notification ? 'On' : 'Off'}
                         </span>
                       </td>
-                      <td className="p-4">
-                        <span className={`badge ${n.show_profile ? 'badge-active' : 'badge-inactive'}`}>
+                      <td>
+                        <span className={`badge ${n.show_profile ? 'badge-success' : 'badge-neutral'}`}>
                           {n.show_profile ? 'On' : 'Off'}
                         </span>
                       </td>
-                      <td className="p-4">
-                        <span className={`badge ${n.show_logout ? 'badge-active' : 'badge-inactive'}`}>
+                      <td>
+                        <span className={`badge ${n.show_logout ? 'badge-success' : 'badge-neutral'}`}>
                           {n.show_logout ? 'On' : 'Off'}
                         </span>
                       </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEdit(n)}
-                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
+                            className="btn-action-edit"
                             title="Edit Navbar Config"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button
                             onClick={() => handleDelete(n.id)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
+                            className="btn-action-delete"
                             title="Delete Navbar Config"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </td>
@@ -209,7 +209,7 @@ export default function NavbarManagement() {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Navbar Config" : "Create Navbar Config"}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title={editingId ? "Edit Navbar Config" : "Create Navbar Config"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="form-label">Page Route Identifier (e.g. process-engine) *</label>
@@ -242,9 +242,9 @@ export default function NavbarManagement() {
                 id="searchCheck"
                 checked={formData.show_search}
                 onChange={(e) => setFormData({ ...formData, show_search: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+                className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
               />
-              <label htmlFor="searchCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+              <label htmlFor="searchCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
                 Show Global Search
               </label>
             </div>
@@ -255,9 +255,9 @@ export default function NavbarManagement() {
                 id="notifCheck"
                 checked={formData.show_notification}
                 onChange={(e) => setFormData({ ...formData, show_notification: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+                className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
               />
-              <label htmlFor="notifCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+              <label htmlFor="notifCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
                 Show Notifications Center
               </label>
             </div>
@@ -268,9 +268,9 @@ export default function NavbarManagement() {
                 id="profileCheck"
                 checked={formData.show_profile}
                 onChange={(e) => setFormData({ ...formData, show_profile: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+                className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
               />
-              <label htmlFor="profileCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+              <label htmlFor="profileCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
                 Show User Profile Tag
               </label>
             </div>
@@ -281,19 +281,19 @@ export default function NavbarManagement() {
                 id="logoutCheck"
                 checked={formData.show_logout}
                 onChange={(e) => setFormData({ ...formData, show_logout: e.target.checked })}
-                className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+                className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
               />
-              <label htmlFor="logoutCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+              <label htmlFor="logoutCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
                 Show Logout Button
               </label>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               {editingId ? "Update Config" : "Save Config"}
             </button>
           </div>

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { JournalAPI, CoreAPI, MastersAPI } from '../api';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
-import { BookOpenCheck, Boxes, ArrowRightLeft, Plus, Download, BarChart3, TrendingUp, TrendingDown, Eye, Edit2, Trash2, Search } from 'lucide-react';
+import SearchInput from '../components/ui/SearchInput';
+import { BookOpenCheck, Boxes, Plus, Trash2, Eye } from 'lucide-react';
 
 export default function JournalStock() {
   const [activeTab, setActiveTab] = useState('journal');
@@ -143,61 +144,64 @@ export default function JournalStock() {
   const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <BookOpenCheck className="w-7 h-7 text-indigo-400" /> Universal Movement Journal & Stock
+          <h1 className="page-title flex items-center gap-2">
+            <BookOpenCheck className="w-6 h-6 text-[#1B4E9B]" /> Universal Movement Journal & Stock
           </h1>
-          <p className="text-xs text-slate-400">Integrated material & financial transaction postings and live bin balance caches.</p>
+          <p className="text-xs text-[#6B7280]">Integrated material & financial transaction postings and live bin balance caches.</p>
         </div>
 
         <div className="flex gap-2">
-          <button onClick={handleOpenCreateModal} className="btn-primary text-xs">
+          <button onClick={handleOpenCreateModal} className="btn-primary">
             <Plus className="w-4 h-4" /> Post Universal Movement Entry
           </button>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div className="glass-panel p-6 space-y-4">
-        {/* Tabs */}
-        <div className="flex border-b border-white/10 gap-2">
-          <button
-            onClick={() => setActiveTab('journal')}
-            className={`px-4 py-2.5 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-2 ${
-              activeTab === 'journal' ? 'bg-indigo-600/20 text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-400'
-            }`}
-          >
-            <BookOpenCheck className="w-4 h-4" /> Journal Movement Entries ({entries.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('stock')}
-            className={`px-4 py-2.5 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-2 ${
-              activeTab === 'stock' ? 'bg-emerald-600/20 text-emerald-400 border-b-2 border-emerald-500' : 'text-slate-400'
-            }`}
-          >
-            <Boxes className="w-4 h-4" /> Live Stock Balance Cache ({stocks.length})
-          </button>
-        </div>
+      <div className="standard-card space-y-4">
+        {/* Tabs & Search Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0]">
+          <div className="admin-console-menu">
+            <button
+              type="button"
+              onClick={() => setActiveTab('journal')}
+              className={`admin-menu-item ${activeTab === 'journal' ? 'active' : ''}`}
+            >
+              <BookOpenCheck className="admin-menu-icon" />
+              <span>Journal Movement Entries</span>
+              <span className="badge-count">
+                {entries.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('stock')}
+              className={`admin-menu-item ${activeTab === 'stock' ? 'active' : ''}`}
+            >
+              <Boxes className="admin-menu-icon" />
+              <span>Live Stock Balance Cache</span>
+              <span className="badge-count">
+                {stocks.length}
+              </span>
+            </button>
+          </div>
 
-        {/* Search */}
-        <div className="flex justify-end">
-          <div className="relative w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder={`Search ${activeTab}...`}
+          {/* Search Input */}
+          <div className="w-full sm:w-64 shrink-0">
+            <SearchInput
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input pl-9 py-1.5 text-xs"
+              onChange={setSearchQuery}
+              placeholder={`Search ${activeTab === 'journal' ? 'entries' : 'stock cache'}...`}
             />
           </div>
         </div>
 
         {activeTab === 'journal' ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="custom-table">
               <thead>
                 <tr>
@@ -213,24 +217,24 @@ export default function JournalStock() {
               <tbody>
                 {paginatedList.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-6 text-slate-500 italic">No universal journal movement entries recorded.</td>
+                    <td colSpan="7" className="text-center py-6 text-[#6B7280] italic">No universal journal movement entries recorded.</td>
                   </tr>
                 ) : (
                   paginatedList.map((e) => (
                     <tr key={e.id}>
-                      <td className="pk-badge">{e.id}</td>
-                      <td className="capitalize text-slate-300 font-semibold">{e.movement_type?.replace('_', ' ')}</td>
-                      <td className="font-mono text-xs text-slate-300">{e.material_id}</td>
-                      <td className="font-semibold text-white">{Number(e.quantity).toLocaleString()}</td>
-                      <td className="font-mono text-indigo-400 font-semibold">{e.unit || 'KG'}</td>
-                      <td className="text-xs text-slate-400">{new Date(e.created_at || Date.now()).toLocaleString()}</td>
+                      <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{e.id}</td>
+                      <td className="capitalize text-[#374151] font-semibold">{e.movement_type?.replace('_', ' ')}</td>
+                      <td className="font-mono text-xs text-[#374151]">{e.material_id}</td>
+                      <td className="font-semibold text-[#1F2937]">{Number(e.quantity).toLocaleString()}</td>
+                      <td className="font-mono text-[#1B4E9B] font-semibold">{e.unit || 'KG'}</td>
+                      <td className="text-xs text-[#6B7280]">{new Date(e.created_at || Date.now()).toLocaleString()}</td>
                       <td>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => openInspectModal(e)} className="p-1 hover:text-blue-400 text-slate-400">
-                            <Eye className="w-4 h-4" />
+                          <button onClick={() => openInspectModal(e)} className="btn-action-view" title="Inspect Record">
+                            <Eye className="w-3.5 h-3.5" /> View
                           </button>
-                          <button onClick={() => handleDeleteEntry(e.id)} className="p-1 hover:text-red-400 text-slate-400">
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => handleDeleteEntry(e.id)} className="btn-action-delete" title="Delete Entry">
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </td>
@@ -241,7 +245,7 @@ export default function JournalStock() {
             </table>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="custom-table">
               <thead>
                 <tr>
@@ -256,18 +260,18 @@ export default function JournalStock() {
               <tbody>
                 {paginatedList.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-6 text-slate-500 italic">No live stock balances tracked.</td>
+                    <td colSpan="6" className="text-center py-6 text-[#6B7280] italic">No live stock balances tracked.</td>
                   </tr>
                 ) : (
                   paginatedList.map((s) => (
                     <tr key={s.id}>
-                      <td className="pk-badge">{s.id}</td>
+                      <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{s.id}</td>
                       <td>{s.plant_name || s.plant || '-'}</td>
                       <td>{s.department_name || s.department || '-'}</td>
-                      <td className="font-mono text-xs text-slate-300">{s.material_id}</td>
-                      <td className="font-semibold text-white">{Number(s.quantity).toLocaleString()} KG</td>
+                      <td className="font-mono text-xs text-[#374151]">{s.material_id}</td>
+                      <td className="font-semibold text-[#1F2937]">{Number(s.quantity).toLocaleString()} KG</td>
                       <td>
-                        <span className={`badge ${s.stock_status === 'available' ? 'badge-approved' : 'badge-pending'}`}>
+                        <span className={`badge ${s.stock_status === 'available' ? 'badge-success' : 'badge-warning'}`}>
                           {s.stock_status || 'Available'}
                         </span>
                       </td>
@@ -289,7 +293,7 @@ export default function JournalStock() {
       </div>
 
       {/* Modals */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Post Universal Movement Entry">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} size="md" title="Post Universal Movement Entry">
         <form onSubmit={handleSaveEntry} className="space-y-4">
           <div>
             <label className="form-label">Movement Type *</label>
@@ -329,9 +333,14 @@ export default function JournalStock() {
               <label className="form-label">Quantity *</label>
               <input
                 type="number"
+                min="0"
+                step="any"
                 required
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || Number(val) >= 0) setFormData({ ...formData, quantity: parseFloat(val) || 0 });
+                }}
                 className="form-input"
               />
             </div>
@@ -355,20 +364,20 @@ export default function JournalStock() {
 
           <div><label className="form-label">Movement Remarks</label><textarea value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="form-input h-20" placeholder="Ledger remarks..."></textarea></div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="modal-footer">
             <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
             <button type="submit" className="btn-primary">Post Entry</button>
           </div>
         </form>
       </Modal>
 
-      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Universal Journal Entry Inspection">
+      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} size="md" title="Universal Journal Entry Inspection">
         {selectedEntry && (
           <div className="space-y-4">
-            <div><span className="text-xs text-slate-400">Entry ID:</span><p className="font-mono text-blue-400 font-bold">{selectedEntry.id}</p></div>
-            <div><span className="text-xs text-slate-400">Movement Type:</span><p className="text-white font-bold capitalize">{selectedEntry.movement_type}</p></div>
-            <div><span className="text-xs text-slate-400">Quantity:</span><p className="text-emerald-400 font-bold font-mono">{Number(selectedEntry.quantity).toLocaleString()}</p></div>
-            <div><span className="text-xs text-slate-400">Unit:</span><p className="text-indigo-400 font-bold font-mono">{selectedEntry.unit || 'KG'}</p></div>
+            <div><span className="text-xs text-[#6B7280]">Entry ID:</span><p className="font-mono text-[#1B4E9B] font-bold">{selectedEntry.id}</p></div>
+            <div><span className="text-xs text-[#6B7280]">Movement Type:</span><p className="text-[#1F2937] font-bold capitalize">{selectedEntry.movement_type}</p></div>
+            <div><span className="text-xs text-[#6B7280]">Quantity:</span><p className="text-[#16A34A] font-bold font-mono">{Number(selectedEntry.quantity).toLocaleString()}</p></div>
+            <div><span className="text-xs text-[#6B7280]">Unit:</span><p className="text-[#1B4E9B] font-bold font-mono">{selectedEntry.unit || 'KG'}</p></div>
           </div>
         )}
       </Modal>

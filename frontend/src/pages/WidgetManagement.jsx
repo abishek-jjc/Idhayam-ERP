@@ -115,99 +115,99 @@ export default function WidgetManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
+    <div className="space-y-6 font-sans">
+      <div className="standard-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <span className="p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]">
               <LayoutGrid className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Dynamic Dashboard Widget Management</h1>
+            <h1 className="page-title">Dynamic Dashboard Widget Management</h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#6B7280] mt-1">
             Configure dynamic executive dashboard widgets (KPI Cards, Metric Charts, Tables, Activity Lists, Quick Shortcuts).
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchWidgets} className="btn-secondary text-xs flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={fetchWidgets} className="btn-secondary">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button onClick={handleOpenAdd} className="btn-primary text-xs flex items-center gap-2">
+          <button onClick={handleOpenAdd} className="btn-primary">
             <Plus className="w-4 h-4" /> Add Widget
           </button>
         </div>
       </div>
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
 
       {/* Widgets Table */}
-      <div className="bg-slate-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+      <div className="standard-card p-0 overflow-hidden">
         {loading ? (
           <div className="p-6">
             <SkeletonLoader rows={4} columns={6} />
           </div>
         ) : (
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
+            <table className="custom-table">
               <thead>
-                <tr className="bg-slate-950/80 border-b border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="p-4">Position</th>
-                  <th className="p-4">Widget Name</th>
-                  <th className="p-4">Widget Type</th>
-                  <th className="p-4">API Data Source</th>
-                  <th className="p-4">Grid Span</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Actions</th>
+                <tr>
+                  <th>Position</th>
+                  <th>Widget Name</th>
+                  <th>Widget Type</th>
+                  <th>API Data Source</th>
+                  <th>Grid Span</th>
+                  <th>Status</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+              <tbody>
                 {widgets.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="p-8 text-center text-slate-400 italic">
+                    <td colSpan="7" className="p-8 text-center text-[#6B7280] italic">
                       No dashboard widgets configured. Click "Add Widget" to set up dashboard metrics.
                     </td>
                   </tr>
                 ) : (
                   widgets.map((w) => (
-                    <tr key={w.id} className="hover:bg-white/5 transition-all">
-                      <td className="p-4 font-mono font-bold text-blue-400">#{w.position}</td>
-                      <td className="p-4 font-extrabold text-white">{w.widget_name}</td>
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20 uppercase font-semibold">
+                    <tr key={w.id}>
+                      <td className="font-mono font-bold text-[#1B4E9B]">#{w.position}</td>
+                      <td className="font-bold text-[#1F2937]">{w.widget_name}</td>
+                      <td>
+                        <span className="badge badge-info uppercase">
                           {w.widget_type}
                         </span>
                       </td>
-                      <td className="p-4 font-mono text-[11px] text-cyan-300 max-w-xs truncate">{w.data_source || 'Default Aggregator'}</td>
-                      <td className="p-4 font-mono text-slate-400">{w.grid_width}</td>
-                      <td className="p-4">
+                      <td className="font-mono text-xs text-[#374151] max-w-xs truncate">{w.data_source || 'Default Aggregator'}</td>
+                      <td className="font-mono text-[#6B7280]">{w.grid_width}</td>
+                      <td>
                         <button
                           onClick={() => handleToggleActive(w)}
-                          className={`badge ${w.active ? 'badge-active' : 'badge-inactive'} cursor-pointer flex items-center gap-1`}
+                          className={`badge ${w.active ? 'badge-success' : 'badge-danger'} cursor-pointer flex items-center gap-1`}
                         >
                           {w.active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                           {w.active ? 'Enabled' : 'Disabled'}
                         </button>
                       </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEdit(w)}
-                            className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
+                            className="btn-action-edit"
                             title="Edit Widget"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button
                             onClick={() => handleDelete(w.id)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
+                            className="btn-action-delete"
                             title="Delete Widget"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </div>
                       </td>
@@ -220,7 +220,7 @@ export default function WidgetManagement() {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Dashboard Widget" : "Create Dashboard Widget"}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title={editingId ? "Edit Dashboard Widget" : "Create Dashboard Widget"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="form-label">Widget Title *</label>
@@ -252,6 +252,7 @@ export default function WidgetManagement() {
               <label className="form-label">Display Position *</label>
               <input
                 type="number"
+                min="1"
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: parseInt(e.target.value) || 1 })}
                 className="form-input"
@@ -285,24 +286,24 @@ export default function WidgetManagement() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-2 pt-2">
             <input
               type="checkbox"
               id="widgetActiveCheck"
               checked={formData.active}
               onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+              className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
             />
-            <label htmlFor="widgetActiveCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+            <label htmlFor="widgetActiveCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
               Enable widget on Executive Dashboard
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               {editingId ? "Update Widget" : "Save Widget"}
             </button>
           </div>

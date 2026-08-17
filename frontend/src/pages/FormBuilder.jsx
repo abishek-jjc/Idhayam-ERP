@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Layers, Plus, Edit3, Trash2, ArrowUp, ArrowDown, Eye, CheckCircle2, RefreshCw, FileCode } from 'lucide-react';
+import {
+  Plus, Edit3, Trash2, Eye, CheckCircle2, RefreshCw, FileCode, Layers, Settings,
+  Type, AlignLeft, Hash, Calendar, Clock, CalendarDays, CheckSquare, ChevronDownSquare,
+  Link as LinkIcon, Mail, Phone, Banknote, Upload, Globe, Lock
+} from 'lucide-react';
 import Modal from '../components/Modal';
 import SkeletonLoader from '../components/SkeletonLoader';
 import GenericFormRenderer from '../components/GenericFormRenderer';
+import PageHeader from '../components/ui/PageHeader';
+import Button from '../components/ui/Button';
 
 export default function FormBuilder() {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedForm, setSelectedForm] = useState(null);
+  const [selectedField, setSelectedField] = useState(null);
+
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -38,21 +46,21 @@ export default function FormBuilder() {
   });
 
   const supportedTypes = [
-    { type: 'text', label: 'Text Input' },
-    { type: 'textarea', label: 'Textarea' },
-    { type: 'number', label: 'Number' },
-    { type: 'date', label: 'Date Picker' },
-    { type: 'time', label: 'Time Picker' },
-    { type: 'datetime', label: 'Date & Time' },
-    { type: 'boolean', label: 'Boolean / Checkbox' },
-    { type: 'select', label: 'Dropdown Select' },
-    { type: 'reference', label: 'Reference FK' },
-    { type: 'email', label: 'Email Address' },
-    { type: 'phone', label: 'Phone Number' },
-    { type: 'currency', label: 'Currency (₹)' },
-    { type: 'file', label: 'File Upload' },
-    { type: 'url', label: 'Website URL' },
-    { type: 'password', label: 'Password Input' },
+    { type: 'text', label: 'Text Input', icon: Type },
+    { type: 'textarea', label: 'Textarea', icon: AlignLeft },
+    { type: 'number', label: 'Number', icon: Hash },
+    { type: 'date', label: 'Date Picker', icon: Calendar },
+    { type: 'time', label: 'Time Picker', icon: Clock },
+    { type: 'datetime', label: 'Date & Time', icon: CalendarDays },
+    { type: 'boolean', label: 'Boolean / Checkbox', icon: CheckSquare },
+    { type: 'select', label: 'Dropdown Select', icon: ChevronDownSquare },
+    { type: 'reference', label: 'Reference FK', icon: LinkIcon },
+    { type: 'email', label: 'Email Address', icon: Mail },
+    { type: 'phone', label: 'Phone Number', icon: Phone },
+    { type: 'currency', label: 'Currency (₹)', icon: Banknote },
+    { type: 'file', label: 'File Upload', icon: Upload },
+    { type: 'url', label: 'Website URL', icon: Globe },
+    { type: 'password', label: 'Password Input', icon: Lock },
   ];
 
   const fetchForms = () => {
@@ -63,9 +71,13 @@ export default function FormBuilder() {
         setForms(fetched);
         if (fetched.length > 0 && !selectedForm) {
           setSelectedForm(fetched[0]);
+          if (fetched[0].fields?.length > 0) setSelectedField(fetched[0].fields[0]);
         } else if (selectedForm) {
           const updated = fetched.find(f => f.id === selectedForm.id);
-          if (updated) setSelectedForm(updated);
+          if (updated) {
+            setSelectedForm(updated);
+            if (updated.fields?.length > 0) setSelectedField(updated.fields[0]);
+          }
         }
       })
       .catch(err => console.error("Error fetching forms:", err))
@@ -80,7 +92,7 @@ export default function FormBuilder() {
     e.preventDefault();
     if (editingFormId) {
       axios.put(`http://127.0.0.1:8000/api/core/ui-forms/${editingFormId}/`, formInput)
-        .then(res => {
+        .then(() => {
           setNotification("Form updated.");
           setIsFormModalOpen(false);
           fetchForms();
@@ -89,7 +101,7 @@ export default function FormBuilder() {
         .catch(err => alert("Update failed: " + err.message));
     } else {
       axios.post('http://127.0.0.1:8000/api/core/ui-forms/', formInput)
-        .then(res => {
+        .then(() => {
           setNotification("New form created.");
           setIsFormModalOpen(false);
           fetchForms();
@@ -99,16 +111,16 @@ export default function FormBuilder() {
     }
   };
 
-  const handleAddFieldClick = () => {
+  const handleAddFieldClick = (typeObj) => {
     if (!selectedForm) return;
     setEditingFieldId(null);
     setFieldInput({
-      field_name: '',
-      field_code: '',
-      field_type: 'text',
+      field_name: typeObj ? `New ${typeObj.label}` : '',
+      field_code: typeObj ? `${typeObj.type}_${Date.now().toString().slice(-4)}` : '',
+      field_type: typeObj ? typeObj.type : 'text',
       required: false,
       default_value: '',
-      options: '',
+      options: typeObj?.type === 'select' ? 'Option 1, Option 2, Option 3' : '',
       reference_table: '',
       field_order: (selectedForm.fields?.length || 0) + 1,
       active: true,
@@ -118,6 +130,7 @@ export default function FormBuilder() {
 
   const handleEditFieldClick = (field) => {
     setEditingFieldId(field.id);
+    setSelectedField(field);
     setFieldInput({
       field_name: field.field_name,
       field_code: field.field_code,
@@ -175,165 +188,200 @@ export default function FormBuilder() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-              <FileCode className="w-5 h-5" />
-            </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Generic Dynamic Form Builder</h1>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Build custom forms with 14 field types (Time, Dropdown options, Currency, References, Files, Validation) without writing code.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchForms} className="btn-secondary text-xs flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          <button
-            onClick={() => {
-              setEditingFormId(null);
-              setFormInput({ form_name: '', module: 'core', title: '', description: '', active: true });
-              setIsFormModalOpen(true);
-            }}
-            className="btn-primary text-xs flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Create New Form
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6 font-sans">
+      <PageHeader
+        title="Generic Dynamic Form Builder Studio"
+        description="Build metadata forms using Palette → Form Preview → Configuration workflow."
+        icon={FileCode}
+        actions={
+          <>
+            <Button variant="secondary" icon={RefreshCw} onClick={fetchForms}>
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              icon={Plus}
+              onClick={() => {
+                setEditingFormId(null);
+                setFormInput({ form_name: '', module: 'core', title: '', description: '', active: true });
+                setIsFormModalOpen(true);
+              }}
+            >
+              Create New Form
+            </Button>
+          </>
+        }
+      />
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
 
-      {/* Main Studio Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Form Selector List */}
-        <div className="p-5 bg-slate-900/60 border border-white/10 rounded-2xl space-y-3 backdrop-blur-xl">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Forms Directory</h3>
-          {loading ? (
-            <SkeletonLoader rows={4} columns={1} />
-          ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
-              {forms.map(f => (
-                <div
-                  key={f.id}
-                  onClick={() => setSelectedForm(f)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                    selectedForm?.id === f.id
-                      ? 'bg-blue-600/15 border-blue-500/40 text-white shadow-lg'
-                      : 'bg-slate-950/40 border-white/5 text-slate-300 hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-sm">{f.title}</h4>
-                    <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-                      {f.fields?.length || 0} fields
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-mono text-slate-400 mt-1">{f.form_name}</p>
+      {/* Select active form bar */}
+      <div className="standard-card flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="flex items-center gap-3">
+          <span className="form-label mb-0 text-[#1B4E9B]">Select Form to Edit:</span>
+          <select
+            value={selectedForm?.id || ''}
+            onChange={(e) => {
+              const found = forms.find(f => f.id === e.target.value);
+              setSelectedForm(found || null);
+              if (found?.fields?.length > 0) setSelectedField(found.fields[0]);
+            }}
+            className="form-input w-64 text-xs font-bold"
+          >
+            {forms.map(f => (
+              <option key={f.id} value={f.id}>{f.title} ({f.form_name})</option>
+            ))}
+          </select>
+        </div>
+
+        {selectedForm && (
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" icon={Eye} onClick={() => setIsPreviewOpen(true)}>
+              Preview Form
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* FIELD PALETTE REDESIGN */}
+      <div className="standard-card space-y-4">
+        <div>
+          <h3 className="section-title text-sm font-bold flex items-center gap-2 text-[#172033]">
+            <Layers className="w-5 h-5 text-[#1B4E9B]" /> Field Palette
+          </h3>
+          <p className="text-xs text-[#64748B] mt-0.5">Click a field type to add it to the form canvas.</p>
+        </div>
+
+        {/* Responsive Grid for Field Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+          {supportedTypes.map((st) => {
+            const Icon = st.icon;
+            return (
+              <button
+                key={st.type}
+                type="button"
+                onClick={() => handleAddFieldClick(st)}
+                className="min-h-[52px] p-2.5 rounded-lg border border-[#E2E8F0] bg-white hover:border-[#1B4E9B] hover:bg-[#F8FBFF] transition-all flex items-center gap-2.5 text-left group shadow-xs hover:-translate-y-0.5 cursor-pointer"
+              >
+                <div className="w-[30px] h-[30px] rounded-[7px] bg-[#EAF1FB] text-[#1B4E9B] flex items-center justify-center shrink-0 group-hover:bg-[#1B4E9B] group-hover:text-white transition-colors">
+                  <Icon className="w-4 h-4" />
                 </div>
-              ))}
+                <span className="text-[12px] font-semibold text-[#1E293B] truncate leading-tight">
+                  {st.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Form Canvas & Field Config Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* CENTER COLUMN: Form Preview / Canvas (7 Cols) */}
+        <div className="lg:col-span-7 standard-card space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+            <div>
+              <h3 className="section-title text-sm font-bold text-[#1F2937]">
+                {selectedForm ? selectedForm.title : 'Form Preview Canvas'}
+              </h3>
+              <p className="helper-text">{selectedForm ? selectedForm.form_name : 'No form selected'}</p>
             </div>
+            <span className="badge badge-info">{selectedForm?.fields?.length || 0} fields</span>
+          </div>
+
+          {selectedForm ? (
+            <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg space-y-3 min-h-[350px] max-h-[600px] overflow-y-auto custom-scrollbar">
+              {(selectedForm.fields || []).length === 0 ? (
+                <div className="p-12 text-center text-[#6B7280] italic">
+                  Canvas empty. Select fields from the Field Palette above to build form.
+                </div>
+              ) : (
+                selectedForm.fields.map((f) => (
+                  <div
+                    key={f.id}
+                    onClick={() => setSelectedField(f)}
+                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                      selectedField?.id === f.id
+                        ? 'bg-white border-[#1B4E9B] shadow-sm'
+                        : 'bg-white border-[#E5E7EB] hover:border-[#9C9D9E]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="form-label mb-0">{f.field_name} {f.required && <span className="text-[#DC2626]">*</span>}</span>
+                      <span className="badge badge-neutral text-[10px]">{f.field_type}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-[#6B7280] font-mono flex items-center justify-between">
+                      <span>Code: {f.field_code}</span>
+                      <button onClick={(e) => { e.stopPropagation(); handleEditFieldClick(f); }} className="text-[#1B4E9B] hover:underline font-sans text-xs">
+                        Configure →
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="p-12 text-center text-[#6B7280] italic">Select a form from the dropdown to load preview.</div>
           )}
         </div>
 
-        {/* Right 2 Columns: Form Fields Editor */}
-        <div className="lg:col-span-2 p-6 bg-slate-900/60 border border-white/10 rounded-2xl space-y-6 backdrop-blur-xl">
-          {selectedForm ? (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
-                <div>
-                  <h2 className="text-lg font-black text-white">{selectedForm.title}</h2>
-                  <p className="text-xs text-slate-400 font-mono mt-0.5">{selectedForm.form_name} • Module: {selectedForm.module}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setIsPreviewOpen(true)} className="btn-secondary text-xs flex items-center gap-1.5">
-                    <Eye className="w-4 h-4 text-emerald-400" /> Preview Form
-                  </button>
-                  <button onClick={handleAddFieldClick} className="btn-primary text-xs flex items-center gap-1.5">
-                    <Plus className="w-4 h-4" /> Add Field
-                  </button>
-                </div>
+        {/* RIGHT COLUMN: Field Configuration (5 Cols) */}
+        <div className="lg:col-span-5 standard-card space-y-4">
+          <h3 className="section-title text-xs uppercase tracking-wider flex items-center gap-1.5 text-[#1B4E9B]">
+            <Settings className="w-4 h-4" /> Field Configuration
+          </h3>
+
+          {selectedField ? (
+            <div className="space-y-4">
+              <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg text-xs font-semibold text-[#1B4E9B]">
+                Inspecting: {selectedField.field_name} (#{selectedField.field_order})
               </div>
 
-              {/* Fields Table */}
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-950/80 border-b border-white/10 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="p-3">Order</th>
-                      <th className="p-3">Field Name</th>
-                      <th className="p-3">Code</th>
-                      <th className="p-3">Field Type</th>
-                      <th className="p-3">Options / Details</th>
-                      <th className="p-3">Required</th>
-                      <th className="p-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-xs text-slate-300">
-                    {(selectedForm.fields || []).length === 0 ? (
-                      <tr>
-                        <td colSpan="7" className="p-8 text-center text-slate-400 italic">
-                          No fields added to this form yet. Click "Add Field" above.
-                        </td>
-                      </tr>
-                    ) : (
-                      selectedForm.fields.map(f => (
-                        <tr key={f.id} className="hover:bg-white/5 transition-all">
-                          <td className="p-3 font-mono font-bold text-blue-400">#{f.field_order}</td>
-                          <td className="p-3 font-extrabold text-white">{f.field_name}</td>
-                          <td className="p-3 font-mono text-[11px] text-purple-300">{f.field_code}</td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase font-semibold">
-                              {f.field_type}
-                            </span>
-                          </td>
-                          <td className="p-3 text-slate-400 max-w-xs truncate font-mono text-[11px]">
-                            {f.options ? `Options: ${f.options}` : (f.reference_table ? `Ref: ${f.reference_table}` : '-')}
-                          </td>
-                          <td className="p-3">
-                            <span className={`badge ${f.required ? 'badge-active' : 'badge-inactive'}`}>
-                              {f.required ? 'Required' : 'Optional'}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleEditFieldClick(f)}
-                                className="p-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteField(f.id)}
-                                className="p-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <span className="form-label mb-1">Field Name:</span>
+                  <p className="font-bold text-[#1F2937] p-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded">{selectedField.field_name}</p>
+                </div>
+                <div>
+                  <span className="form-label mb-1">Field Code Key:</span>
+                  <p className="font-mono text-[#374151] p-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded">{selectedField.field_code}</p>
+                </div>
+                <div>
+                  <span className="form-label mb-1">Type & Validation:</span>
+                  <p className="font-semibold text-[#1F2937] p-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded">
+                    {selectedField.field_type} ({selectedField.required ? 'Mandatory' : 'Optional'})
+                  </p>
+                </div>
+                {selectedField.options && (
+                  <div>
+                    <span className="form-label mb-1">Dropdown Options:</span>
+                    <p className="font-mono text-[#374151] p-2 bg-[#F8FAFC] border border-[#E5E7EB] rounded">{selectedField.options}</p>
+                  </div>
+                )}
               </div>
-            </>
+
+              <div className="flex gap-2 pt-2 border-t border-[#E5E7EB]">
+                <Button variant="secondary" className="flex-1 text-xs" onClick={() => handleEditFieldClick(selectedField)}>
+                  Edit Specs
+                </Button>
+                <Button variant="danger" className="text-xs" onClick={() => handleDeleteField(selectedField.id)}>
+                  Delete
+                </Button>
+              </div>
+            </div>
           ) : (
-            <div className="p-12 text-center text-slate-400 italic">Select a form from the directory to build and configure fields.</div>
+            <div className="p-8 text-center text-[#6B7280] italic">Select a field on the canvas to configure properties.</div>
           )}
         </div>
       </div>
 
       {/* Form Definition Modal */}
-      <Modal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)} title="Create Dynamic Form">
+      <Modal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)} size="md" title="Create Dynamic Form">
         <form onSubmit={handleCreateFormSubmit} className="space-y-4">
           <div>
             <label className="form-label">Form Title *</label>
@@ -379,11 +427,11 @@ export default function FormBuilder() {
               rows="2"
             ></textarea>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsFormModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsFormModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               Save Form
             </button>
           </div>
@@ -391,7 +439,7 @@ export default function FormBuilder() {
       </Modal>
 
       {/* Field Definition Modal */}
-      <Modal isOpen={isFieldModalOpen} onClose={() => setIsFieldModalOpen(false)} title={editingFieldId ? "Edit Form Field" : "Add Form Field"}>
+      <Modal isOpen={isFieldModalOpen} onClose={() => setIsFieldModalOpen(false)} size="md" title={editingFieldId ? "Edit Form Field" : "Add Form Field"}>
         <form onSubmit={handleFieldSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -436,6 +484,7 @@ export default function FormBuilder() {
               <label className="form-label">Field Sort Order *</label>
               <input
                 type="number"
+                min="1"
                 value={fieldInput.field_order}
                 onChange={(e) => setFieldInput({ ...fieldInput, field_order: parseInt(e.target.value) || 1 })}
                 className="form-input"
@@ -471,24 +520,24 @@ export default function FormBuilder() {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex items-center gap-2 pt-2">
             <input
               type="checkbox"
               id="reqCheck"
               checked={fieldInput.required}
               onChange={(e) => setFieldInput({ ...fieldInput, required: e.target.checked })}
-              className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-white/10"
+              className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
             />
-            <label htmlFor="reqCheck" className="text-xs text-slate-200 cursor-pointer font-semibold">
+            <label htmlFor="reqCheck" className="text-xs text-[#374151] cursor-pointer font-semibold">
               Mark Field as Mandatory / Required
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsFieldModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsFieldModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               Save Field
             </button>
           </div>
@@ -497,7 +546,7 @@ export default function FormBuilder() {
 
       {/* Live Form Preview Modal */}
       {isPreviewOpen && selectedForm && (
-        <Modal isOpen={true} onClose={() => setIsPreviewOpen(false)} title={`Preview: ${selectedForm.title}`}>
+        <Modal isOpen={true} onClose={() => setIsPreviewOpen(false)} size="lg" title={`Preview: ${selectedForm.title}`}>
           <GenericFormRenderer
             formConfig={selectedForm}
             onSubmit={(val) => {

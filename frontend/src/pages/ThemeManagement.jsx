@@ -13,12 +13,12 @@ export default function ThemeManagement() {
 
   const [formData, setFormData] = useState({
     theme_name: '',
-    primary_color: '#3b82f6',
-    secondary_color: '#6366f1',
-    background_color: '#0f172a',
-    card_bg_color: '#1e293b',
-    text_color: '#f8fafc',
-    border_color: 'rgba(255,255,255,0.1)',
+    primary_color: '#1B4E9B',
+    secondary_color: '#9C9D9E',
+    background_color: '#F8FAFC',
+    card_bg_color: '#FFFFFF',
+    text_color: '#1F2937',
+    border_color: '#E5E7EB',
     active: false,
   });
 
@@ -43,7 +43,6 @@ export default function ThemeManagement() {
     root.style.setProperty('--theme-text', t.text_color);
     root.style.setProperty('--theme-border', t.border_color);
 
-    // Save active state via API
     axios.patch(`http://127.0.0.1:8000/api/core/ui-themes/${t.id}/`, { active: true })
       .then(() => {
         setNotification(`Applied theme '${t.theme_name}' globally.`);
@@ -57,12 +56,12 @@ export default function ThemeManagement() {
     setEditingId(null);
     setFormData({
       theme_name: '',
-      primary_color: '#3b82f6',
-      secondary_color: '#6366f1',
-      background_color: '#0f172a',
-      card_bg_color: '#1e293b',
-      text_color: '#f8fafc',
-      border_color: 'rgba(255,255,255,0.1)',
+      primary_color: '#1B4E9B',
+      secondary_color: '#9C9D9E',
+      background_color: '#F8FAFC',
+      card_bg_color: '#FFFFFF',
+      text_color: '#1F2937',
+      border_color: '#E5E7EB',
       active: false,
     });
     setIsModalOpen(true);
@@ -119,32 +118,32 @@ export default function ThemeManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-slate-900/60 border border-white/10 rounded-2xl backdrop-blur-xl">
+    <div className="space-y-6 font-sans">
+      <div className="standard-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400">
+            <span className="p-2 rounded-lg bg-[#EFF6FF] text-[#1B4E9B]">
               <Palette className="w-5 h-5" />
             </span>
-            <h1 className="text-xl font-black text-white tracking-tight">Global Theme Studio & Palette Management</h1>
+            <h1 className="page-title">Global Theme Studio & Palette Management</h1>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Create, preview, switch, and apply custom enterprise UI color themes (Dark, Light, Corporate, Cyberpunk, Custom) globally.
+          <p className="text-xs text-[#6B7280] mt-1">
+            Create, preview, switch, and apply custom enterprise UI color themes globally.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchThemes} className="btn-secondary text-xs flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={fetchThemes} className="btn-secondary">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button onClick={handleOpenAdd} className="btn-primary text-xs flex items-center gap-2">
+          <button onClick={handleOpenAdd} className="btn-primary">
             <Plus className="w-4 h-4" /> Create Custom Theme
           </button>
         </div>
       </div>
 
       {notification && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
           {notification}
         </div>
       )}
@@ -157,18 +156,18 @@ export default function ThemeManagement() {
           {themes.map((t) => (
             <div
               key={t.id}
-              className={`p-6 rounded-2xl border transition-all flex flex-col justify-between space-y-4 backdrop-blur-xl ${
+              className={`p-5 rounded-xl border transition-all flex flex-col justify-between space-y-4 ${
                 t.active
-                  ? 'bg-blue-600/15 border-blue-500/50 shadow-xl shadow-blue-500/10'
-                  : 'bg-slate-900/60 border-white/10 hover:border-white/20'
+                  ? 'bg-[#EFF6FF] border-[#1B4E9B] shadow-sm'
+                  : 'bg-white border-[#E5E7EB] hover:border-[#9C9D9E]'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-extrabold text-white">{t.theme_name}</h3>
+                  <h3 className="text-sm font-extrabold text-[#1F2937]">{t.theme_name}</h3>
                   {t.active && (
-                    <span className="badge badge-active text-[10px] font-mono uppercase tracking-wider flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-emerald-400" /> Active Theme
+                    <span className="badge badge-success flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-[#16A34A]" /> Active
                     </span>
                   )}
                 </div>
@@ -176,46 +175,48 @@ export default function ThemeManagement() {
                 {/* Color Swatch Previews */}
                 <div className="grid grid-cols-4 gap-2 mt-4">
                   <div className="space-y-1 text-center">
-                    <div className="w-full h-8 rounded-lg shadow" style={{ backgroundColor: t.primary_color }}></div>
-                    <span className="text-[9px] text-slate-400 font-mono">Primary</span>
+                    <div className="w-full h-8 rounded border border-[#E5E7EB]" style={{ backgroundColor: t.primary_color }}></div>
+                    <span className="text-[10px] text-[#6B7280] font-mono">Primary</span>
                   </div>
                   <div className="space-y-1 text-center">
-                    <div className="w-full h-8 rounded-lg shadow" style={{ backgroundColor: t.secondary_color }}></div>
-                    <span className="text-[9px] text-slate-400 font-mono">Secondary</span>
+                    <div className="w-full h-8 rounded border border-[#E5E7EB]" style={{ backgroundColor: t.secondary_color }}></div>
+                    <span className="text-[10px] text-[#6B7280] font-mono">Secondary</span>
                   </div>
                   <div className="space-y-1 text-center">
-                    <div className="w-full h-8 rounded-lg shadow" style={{ backgroundColor: t.background_color }}></div>
-                    <span className="text-[9px] text-slate-400 font-mono">Background</span>
+                    <div className="w-full h-8 rounded border border-[#E5E7EB]" style={{ backgroundColor: t.background_color }}></div>
+                    <span className="text-[10px] text-[#6B7280] font-mono">Background</span>
                   </div>
                   <div className="space-y-1 text-center">
-                    <div className="w-full h-8 rounded-lg shadow" style={{ backgroundColor: t.card_bg_color }}></div>
-                    <span className="text-[9px] text-slate-400 font-mono">Card BG</span>
+                    <div className="w-full h-8 rounded border border-[#E5E7EB]" style={{ backgroundColor: t.card_bg_color }}></div>
+                    <span className="text-[10px] text-[#6B7280] font-mono">Surface</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between pt-4 border-t border-[#E5E7EB]">
                 <button
                   onClick={() => applyThemeGlobally(t)}
-                  className={`btn-primary text-xs flex items-center gap-1.5 ${t.active ? 'opacity-50 cursor-default' : ''}`}
+                  className={`btn-primary ${t.active ? 'opacity-50 cursor-default' : ''}`}
                   disabled={t.active}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   {t.active ? 'Current Theme' : 'Apply Theme'}
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => handleOpenEdit(t)}
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-all"
+                    className="btn-action-edit"
+                    title="Edit Theme"
                   >
-                    <Edit3 className="w-4 h-4" />
+                    <Edit3 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(t.id)}
-                    className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
+                    className="btn-action-delete"
+                    title="Delete Theme"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -225,7 +226,7 @@ export default function ThemeManagement() {
       )}
 
       {/* Add / Edit Theme Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Theme Palette" : "Create Custom Theme"}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title={editingId ? "Edit Theme Palette" : "Create Custom Theme"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="form-label">Theme Name *</label>
@@ -235,7 +236,7 @@ export default function ThemeManagement() {
               onChange={(e) => setFormData({ ...formData, theme_name: e.target.value })}
               className="form-input"
               required
-              placeholder="e.g., Emerald Corporate"
+              placeholder="e.g., Enterprise Blue Corporate"
             />
           </div>
 
@@ -247,13 +248,13 @@ export default function ThemeManagement() {
                   type="color"
                   value={formData.primary_color}
                   onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                  className="w-10 h-10 rounded-xl bg-transparent cursor-pointer"
+                  className="w-10 h-10 rounded border border-[#E5E7EB] cursor-pointer p-0"
                 />
                 <input
                   type="text"
                   value={formData.primary_color}
                   onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                  className="form-input flex-1 font-mono text-xs"
+                  className="form-input font-mono text-xs"
                   required
                 />
               </div>
@@ -266,13 +267,13 @@ export default function ThemeManagement() {
                   type="color"
                   value={formData.secondary_color}
                   onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
-                  className="w-10 h-10 rounded-xl bg-transparent cursor-pointer"
+                  className="w-10 h-10 rounded border border-[#E5E7EB] cursor-pointer p-0"
                 />
                 <input
                   type="text"
                   value={formData.secondary_color}
                   onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
-                  className="form-input flex-1 font-mono text-xs"
+                  className="form-input font-mono text-xs"
                   required
                 />
               </div>
@@ -292,7 +293,7 @@ export default function ThemeManagement() {
             </div>
 
             <div>
-              <label className="form-label">Card Background *</label>
+              <label className="form-label">Surface Card Color *</label>
               <input
                 type="text"
                 value={formData.card_bg_color}
@@ -303,11 +304,11 @@ export default function ThemeManagement() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary text-xs">
+          <div className="modal-footer">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn-primary text-xs">
+            <button type="submit" className="btn-primary">
               {editingId ? "Update Theme" : "Save Theme"}
             </button>
           </div>

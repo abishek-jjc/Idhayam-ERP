@@ -1,0 +1,37 @@
+:root {
+  /* Corporate Palette */
+  --primary: #1B4E9B;
+  --primary-dark: #163F7D;
+  --secondary: #9C9D9E;
+  --background: #F5F7FA;
+  --surface: #FFFFFF;
+
+  /* Typography Colors */
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --border: #E5E7EB;
+
+  /* Status Colors */
+  --success: #16A34A;
+  --warning: #F6CE0A;
+  --warning-text: #854D0E;
+  --danger: #DC2626;
+  --info: #2563EB;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Heights & Layout Dimensions */
+  --sidebar-width: 250px;
+  --navbar-height: 64px;
+  --input-height: 40px;
+  --button-height: 38px;
+  --button-sm-height: 32px;
+  --icon-btn-size: 32px;
+
+  /* Focus & Shadow Specs */
+  --focus-ring: 0 0 0 2px rgba(27, 78, 155, 0.12);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+}

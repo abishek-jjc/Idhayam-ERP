@@ -20,7 +20,6 @@ const defaultFallbackNavs = [
 export default function Sidebar() {
   const { user, designation, isSuperAdmin, hasPermission } = useAuth();
   const [menus, setMenus] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -34,12 +33,8 @@ export default function Sidebar() {
           setMenus(defaultFallbackNavs);
         }
       })
-      .catch((err) => {
-        console.warn("Using default sidebar menus due to fetch notice:", err?.message);
+      .catch(() => {
         if (isMounted) setMenus(defaultFallbackNavs);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
       });
     return () => { isMounted = false; };
   }, []);
@@ -52,20 +47,20 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       {/* Brand Header */}
-      <div className="p-5 border-b border-white/10 flex items-center gap-3 bg-slate-950/40">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-500/25">
+      <div className="sidebar-brand">
+        <div className="sidebar-logo">
           E3
         </div>
-        <div>
-          <h1 className="text-base font-extrabold text-white tracking-tight leading-tight">
-            ERP <span className="gradient-text">v3</span>
+        <div className="overflow-hidden min-w-0">
+          <h1 className="sidebar-title truncate">
+            ERP v3
           </h1>
-          <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Metadata Platform</p>
+          <p className="sidebar-subtitle truncate">Enterprise System</p>
         </div>
       </div>
 
       {/* Dynamic Navigation Links */}
-      <nav className="flex-1 p-3 overflow-y-auto space-y-1.5 custom-scrollbar">
+      <nav className="sidebar-nav custom-scrollbar">
         {menus.map((item) => {
           const modCode = item.module_code || 'dashboard';
           if (!isSuperAdmin && modCode !== 'user_page' && modCode !== 'dashboard') {
@@ -79,23 +74,23 @@ export default function Sidebar() {
               to={item.menu_path}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
-              <IconComponent className="w-4 h-4 shrink-0" />
-              <span className="text-xs font-semibold">{item.menu_name}</span>
+              <IconComponent className="w-[18px] h-[18px] shrink-0" />
+              <span className="truncate">{item.menu_name}</span>
             </NavLink>
           );
         })}
       </nav>
 
-      {/* Designation User Footer */}
-      <div className="p-4 border-t border-white/10 bg-slate-950/80">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center border border-indigo-500/30 font-bold text-xs">
-            {isSuperAdmin ? 'SA' : (designation?.title?.[0] || 'U')}
+      {/* User Profile Footer - Fixed at Bottom */}
+      <div className="sidebar-footer">
+        <div className="user-card-compact">
+          <div className="sidebar-user-avatar">
+            {isSuperAdmin ? 'SA' : (designation?.title?.[0] || user?.name?.[0] || 'U')}
           </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Guest User'}</p>
-            <p className="text-[10px] font-mono text-purple-400 truncate">
-              {isSuperAdmin ? 'Super Administrator' : (designation?.title || 'No Designation')}
+          <div className="sidebar-user-info">
+            <p className="sidebar-user-name">{user?.name || (isSuperAdmin ? 'System Super Administrator' : 'System User')}</p>
+            <p className="sidebar-user-role">
+              {isSuperAdmin ? 'Super Administrator' : (designation?.title || 'System Operator')}
             </p>
           </div>
         </div>
