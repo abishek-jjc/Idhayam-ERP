@@ -13,6 +13,7 @@ import { Building2, MapPin, Users, Truck, Store, Plus, Trash2 } from 'lucide-rea
 
 export default function StructuralMasters() {
   const [activeTab, setActiveTab] = useState('plants');
+  const [companies, setCompanies] = useState([]);
   const [plants, setPlants] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [designations, setDesignations] = useState([]);
@@ -28,10 +29,10 @@ export default function StructuralMasters() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
 
-  const [plantForm, setPlantForm] = useState({ name: '', code: '', plant_type: 'processing' });
+  const [plantForm, setPlantForm] = useState({ name: '', code: '', plant_type: 'processing', company: '' });
   const [deptForm, setDeptForm] = useState({ name: '', code: '', is_shared_across_plants: false });
   const [empForm, setEmpForm] = useState({ name: '', designation: '', department: '', plant: '', status: 'active' });
-  const [machForm, setMachForm] = useState({ name: '', code: '', machine_type: 'single_machine', registration_number: '' });
+  const [machForm, setMachForm] = useState({ name: '', code: '', machine_type_id: 'single_machine', registration_number: '', plant: '', department: '', status: 'active' });
 
   useEffect(() => {
     loadStructuralData();
@@ -44,7 +45,8 @@ export default function StructuralMasters() {
 
   async function loadStructuralData() {
     try {
-      const [plRes, dpRes, dsRes, empRes, macRes, venRes, strRes] = await Promise.all([
+      const [compRes, plRes, dpRes, dsRes, empRes, macRes, venRes, strRes] = await Promise.all([
+        CoreAPI.getCompanies().catch(() => ({ data: [] })),
         CoreAPI.getPlants(),
         CoreAPI.getDepartments(),
         CoreAPI.getDesignations(),
@@ -53,13 +55,23 @@ export default function StructuralMasters() {
         CoreAPI.getVendors(),
         CoreAPI.getStorageLocations(),
       ]);
-      setPlants(plRes.data.results || plRes.data || []);
-      setDepartments(dpRes.data.results || dpRes.data || []);
-      setDesignations(dsRes.data.results || dsRes.data || []);
-      setEmployees(empRes.data.results || empRes.data || []);
-      setMachines(macRes.data.results || macRes.data || []);
-      setVendors(venRes.data.results || venRes.data || []);
-      setStorageLocations(strRes.data.results || strRes.data || []);
+      const compList = compRes.data.results || compRes.data || [];
+      const plList = plRes.data.results || plRes.data || [];
+      const dpList = dpRes.data.results || dpRes.data || [];
+      const dsList = dsRes.data.results || dsRes.data || [];
+      const empList = empRes.data.results || empRes.data || [];
+      const macList = macRes.data.results || macRes.data || [];
+      const venList = venRes.data.results || venRes.data || [];
+      const strList = strRes.data.results || strRes.data || [];
+
+      setCompanies(compList);
+      setPlants(plList);
+      setDepartments(dpList);
+      setDesignations(dsList);
+      setEmployees(empList);
+      setMachines(macList);
+      setVendors(venList);
+      setStorageLocations(strList);
     } catch (err) {
       console.error("Error loading structural data:", err);
     }
@@ -78,12 +90,29 @@ export default function StructuralMasters() {
 
   const openCreateModal = (type) => {
     setModalType(type);
-    if (type === 'employee') {
+    if (type === 'plant') {
+      setPlantForm({
+        name: '',
+        code: '',
+        plant_type: 'processing',
+        company: companies[0]?.id || '',
+      });
+    } else if (type === 'employee') {
       setEmpForm({
         name: '',
         department: departments[0]?.id || '',
         designation: designations[0]?.id || '',
         plant: plants[0]?.id || '',
+        status: 'active',
+      });
+    } else if (type === 'machine') {
+      setMachForm({
+        name: '',
+        code: '',
+        machine_type_id: 'single_machine',
+        registration_number: '',
+        plant: plants[0]?.id || '',
+        department: departments[0]?.id || '',
         status: 'active',
       });
     }
@@ -93,10 +122,14 @@ export default function StructuralMasters() {
   const handleCreatePlant = async (e) => {
     e.preventDefault();
     try {
-      await CoreAPI.createPlant({ ...plantForm, company: 'CMP-13-08-2026-0001' });
+      const payload = {
+        ...plantForm,
+        company: plantForm.company || companies[0]?.id || null,
+      };
+      await CoreAPI.createPlant(payload);
       setModalOpen(false);
       loadStructuralData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert(err.response?.data?.detail || err.message); }
   };
 
   const handleCreateDepartment = async (e) => {
@@ -105,7 +138,7 @@ export default function StructuralMasters() {
       await CoreAPI.createDepartment(deptForm);
       setModalOpen(false);
       loadStructuralData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert(err.response?.data?.detail || err.message); }
   };
 
   const handleCreateEmployee = async (e) => {
@@ -114,16 +147,21 @@ export default function StructuralMasters() {
       await CoreAPI.createEmployee(empForm);
       setModalOpen(false);
       loadStructuralData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert(err.response?.data?.detail || err.message); }
   };
 
   const handleCreateMachine = async (e) => {
     e.preventDefault();
     try {
-      await CoreAPI.createMachine(machForm);
+      const payload = {
+        ...machForm,
+        plant: machForm.plant || plants[0]?.id || null,
+        department: machForm.department || departments[0]?.id || null,
+      };
+      await CoreAPI.createMachine(payload);
       setModalOpen(false);
       loadStructuralData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert(err.response?.data?.detail || err.message); }
   };
 
   const handleDeletePlant = async (id) => {
@@ -436,8 +474,65 @@ export default function StructuralMasters() {
 
         {modalType === 'machine' && (
           <form onSubmit={handleCreateMachine} className="space-y-4">
-            <div><label className="form-label">Machine / Vehicle Code *</label><input type="text" required value={machForm.code} onChange={(e) => setMachForm({ ...machForm, code: e.target.value })} className="form-input" placeholder="e.g. MCH-001 or TRK-99" /></div>
-            <div><label className="form-label">Display Name *</label><input type="text" required value={machForm.name} onChange={(e) => setMachForm({ ...machForm, name: e.target.value })} className="form-input" placeholder="e.g. Bhuler Sorting Machine" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Machine / Vehicle Code *</label>
+                <input type="text" required value={machForm.code} onChange={(e) => setMachForm({ ...machForm, code: e.target.value })} className="form-input" placeholder="e.g. MCH-001 or TRK-99" />
+              </div>
+              <div>
+                <label className="form-label">Display Name *</label>
+                <input type="text" required value={machForm.name} onChange={(e) => setMachForm({ ...machForm, name: e.target.value })} className="form-input" placeholder="e.g. Bhuler Sorting Machine" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Plant / Facility</label>
+                <select
+                  value={machForm.plant}
+                  onChange={(e) => setMachForm({ ...machForm, plant: e.target.value })}
+                  className="form-input"
+                >
+                  <option value="">-- Optional Plant --</option>
+                  {plants.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Department</label>
+                <select
+                  value={machForm.department}
+                  onChange={(e) => setMachForm({ ...machForm, department: e.target.value })}
+                  className="form-input"
+                >
+                  <option value="">-- Optional Department --</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Registration / Serial No.</label>
+                <input type="text" value={machForm.registration_number} onChange={(e) => setMachForm({ ...machForm, registration_number: e.target.value })} className="form-input" placeholder="e.g. TN-58-9999" />
+              </div>
+              <div>
+                <label className="form-label">Status</label>
+                <select
+                  value={machForm.status}
+                  onChange={(e) => setMachForm({ ...machForm, status: e.target.value })}
+                  className="form-input"
+                >
+                  <option value="active">Active</option>
+                  <option value="maintenance">Under Maintenance</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+
             <div className="modal-footer">
               <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
               <Button type="submit" variant="primary">Create Machine / Vehicle</Button>

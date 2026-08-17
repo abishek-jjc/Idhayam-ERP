@@ -76,10 +76,13 @@ class Company(models.Model):
 class Plant(models.Model):
     PLANT_TYPES = [
         ('manufacturing', 'Manufacturing'),
+        ('processing', 'Processing Unit'),
+        ('packaging', 'Packaging Warehouse'),
+        ('storage', 'Central Cold Storage'),
         ('transport', 'Transport'),
     ]
     id = models.CharField(primary_key=True, max_length=50, default=pk_pln, editable=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='plants')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='plants', null=True, blank=True)
     name = models.CharField(max_length=150)
     plant_type = models.CharField(max_length=30, choices=PLANT_TYPES, default='manufacturing')
     is_active = models.BooleanField(default=True)
@@ -102,7 +105,7 @@ class Department(models.Model):
 
 class Designation(models.Model):
     id = models.CharField(primary_key=True, max_length=50, default=pk_dsg, editable=False)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='designations')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='designations', null=True, blank=True)
     title = models.CharField(max_length=150)
     hierarchy_level = models.IntegerField(default=1)
     remarks = models.TextField(blank=True, null=True)
@@ -211,8 +214,8 @@ class Machine(models.Model):
         ('inactive', 'Inactive'),
     ]
     id = models.CharField(primary_key=True, max_length=50, default=pk_mac, editable=False)
-    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='machines')
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='machines')
+    plant = models.ForeignKey(Plant, on_delete=models.SET_NULL, null=True, blank=True, related_name='machines')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='machines')
     machine_type_id = models.CharField(max_length=50, null=True, blank=True)
     code = models.CharField(max_length=40, unique=True)
     name = models.CharField(max_length=150)

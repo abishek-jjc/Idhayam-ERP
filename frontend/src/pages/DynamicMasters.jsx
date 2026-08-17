@@ -117,8 +117,11 @@ export default function DynamicMasters() {
 
   const handleCreateAttribute = async (e) => {
     e.preventDefault();
-    const activeCat = categories.find((c) => c.code === selectedCategory);
-    if (!activeCat) return;
+    const activeCat = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory) || categories[0];
+    if (!activeCat) {
+      alert("Please select or create a category first.");
+      return;
+    }
     try {
       await MastersAPI.createAttribute({
         ...newAttr,
@@ -143,7 +146,7 @@ export default function DynamicMasters() {
   const handleSaveItem = async (e) => {
     e.preventDefault();
     try {
-      const catObj = categories.find((c) => c.code === selectedCategory);
+      const catObj = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory) || categories[0];
       const finalAttrs = { ...dynamicFormValues };
 
       customAttrPairs.forEach((pair) => {
@@ -154,7 +157,7 @@ export default function DynamicMasters() {
       });
 
       await MastersAPI.createItem({
-        category: catObj.id,
+        category: catObj?.id || selectedCategory,
         code: newItem.code,
         name: newItem.name,
         attributes: finalAttrs,

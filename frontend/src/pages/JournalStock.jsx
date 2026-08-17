@@ -94,16 +94,18 @@ export default function JournalStock() {
   const handleSaveEntry = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        material_id: formData.material_id || masterItems[0]?.id || null,
+        from_department: formData.from_department || null,
+        to_department: formData.to_department || null,
+        posted_by: employees[0]?.id || null,
+      };
+
       if (editingEntry) {
-        await JournalAPI.updateEntry(editingEntry.id, {
-          ...formData,
-          posted_by: employees[0]?.id,
-        });
+        await JournalAPI.updateEntry(editingEntry.id, payload);
       } else {
-        await JournalAPI.createEntry({
-          ...formData,
-          posted_by: employees[0]?.id,
-        });
+        await JournalAPI.createEntry(payload);
       }
       setModalOpen(false);
       setEditingEntry(null);

@@ -172,9 +172,9 @@ export default function WorkflowApprovals() {
 
       await WorkflowAPI.createProposal({
         process_instance: instId,
-        requested_by: newProposal.requested_by || employees[0]?.id,
-        plant: newProposal.plant || plants[0]?.id,
-        department: newProposal.department || departments[0]?.id,
+        requested_by: newProposal.requested_by || employees[0]?.id || null,
+        plant: newProposal.plant || plants[0]?.id || null,
+        department: newProposal.department || departments[0]?.id || null,
         status: 'pending',
         vendor_mode: newProposal.vendor_mode,
         remarks: newProposal.remarks || `Standard proposal initiated (${newProposal.vendor_mode} vendor mode)`,

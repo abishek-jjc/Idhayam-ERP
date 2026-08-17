@@ -22,10 +22,10 @@ class Proposal(models.Model):
         ('multiple', 'Multiple Vendors'),
     ]
     id = models.CharField(primary_key=True, max_length=50, default=pk_prp, editable=False)
-    process_instance = models.OneToOneField(ProcessInstance, on_delete=models.CASCADE, related_name='proposal')
-    requested_by = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='proposals_requested')
-    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='proposals')
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='proposals')
+    process_instance = models.ForeignKey(ProcessInstance, on_delete=models.CASCADE, related_name='proposals', null=True, blank=True)
+    requested_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='proposals_requested')
+    plant = models.ForeignKey(Plant, on_delete=models.SET_NULL, null=True, blank=True, related_name='proposals')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='proposals')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='draft')
     vendor_mode = models.CharField(max_length=20, choices=VENDOR_MODES, default='single')
     remarks = models.TextField(blank=True, null=True)

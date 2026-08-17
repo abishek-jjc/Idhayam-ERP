@@ -126,6 +126,7 @@ class ProcessLink(models.Model):
         ('splits_into', 'Splits Into'),
         ('generates_pay', 'Generates Pay'),
         ('verifies', 'Verifies'),
+        ('settles', 'Settles'),
     ]
     id = models.CharField(primary_key=True, max_length=50, default=pk_lnk, editable=False)
     from_process_instance = models.ForeignKey(ProcessInstance, on_delete=models.CASCADE, related_name='outgoing_links')

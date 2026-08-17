@@ -124,6 +124,7 @@ export default function ProcessEngine() {
         performed_by: formData.performed_by || (empObj ? empObj.id : null),
         status: 'pending',
         remarks: formData.remarks || 'Executed via dynamic UI process runner',
+        values: formData.values || {},
         attributes: attributesPayload,
       });
 

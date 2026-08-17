@@ -18,31 +18,40 @@ export default function UserPage() {
   const [attrDefinitions, setAttrDefinitions] = useState([]);
   const [formValues, setFormValues] = useState({});
 
+  const [plants, setPlants] = useState([]);
+  const [departments, setDepartments] = useState([]);
+
   useEffect(() => {
     loadUserData();
   }, []);
 
   async function loadUserData() {
     try {
-      const [ptRes, instRes, catRes, itemRes, propRes] = await Promise.all([
+      const [ptRes, instRes, catRes, itemRes, propRes, plantRes, deptRes] = await Promise.all([
         ProcessEngineAPI.getProcessTypes(),
         ProcessEngineAPI.getInstances(),
         MastersAPI.getCategories(),
         MastersAPI.getItems(),
         WorkflowAPI.getProposals(),
+        ProcessEngineAPI.getPlants ? ProcessEngineAPI.getPlants() : fetch('http://127.0.0.1:8000/api/core/plants/').then(r => r.json()),
+        fetch('http://127.0.0.1:8000/api/core/departments/').then(r => r.json()),
       ]);
 
-      const ptList = ptRes.data.results || ptRes.data || [];
-      const instList = instRes.data.results || instRes.data || [];
-      const catList = catRes.data.results || catRes.data || [];
-      const itemList = itemRes.data.results || itemRes.data || [];
-      const propList = propRes.data.results || propRes.data || [];
+      const ptList = ptRes.data?.results || ptRes.data || [];
+      const instList = instRes.data?.results || instRes.data || [];
+      const catList = catRes.data?.results || catRes.data || [];
+      const itemList = itemRes.data?.results || itemRes.data || [];
+      const propList = propRes.data?.results || propRes.data || [];
+      const plantList = plantRes.results || plantRes.data?.results || plantRes.data || plantRes || [];
+      const deptList = deptRes.results || deptRes.data?.results || deptRes.data || deptRes || [];
 
       setProcessTypes(ptList);
       setInstances(instList);
       setMasterCategories(catList);
       setMasterItems(itemList);
       setProposals(propList);
+      setPlants(plantList);
+      setDepartments(deptList);
     } catch (err) {
       console.error("Error loading user page data:", err);
     }
@@ -73,10 +82,13 @@ export default function UserPage() {
     e.preventDefault();
     if (!selectedProcessType) return;
     try {
+      const plantId = plants[0]?.id || null;
+      const deptId = selectedProcessType.owning_department || departments[0]?.id || null;
+
       await ProcessEngineAPI.createInstance({
         process_type: selectedProcessType.id,
-        plant: 'PLN-01-PUNE-MFG',
-        department: selectedProcessType.owning_department || 'DPT-PROD',
+        plant: plantId,
+        department: deptId,
         status: selectedProcessType.requires_approval ? 'pending' : 'completed',
         values: formValues,
       });
