@@ -18,40 +18,57 @@ export default function Dashboard() {
   const [dynamicWidgets, setDynamicWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        const [plantsRes, empRes, macRes, pTypeRes, instRes, propRes, stockRes, widgetRes] = await Promise.all([
-          CoreAPI.getPlants(),
-          CoreAPI.getEmployees(),
-          CoreAPI.getMachines(),
-          ProcessEngineAPI.getProcessTypes(),
-          ProcessEngineAPI.getInstances(),
-          WorkflowAPI.getProposals(),
-          JournalAPI.getStocks(),
-          axios.get('http://127.0.0.1:8000/api/core/ui-widgets/?active=true').catch(() => ({ data: [] }))
-        ]);
+  const loadDashboardData = async () => {
+    try {
+      const [plantsRes, empRes, macRes, pTypeRes, instRes, propRes, stockRes, widgetRes] = await Promise.all([
+        CoreAPI.getPlants().catch(() => ({ data: [] })),
+        CoreAPI.getEmployees().catch(() => ({ data: [] })),
+        CoreAPI.getMachines().catch(() => ({ data: [] })),
+        ProcessEngineAPI.getProcessTypes().catch(() => ({ data: [] })),
+        ProcessEngineAPI.getInstances().catch(() => ({ data: [] })),
+        WorkflowAPI.getProposals().catch(() => ({ data: [] })),
+        JournalAPI.getStocks().catch(() => ({ data: [] })),
+        axios.get('http://127.0.0.1:8000/api/core/ui-widgets/?active=true').catch(() => ({ data: [] }))
+      ]);
 
-        setStats({
-          plantsCount: plantsRes.data.count || plantsRes.data.results?.length || plantsRes.data.length || 0,
-          employeesCount: empRes.data.count || empRes.data.results?.length || empRes.data.length || 0,
-          machinesCount: macRes.data.count || macRes.data.results?.length || macRes.data.length || 0,
-          processTypesCount: pTypeRes.data.count || pTypeRes.data.results?.length || pTypeRes.data.length || 0,
-          instancesCount: instRes.data.count || instRes.data.results?.length || instRes.data.length || 0,
-          proposalsCount: propRes.data.count || propRes.data.results?.length || propRes.data.length || 0,
-          stocksCount: stockRes.data.count || stockRes.data.results?.length || stockRes.data.length || 0,
-        });
+      setStats({
+        plantsCount: plantsRes.data.count || plantsRes.data.results?.length || plantsRes.data.length || 0,
+        employeesCount: empRes.data.count || empRes.data.results?.length || empRes.data.length || 0,
+        machinesCount: macRes.data.count || macRes.data.results?.length || macRes.data.length || 0,
+        processTypesCount: pTypeRes.data.count || pTypeRes.data.results?.length || pTypeRes.data.length || 0,
+        instancesCount: instRes.data.count || instRes.data.results?.length || instRes.data.length || 0,
+        proposalsCount: propRes.data.count || propRes.data.results?.length || propRes.data.length || 0,
+        stocksCount: stockRes.data.count || stockRes.data.results?.length || stockRes.data.length || 0,
+      });
 
-        setRecentInstances((instRes.data.results || instRes.data || []).slice(0, 5));
-        setDynamicWidgets(widgetRes.data?.results || widgetRes.data || []);
-      } catch (err) {
-        console.error("Failed to load dashboard statistics:", err);
-      } finally {
-        setLoading(false);
-      }
+      setRecentInstances((instRes.data.results || instRes.data || []).slice(0, 5));
+      setDynamicWidgets(widgetRes.data?.results || widgetRes.data || []);
+    } catch (err) {
+      console.error("Failed to load dashboard statistics:", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadDashboardData();
+    window.addEventListener('erp_ui_metadata_updated', loadDashboardData);
+    return () => window.removeEventListener('erp_ui_metadata_updated', loadDashboardData);
   }, []);
+
+  const getWidgetValue = (w) => {
+    if (w.widget_type !== 'kpi') return 'Active';
+    if (loading) return '...';
+    const src = (w.data_source || '').toLowerCase().trim();
+    if (src.includes('emp') || src.includes('user') || src.includes('workforce')) return stats.employeesCount;
+    if (src.includes('plant') || src.includes('facil')) return stats.plantsCount;
+    if (src.includes('mach') || src.includes('vehic')) return stats.machinesCount;
+    if (src.includes('inst') || src.includes('exec')) return stats.instancesCount;
+    if (src.includes('prop') || src.includes('work')) return stats.proposalsCount;
+    if (src.includes('stock') || src.includes('bin') || src.includes('loc')) return stats.stocksCount;
+    if (src.includes('proc') || src.includes('type')) return stats.processTypesCount;
+    return stats.employeesCount || 10;
+  };
 
   const cardData = [
     { title: 'Active Plants & Units', count: stats.plantsCount, icon: Building2 },
@@ -84,7 +101,7 @@ export default function Dashboard() {
                   <div>
                     <p className="kpi-label">{w.widget_name}</p>
                     <p className="kpi-number mt-1">
-                      {w.widget_type === 'kpi' ? (loading ? '...' : (stats.employeesCount || 12)) : 'Live'}
+                      {getWidgetValue(w)}
                     </p>
                     <p className="text-[11px] text-[#6B7280] mt-1">{w.data_source || 'Core Aggregator'}</p>
                   </div>

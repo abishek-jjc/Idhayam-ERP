@@ -140,10 +140,24 @@ class StorageLocationBlockSerializer(BaseSanitizingSerializer):
 class StorageLocationSerializer(BaseSanitizingSerializer):
     plant_name = serializers.ReadOnlyField(source='plant.name')
     department_name = serializers.ReadOnlyField(source='department.name')
+    block_name = serializers.ReadOnlyField(source='storage_location_block.start_code')
 
     class Meta:
         model = StorageLocation
         fields = '__all__'
+
+    def create(self, validated_data):
+        if not validated_data.get('storage_location_block') and validated_data.get('department'):
+            dept = validated_data.get('department')
+            blk, _ = StorageLocationBlock.objects.get_or_create(
+                department=dept,
+                start_code='A0',
+                end_code='Z9',
+                defaults={'remarks': 'Auto Default Block'}
+            )
+            validated_data['storage_location_block'] = blk
+        return super().create(validated_data)
+
 
 class DocumentSerializer(BaseSanitizingSerializer):
     uploaded_by_name = serializers.ReadOnlyField(source='uploaded_by.name')

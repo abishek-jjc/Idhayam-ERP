@@ -1,6 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Database, Loader2 } from 'lucide-react';
 
-export default function DynamicForm({ definitions, onSubmit, onCancel, plants, departments, employees }) {
+const API_BASE = 'http://127.0.0.1:8000';
+
+const MASTER_TABLE_MAP = {
+  companies: { endpoint: '/api/core/companies/', label: 'Companies' },
+  company: { endpoint: '/api/core/companies/', label: 'Companies' },
+  plants: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
+  plant: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
+  departments: { endpoint: '/api/core/departments/', label: 'Departments' },
+  department: { endpoint: '/api/core/departments/', label: 'Departments' },
+  designations: { endpoint: '/api/core/designations/', label: 'Designations' },
+  designation: { endpoint: '/api/core/designations/', label: 'Designations' },
+  employees: { endpoint: '/api/core/employees/', label: 'Employees' },
+  employee: { endpoint: '/api/core/employees/', label: 'Employees' },
+  machines: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
+  machine: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
+  vendors: { endpoint: '/api/core/vendors/', label: 'Vendors' },
+  vendor: { endpoint: '/api/core/vendors/', label: 'Vendors' },
+  storage_locations: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  storage_location: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  storage: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  master_categories: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+  categories: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+  category: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+  master_items: { endpoint: '/api/masters/items/', label: 'Master Items' },
+  items: { endpoint: '/api/masters/items/', label: 'Master Items' },
+  item: { endpoint: '/api/masters/items/', label: 'Master Items' },
+  process_types: { endpoint: '/api/process/types/', label: 'Process Types' },
+};
+
+export default function DynamicForm({ definitions = [], onSubmit, onCancel, plants = [], departments = [], employees = [] }) {
   const [formData, setFormData] = useState({
     plant: plants[0]?.id || '',
     department: departments[0]?.id || '',
@@ -8,6 +39,34 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
     remarks: '',
     values: {},
   });
+
+  const [masterOptions, setMasterOptions] = useState({});
+  const [loadingMasters, setLoadingMasters] = useState({});
+
+  useEffect(() => {
+    const refDefs = definitions.filter((d) => d.data_type === 'reference' && d.reference_table);
+    const tablesToFetch = [...new Set(refDefs.map((d) => d.reference_table?.toLowerCase().trim()).filter(Boolean))];
+
+    tablesToFetch.forEach((tableKey) => {
+      const config = MASTER_TABLE_MAP[tableKey];
+      if (config && !masterOptions[tableKey]) {
+        setLoadingMasters((prev) => ({ ...prev, [tableKey]: true }));
+        axios
+          .get(`${API_BASE}${config.endpoint}`)
+          .then((res) => {
+            const list = res.data?.results || res.data || [];
+            setMasterOptions((prev) => ({ ...prev, [tableKey]: list }));
+          })
+          .catch((err) => {
+            console.error(`Failed to fetch options for ${tableKey}:`, err);
+            setMasterOptions((prev) => ({ ...prev, [tableKey]: [] }));
+          })
+          .finally(() => {
+            setLoadingMasters((prev) => ({ ...prev, [tableKey]: false }));
+          });
+      }
+    });
+  }, [definitions]);
 
   const handleValueChange = (code, val) => {
     setFormData((prev) => ({
@@ -25,7 +84,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 font-sans">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-[#E5E7EB]">
         <div>
           <label className="form-label">Plant *</label>
@@ -81,53 +140,72 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
 
         {definitions.map((def) => {
           const val = formData.values[def.attribute_code] || '';
+          const refTable = def.reference_table?.toLowerCase().trim();
 
           if (def.data_type === 'reference') {
-            const refOptions = def.reference_options || [];
+            const options = masterOptions[refTable] || def.reference_options || [];
+            const isLoading = loadingMasters[refTable];
+            const masterInfo = MASTER_TABLE_MAP[refTable];
 
             return (
-              <div key={def.id}>
-                <label className="form-label">
-                  {def.attribute_name} {def.is_required && '*'}
-                </label>
+              <div key={def.id} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="form-label mb-0">
+                    {def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}
+                  </label>
+                  {refTable && (
+                    <span className="text-[10px] text-[#1B4E9B] font-semibold flex items-center gap-1">
+                      <Database className="w-3 h-3" /> {masterInfo?.label || refTable}
+                    </span>
+                  )}
+                </div>
 
-                <select
-                  value={val}
-                  onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
-                  className="form-input"
-                  required={def.is_required}
-                >
-                  <option value="">Select {def.attribute_name}</option>
-                  {refOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
+                <div className="relative">
+                  <select
+                    value={val}
+                    onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
+                    className="form-input"
+                    required={def.is_required}
+                    disabled={isLoading}
+                  >
+                    <option value="">
+                      {isLoading ? 'Loading master records...' : `-- Select ${def.attribute_name} --`}
                     </option>
-                  ))}
-                </select>
+                    {options.map((opt) => {
+                      const id = opt.id || opt.code;
+                      const displayTitle = opt.name || opt.title || opt.code || opt.id;
+                      return (
+                        <option key={id} value={id}>
+                          {displayTitle} ({id})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isLoading && (
+                    <Loader2 className="w-4 h-4 animate-spin text-[#1B4E9B] absolute right-8 top-2.5 pointer-events-none" />
+                  )}
+                </div>
               </div>
             );
           }
 
-          if (def.data_type === 'number') {
+          if (def.data_type === 'number' || def.data_type === 'currency') {
             return (
               <div key={def.id}>
                 <label className="form-label">
-                  {def.attribute_name} {def.is_required && '*'}
+                  {def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}
                 </label>
-
                 <input
                   type="number"
-                  min="0"
                   step="any"
                   value={val}
                   onChange={(e) => {
                     const value = e.target.value;
-                    if (value === '' || Number(value) >= 0) {
-                      handleValueChange(def.attribute_code, value);
-                    }
+                    handleValueChange(def.attribute_code, value);
                   }}
                   className="form-input"
                   required={def.is_required}
+                  placeholder="0.00"
                 />
               </div>
             );
@@ -136,7 +214,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
           if (def.data_type === 'date') {
             return (
               <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
+                <label className="form-label">{def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}</label>
                 <input
                   type="date"
                   value={val}
@@ -151,7 +229,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
           if (def.data_type === 'time') {
             return (
               <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
+                <label className="form-label">{def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}</label>
                 <input
                   type="time"
                   value={val}
@@ -166,7 +244,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
           if (def.data_type === 'datetime') {
             return (
               <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
+                <label className="form-label">{def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}</label>
                 <input
                   type="datetime-local"
                   value={val}
@@ -184,12 +262,12 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
                 <input
                   type="checkbox"
                   id={def.attribute_code}
-                  checked={!!val}
+                  checked={val === true || val === 'true' || val === 1}
                   onChange={(e) => handleValueChange(def.attribute_code, e.target.checked)}
                   className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
                 />
                 <label htmlFor={def.attribute_code} className="text-[13px] text-[#374151] font-medium cursor-pointer">
-                  {def.attribute_name}
+                  {def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}
                 </label>
               </div>
             );
@@ -199,7 +277,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
             const selectOptions = (def.options || '').split(',').map(o => o.trim()).filter(Boolean);
             return (
               <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
+                <label className="form-label">{def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}</label>
                 <select
                   value={val}
                   onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
@@ -218,7 +296,7 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
           if (def.data_type === 'textarea') {
             return (
               <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
+                <label className="form-label">{def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}</label>
                 <textarea
                   value={val}
                   onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
@@ -231,81 +309,9 @@ export default function DynamicForm({ definitions, onSubmit, onCancel, plants, d
             );
           }
 
-          if (def.data_type === 'email') {
-            return (
-              <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
-                <input
-                  type="email"
-                  value={val}
-                  onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
-                  className="form-input"
-                  placeholder="user@company.com"
-                  required={def.is_required}
-                />
-              </div>
-            );
-          }
-
-          if (def.data_type === 'phone') {
-            return (
-              <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
-                <input
-                  type="tel"
-                  value={val}
-                  onChange={(e) => handleValueChange(def.attribute_code, e.target.value)}
-                  className="form-input"
-                  placeholder="+91 98765 43210"
-                  required={def.is_required}
-                />
-              </div>
-            );
-          }
-
-          if (def.data_type === 'currency') {
-            return (
-              <div key={def.id}>
-                <label className="form-label">{def.attribute_name} (₹) {def.is_required && '*'}</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-[#6B7280] font-bold text-sm">₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={val}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === '' || Number(value) >= 0) {
-                        handleValueChange(def.attribute_code, value);
-                      }
-                    }}
-                    className="form-input pl-8"
-                    placeholder="0.00"
-                    required={def.is_required}
-                  />
-                </div>
-              </div>
-            );
-          }
-
-          if (def.data_type === 'file') {
-            return (
-              <div key={def.id}>
-                <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
-                <input
-                  type="file"
-                  onChange={(e) => handleValueChange(def.attribute_code, e.target.files[0]?.name || '')}
-                  className="form-input file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#1B4E9B] file:text-white"
-                  required={def.is_required}
-                />
-              </div>
-            );
-          }
-
           return (
             <div key={def.id}>
-              <label className="form-label">{def.attribute_name} {def.is_required && '*'}</label>
+              <label className="form-label">{def.attribute_name} {def.is_required && <span className="text-[#DC2626]">*</span>}</label>
               <input
                 type="text"
                 value={val}

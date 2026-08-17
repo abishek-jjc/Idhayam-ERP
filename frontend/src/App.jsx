@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import { AuthProvider } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
@@ -17,6 +18,29 @@ import ProcessLinks from './pages/ProcessLinks';
 import ErrorBoundary from './components/ErrorBoundary';
 
 function ProtectedLayout() {
+  useEffect(() => {
+    const applyActiveTheme = () => {
+      axios.get('http://127.0.0.1:8000/api/core/ui-themes/?active=true')
+        .then(res => {
+          const list = res.data?.results || res.data || [];
+          const activeTheme = list.find(t => t.active) || list[0];
+          if (activeTheme) {
+            const root = document.documentElement;
+            if (activeTheme.primary_color) root.style.setProperty('--theme-primary', activeTheme.primary_color);
+            if (activeTheme.secondary_color) root.style.setProperty('--theme-secondary', activeTheme.secondary_color);
+            if (activeTheme.background_color) root.style.setProperty('--theme-bg', activeTheme.background_color);
+            if (activeTheme.card_bg_color) root.style.setProperty('--theme-card', activeTheme.card_bg_color);
+            if (activeTheme.text_color) root.style.setProperty('--theme-text', activeTheme.text_color);
+            if (activeTheme.border_color) root.style.setProperty('--theme-border', activeTheme.border_color);
+          }
+        })
+        .catch(() => {});
+    };
+
+    applyActiveTheme();
+    window.addEventListener('erp_theme_updated', applyActiveTheme);
+    return () => window.removeEventListener('erp_theme_updated', applyActiveTheme);
+  }, []);
   return (
     <div className="app-container">
       <Sidebar />

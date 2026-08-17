@@ -68,6 +68,7 @@ export default function NavbarManagement() {
     if (window.confirm("Delete this navbar configuration?")) {
       axios.delete(`http://127.0.0.1:8000/api/core/ui-navbars/${id}/`)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Navbar config deleted.");
           fetchNavbars();
           setTimeout(() => setNotification(''), 3000);
@@ -81,6 +82,7 @@ export default function NavbarManagement() {
     if (editingId) {
       axios.put(`http://127.0.0.1:8000/api/core/ui-navbars/${editingId}/`, formData)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Navbar config updated.");
           setIsModalOpen(false);
           fetchNavbars();
@@ -90,6 +92,7 @@ export default function NavbarManagement() {
     } else {
       axios.post('http://127.0.0.1:8000/api/core/ui-navbars/', formData)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("New navbar config created.");
           setIsModalOpen(false);
           fetchNavbars();

@@ -242,19 +242,20 @@ class StorageLocationBlock(models.Model):
 
 class StorageLocation(models.Model):
     id = models.CharField(primary_key=True, max_length=50, default=pk_bin, editable=False)
-    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='storage_locations')
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='storage_locations')
-    storage_location_block = models.ForeignKey(StorageLocationBlock, on_delete=models.CASCADE, related_name='locations')
-    code = models.CharField(max_length=4)
+    unit_id = models.CharField(max_length=50, null=True, blank=True, help_text="Unit ID or Plant Code")
+    name = models.CharField(max_length=150, blank=True, default='')
+    plant = models.ForeignKey(Plant, on_delete=models.SET_NULL, related_name='storage_locations', null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, related_name='storage_locations', null=True, blank=True)
+    storage_location_block = models.ForeignKey(StorageLocationBlock, on_delete=models.SET_NULL, related_name='locations', null=True, blank=True)
+    code = models.CharField(max_length=30)
     capacity = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
     status = models.CharField(max_length=30, default='active')
     remarks = models.TextField(blank=True, null=True)
 
-    class Meta:
-        unique_together = ('plant', 'code')
-
     def __str__(self):
-        return f"Bin {self.code} ({self.department.name})"
+        dept_str = self.department.name if self.department else "Main Warehouse"
+        return f"Bin {self.code} - {self.name or 'Location'} ({dept_str})"
+
 
 class Document(models.Model):
     id = models.CharField(primary_key=True, max_length=50, default=pk_doc, editable=False)

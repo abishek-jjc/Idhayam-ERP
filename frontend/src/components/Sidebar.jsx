@@ -21,11 +21,9 @@ export default function Sidebar() {
   const { user, designation, isSuperAdmin, hasPermission } = useAuth();
   const [menus, setMenus] = useState([]);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadMenus = () => {
     axios.get('http://127.0.0.1:8000/api/core/ui-menus/?active=true')
       .then((res) => {
-        if (!isMounted) return;
         const fetched = res.data?.results || res.data || [];
         if (fetched.length > 0) {
           setMenus(fetched);
@@ -34,9 +32,14 @@ export default function Sidebar() {
         }
       })
       .catch(() => {
-        if (isMounted) setMenus(defaultFallbackNavs);
+        setMenus(defaultFallbackNavs);
       });
-    return () => { isMounted = false; };
+  };
+
+  useEffect(() => {
+    loadMenus();
+    window.addEventListener('erp_ui_metadata_updated', loadMenus);
+    return () => window.removeEventListener('erp_ui_metadata_updated', loadMenus);
   }, []);
 
   const getIconComponent = (iconName) => {

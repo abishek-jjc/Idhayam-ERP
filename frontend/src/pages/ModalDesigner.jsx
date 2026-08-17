@@ -77,6 +77,7 @@ export default function ModalDesigner() {
     if (window.confirm("Delete this modal definition?")) {
       axios.delete(`http://127.0.0.1:8000/api/core/ui-modals/${id}/`)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Modal definition deleted.");
           fetchData();
           setTimeout(() => setNotification(''), 3000);
@@ -95,6 +96,7 @@ export default function ModalDesigner() {
     if (editingId) {
       axios.put(`http://127.0.0.1:8000/api/core/ui-modals/${editingId}/`, payload)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Modal definition updated.");
           setIsModalOpen(false);
           fetchData();
@@ -104,6 +106,7 @@ export default function ModalDesigner() {
     } else {
       axios.post('http://127.0.0.1:8000/api/core/ui-modals/', payload)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("New modal definition created.");
           setIsModalOpen(false);
           fetchData();
@@ -326,9 +329,9 @@ export default function ModalDesigner() {
 
             {previewModal.form ? (
               <GenericFormRenderer
-                formConfig={forms.find(f => f.id === previewModal.form)}
+                formConfig={forms.find(f => f.id === previewModal.form || f.id === previewModal.form?.id || f.form_name === previewModal.form_name)}
                 onSubmit={(data) => {
-                  alert("Preview form submitted with data: " + JSON.stringify(data, null, 2));
+                  alert("Preview form submitted with data:\n\n" + JSON.stringify(data, null, 2));
                   setPreviewModal(null);
                 }}
                 onCancel={() => setPreviewModal(null)}

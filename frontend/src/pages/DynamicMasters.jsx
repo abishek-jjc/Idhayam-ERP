@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { MastersAPI } from '../api';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
@@ -10,7 +11,32 @@ import Table from '../components/ui/Table';
 import Badge from '../components/ui/Badge';
 import IconButton from '../components/ui/IconButton';
 import EmptyState from '../components/ui/EmptyState';
-import { Layers, Plus, Trash2, Eye, Sliders, Database, ArrowRightLeft, FolderPlus } from 'lucide-react';
+import GenericFormRenderer from '../components/GenericFormRenderer';
+import { Layers, Plus, Trash2, Eye, Sliders, Database, ArrowRightLeft, FolderPlus, Sparkles } from 'lucide-react';
+
+const API_BASE = 'http://127.0.0.1:8000';
+
+const MASTER_TABLE_MAP = {
+  companies: { endpoint: '/api/core/companies/', label: 'Companies' },
+  company: { endpoint: '/api/core/companies/', label: 'Companies' },
+  plants: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
+  plant: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
+  departments: { endpoint: '/api/core/departments/', label: 'Departments' },
+  department: { endpoint: '/api/core/departments/', label: 'Departments' },
+  designations: { endpoint: '/api/core/designations/', label: 'Designations' },
+  designation: { endpoint: '/api/core/designations/', label: 'Designations' },
+  employees: { endpoint: '/api/core/employees/', label: 'Employees' },
+  employee: { endpoint: '/api/core/employees/', label: 'Employees' },
+  machines: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
+  machine: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
+  vendors: { endpoint: '/api/core/vendors/', label: 'Vendors' },
+  vendor: { endpoint: '/api/core/vendors/', label: 'Vendors' },
+  storage_locations: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  storage_location: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  master_categories: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+  master_items: { endpoint: '/api/masters/items/', label: 'Master Items' },
+  process_types: { endpoint: '/api/process/types/', label: 'Process Types' },
+};
 
 export default function DynamicMasters() {
   const [activeTab, setActiveTab] = useState('legacy_json'); // 'legacy_json' | 'eav_converted'
@@ -20,6 +46,9 @@ export default function DynamicMasters() {
   const [versions, setVersions] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [instances, setInstances] = useState([]);
+  const [uiForms, setUiForms] = useState([]);
+  const [useDynamicFormMode, setUseDynamicFormMode] = useState(true);
+  const [masterOptions, setMasterOptions] = useState({});
 
   const [selectedCategory, setSelectedCategory] = useState('');
 
@@ -61,6 +90,8 @@ export default function DynamicMasters() {
 
   useEffect(() => {
     loadMastersData();
+    window.addEventListener('erp_ui_metadata_updated', loadMastersData);
+    return () => window.removeEventListener('erp_ui_metadata_updated', loadMastersData);
   }, []);
 
   useEffect(() => {
@@ -69,19 +100,37 @@ export default function DynamicMasters() {
     }
   }, [selectedCategory, categories]);
 
+  useEffect(() => {
+    const refAttrs = attributes.filter(a => a.data_type === 'reference' && a.reference_table);
+    refAttrs.forEach(a => {
+      const tableKey = a.reference_table?.toLowerCase().trim();
+      const config = MASTER_TABLE_MAP[tableKey];
+      if (config && !masterOptions[tableKey]) {
+        axios.get(`${API_BASE}${config.endpoint}`)
+          .then(res => {
+            const list = res.data?.results || res.data || [];
+            setMasterOptions(prev => ({ ...prev, [tableKey]: list }));
+          })
+          .catch(() => {});
+      }
+    });
+  }, [attributes]);
+
   async function loadMastersData() {
     try {
-      const [catRes, itemRes, verRes, instRes] = await Promise.all([
-        MastersAPI.getCategories(),
-        MastersAPI.getItems(),
-        MastersAPI.getVersions(),
-        MastersAPI.getInstances(),
+      const [catRes, itemRes, verRes, instRes, formsRes] = await Promise.all([
+        MastersAPI.getCategories().catch(() => ({ data: [] })),
+        MastersAPI.getItems().catch(() => ({ data: [] })),
+        MastersAPI.getVersions().catch(() => ({ data: [] })),
+        MastersAPI.getInstances().catch(() => ({ data: [] })),
+        axios.get('http://127.0.0.1:8000/api/core/ui-forms/').catch(() => ({ data: [] })),
       ]);
       const loadedCats = catRes.data.results || catRes.data || [];
       setCategories(loadedCats);
       setItems(itemRes.data.results || itemRes.data || []);
       setVersions(verRes.data.results || verRes.data || []);
       setInstances(instRes.data.results || instRes.data || []);
+      setUiForms(formsRes.data?.results || formsRes.data || []);
 
       if (loadedCats.length > 0 && !selectedCategory) {
         setSelectedCategory(loadedCats[0].code);
@@ -470,14 +519,32 @@ export default function DynamicMasters() {
           <div><label className="form-label">Attribute Name *</label><input type="text" required value={newAttr.attribute_name} onChange={(e) => setNewAttr({ ...newAttr, attribute_name: e.target.value })} className="form-input" placeholder="e.g. Min Purity Rating" /></div>
           <div>
             <label className="form-label">Data Type *</label>
-            <select value={newAttr.data_type} onChange={(e) => setNewAttr({ ...newAttr, data_type: e.target.value })} className="form-input">
+            <select value={newAttr.data_type} onChange={(e) => setNewAttr({ ...newAttr, data_type: e.target.value, reference_table: e.target.value === 'reference' ? 'master_items' : '' })} className="form-input">
               <option value="text">Text</option>
               <option value="number">Number</option>
               <option value="date">Date</option>
               <option value="boolean">Boolean</option>
-              <option value="reference">Reference FK</option>
+              <option value="reference">Reference Foreign Key (FK)</option>
             </select>
           </div>
+          {newAttr.data_type === 'reference' && (
+            <div>
+              <label className="form-label">Target Reference Master Table *</label>
+              <select value={newAttr.reference_table} onChange={(e) => setNewAttr({ ...newAttr, reference_table: e.target.value })} className="form-input" required>
+                <option value="companies">Companies / Entities</option>
+                <option value="plants">Plants & Facilities</option>
+                <option value="departments">Departments</option>
+                <option value="designations">Designations</option>
+                <option value="employees">Employees / Workforce</option>
+                <option value="machines">Machines & Vehicles</option>
+                <option value="vendors">Vendors</option>
+                <option value="storage_locations">Storage Bins / Locations</option>
+                <option value="master_categories">Master Categories</option>
+                <option value="master_items">Master Items</option>
+                <option value="process_types">Process Types</option>
+              </select>
+            </div>
+          )}
           <div className="modal-footer">
             <Button type="button" variant="secondary" onClick={() => setAttrModalOpen(false)}>Cancel</Button>
             <Button type="submit" variant="primary">Save Attribute</Button>
@@ -487,35 +554,133 @@ export default function DynamicMasters() {
 
       {/* MODAL 3: Create MasterItem */}
       <Modal isOpen={itemModalOpen} onClose={() => setItemModalOpen(false)} size="md" title="Create MasterItem & Sync to MasterInstance">
-        <form onSubmit={handleSaveItem} className="space-y-4">
-          <div><label className="form-label">Item Code *</label><input type="text" required value={newItem.code} onChange={(e) => setNewItem({ ...newItem, code: e.target.value })} className="form-input" placeholder="e.g. RAW-CHEM-POLY-03" /></div>
-          <div><label className="form-label">Item Name *</label><input type="text" required value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="form-input" placeholder="e.g. High-Grade Chemical Compound" /></div>
-
-          {/* Dynamic Master Attributes Inputs */}
-          {attributes.length > 0 ? (
-            <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-3">
-              <p className="text-xs font-bold text-[#1B4E9B] uppercase">Category Attributes</p>
-              {attributes.map((attr) => (
-                <div key={attr.id} className="space-y-1">
-                  <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
-                  <input
-                    type={attr.data_type === 'number' ? 'number' : 'text'}
-                    min={attr.data_type === 'number' ? '0' : undefined}
-                    step="any"
-                    value={dynamicFormValues[attr.attribute_code] || ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (attr.data_type !== 'number' || value === '' || Number(value) >= 0) {
-                        setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: value });
-                      }
-                    }}
-                    className="form-input"
-                    placeholder={`Enter ${attr.attribute_name}`}
-                  />
-                </div>
-              ))}
+        {uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters')) && (
+          <div className="p-3 mb-4 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-[#1B4E9B] font-semibold">
+              <Sparkles className="w-4 h-4 text-[#1B4E9B]" />
+              <span>Dynamic Form Available from Form Builder</span>
             </div>
-          ) : (
+            <button
+              type="button"
+              onClick={() => setUseDynamicFormMode(!useDynamicFormMode)}
+              className="text-[#1B4E9B] font-bold hover:underline"
+            >
+              {useDynamicFormMode ? 'Switch to Standard Form' : 'Use Dynamic Form'}
+            </button>
+          </div>
+        )}
+
+        {useDynamicFormMode && uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters')) ? (
+          <GenericFormRenderer
+            formConfig={uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters'))}
+            onSubmit={async (formData) => {
+              try {
+                const catObj = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory) || categories[0];
+                await MastersAPI.createItem({
+                  category: catObj?.id || selectedCategory,
+                  code: formData.code || `ITM-${Date.now().toString().slice(-4)}`,
+                  name: formData.name || formData.title || 'Dynamic Master Item',
+                  attributes: formData,
+                  values: formData,
+                });
+                setItemModalOpen(false);
+                loadMastersData();
+              } catch (err) {
+                alert("Submission failed: " + (err.response?.data?.detail || err.message));
+              }
+            }}
+            onCancel={() => setItemModalOpen(false)}
+          />
+        ) : (
+          <form onSubmit={handleSaveItem} className="space-y-4">
+            <div><label className="form-label">Item Code *</label><input type="text" required value={newItem.code} onChange={(e) => setNewItem({ ...newItem, code: e.target.value })} className="form-input" placeholder="e.g. RAW-CHEM-POLY-03" /></div>
+            <div><label className="form-label">Item Name *</label><input type="text" required value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="form-input" placeholder="e.g. High-Grade Chemical Compound" /></div>
+
+            {/* Dynamic Master Attributes Inputs */}
+            {attributes.length > 0 ? (
+              <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-3">
+                <p className="text-xs font-bold text-[#1B4E9B] uppercase">Category Attributes</p>
+                {attributes.map((attr) => {
+                  const val = dynamicFormValues[attr.attribute_code] || '';
+                  const refTable = attr.reference_table?.toLowerCase().trim();
+                  const options = masterOptions[refTable] || [];
+
+                  if (attr.data_type === 'reference') {
+                    return (
+                      <div key={attr.id} className="space-y-1">
+                        <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
+                        <select
+                          value={val}
+                          onChange={(e) => setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: e.target.value })}
+                          className="form-input"
+                          required={attr.is_required}
+                        >
+                          <option value="">-- Select {attr.attribute_name} --</option>
+                          {options.map((opt) => (
+                            <option key={opt.id || opt.code} value={opt.id || opt.code}>
+                              {opt.name || opt.title || opt.code || opt.id}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  }
+
+                  if (attr.data_type === 'boolean') {
+                    return (
+                      <div key={attr.id} className="flex items-center gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id={attr.attribute_code}
+                          checked={val === true || val === 'true'}
+                          onChange={(e) => setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: e.target.checked })}
+                          className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
+                        />
+                        <label htmlFor={attr.attribute_code} className="text-xs text-[#374151] cursor-pointer font-medium">
+                          {attr.attribute_name} {attr.is_required && '*'}
+                        </label>
+                      </div>
+                    );
+                  }
+
+                  if (attr.data_type === 'date') {
+                    return (
+                      <div key={attr.id} className="space-y-1">
+                        <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
+                        <input
+                          type="date"
+                          value={val}
+                          onChange={(e) => setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: e.target.value })}
+                          className="form-input"
+                          required={attr.is_required}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={attr.id} className="space-y-1">
+                      <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
+                      <input
+                        type={attr.data_type === 'number' ? 'number' : 'text'}
+                        min={attr.data_type === 'number' ? '0' : undefined}
+                        step="any"
+                        value={val}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (attr.data_type !== 'number' || value === '' || Number(value) >= 0) {
+                            setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: value });
+                          }
+                        }}
+                        className="form-input"
+                        placeholder={`Enter ${attr.attribute_name}`}
+                        required={attr.is_required}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-[#1B4E9B] uppercase">Custom Master Attributes</p>
@@ -570,6 +735,7 @@ export default function DynamicMasters() {
             <Button type="submit" variant="primary">Create Item</Button>
           </div>
         </form>
+        )}
       </Modal>
 
       {/* MODAL 4: Create Version */}

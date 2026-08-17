@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProcessEngineAPI, MastersAPI, WorkflowAPI } from '../api';
 import Modal from '../components/Modal';
+import DynamicForm from '../components/DynamicForm';
 import { UserCheck, Cpu, Layers, GitPullRequest, Plus, ShieldCheck, Clock, AlertCircle } from 'lucide-react';
 
 export default function UserPage() {
@@ -281,59 +282,34 @@ export default function UserPage() {
       </div>
 
       {/* Modal: Execute Process Instance */}
-      <Modal isOpen={createInstanceModal} onClose={() => setCreateInstanceModal(false)} size="md" title={`Execute Process: ${selectedProcessType?.name}`}>
-        <form onSubmit={handleCreateInstanceSubmit} className="space-y-4">
-          <p className="text-xs text-[#6B7280]">Fill in dynamic attributes required for this process execution:</p>
-          
-          {attrDefinitions.map((attr) => (
-            <div key={attr.id} className="space-y-1">
-              <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
-              {attr.data_type === 'boolean' ? (
-                <select
-                  value={formValues[attr.attribute_code] || ''}
-                  onChange={(e) => setFormValues({ ...formValues, [attr.attribute_code]: e.target.value })}
-                  className="form-input"
-                >
-                  <option value="">Select Option</option>
-                  <option value="true">Yes / True</option>
-                  <option value="false">No / False</option>
-                </select>
-              ) : attr.data_type === 'number' ? (
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  required={attr.is_required}
-                  value={formValues[attr.attribute_code] || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || Number(value) >= 0) {
-                      setFormValues({ ...formValues, [attr.attribute_code]: value });
-                    }
-                  }}
-                  className="form-input"
-                  placeholder="Enter numeric value"
-                />
-              ) : (
-                <input
-                  type="text"
-                  required={attr.is_required}
-                  value={formValues[attr.attribute_code] || ''}
-                  onChange={(e) => setFormValues({ ...formValues, [attr.attribute_code]: e.target.value })}
-                  className="form-input"
-                  placeholder={`Enter ${attr.attribute_name}`}
-                />
-              )}
-            </div>
-          ))}
-
-          <div className="modal-footer">
-            <button type="button" onClick={() => setCreateInstanceModal(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">Submit Process Execution</button>
-          </div>
-        </form>
+      <Modal isOpen={createInstanceModal} onClose={() => setCreateInstanceModal(false)} size="lg" title={`Execute Process: ${selectedProcessType?.name}`}>
+        <DynamicForm
+          definitions={attrDefinitions}
+          plants={plants}
+          departments={departments}
+          employees={[{ id: user?.username || 'user-01', name: user?.name || 'Current User', designation_title: designation?.title }]}
+          onSubmit={async (formData) => {
+            try {
+              await ProcessEngineAPI.createInstance({
+                process_type: selectedProcessType.id,
+                plant: formData.plant || plants[0]?.id || null,
+                department: formData.department || departments[0]?.id || null,
+                performed_by: formData.performed_by || null,
+                status: selectedProcessType.requires_approval ? 'pending' : 'completed',
+                remarks: formData.remarks,
+                values: formData.values,
+              });
+              setCreateInstanceModal(false);
+              loadUserData();
+            } catch (err) {
+              alert("Failed to submit process execution: " + (err.response?.data?.detail || err.message));
+            }
+          }}
+          onCancel={() => setCreateInstanceModal(false)}
+        />
       </Modal>
 
     </div>
   );
 }
+

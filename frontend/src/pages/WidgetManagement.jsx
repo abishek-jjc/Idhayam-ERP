@@ -71,6 +71,7 @@ export default function WidgetManagement() {
     if (window.confirm("Delete this dashboard widget?")) {
       axios.delete(`http://127.0.0.1:8000/api/core/ui-widgets/${id}/`)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Widget deleted.");
           fetchWidgets();
           setTimeout(() => setNotification(''), 3000);
@@ -84,6 +85,7 @@ export default function WidgetManagement() {
       active: !w.active
     })
       .then(() => {
+        window.dispatchEvent(new Event('erp_ui_metadata_updated'));
         setNotification(`Widget '${w.widget_name}' ${!w.active ? 'Enabled' : 'Disabled'}.`);
         fetchWidgets();
         setTimeout(() => setNotification(''), 3000);
@@ -96,6 +98,7 @@ export default function WidgetManagement() {
     if (editingId) {
       axios.put(`http://127.0.0.1:8000/api/core/ui-widgets/${editingId}/`, formData)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Widget updated.");
           setIsModalOpen(false);
           fetchWidgets();
@@ -105,6 +108,7 @@ export default function WidgetManagement() {
     } else {
       axios.post('http://127.0.0.1:8000/api/core/ui-widgets/', formData)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("New widget created.");
           setIsModalOpen(false);
           fetchWidgets();

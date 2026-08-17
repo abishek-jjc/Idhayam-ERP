@@ -45,6 +45,7 @@ export default function ThemeManagement() {
 
     axios.patch(`http://127.0.0.1:8000/api/core/ui-themes/${t.id}/`, { active: true })
       .then(() => {
+        window.dispatchEvent(new Event('erp_theme_updated'));
         setNotification(`Applied theme '${t.theme_name}' globally.`);
         fetchThemes();
         setTimeout(() => setNotification(''), 3000);
@@ -86,6 +87,7 @@ export default function ThemeManagement() {
     if (window.confirm("Delete this theme palette?")) {
       axios.delete(`http://127.0.0.1:8000/api/core/ui-themes/${id}/`)
         .then(() => {
+          window.dispatchEvent(new Event('erp_theme_updated'));
           setNotification("Theme deleted.");
           fetchThemes();
           setTimeout(() => setNotification(''), 3000);
@@ -99,6 +101,7 @@ export default function ThemeManagement() {
     if (editingId) {
       axios.put(`http://127.0.0.1:8000/api/core/ui-themes/${editingId}/`, formData)
         .then(() => {
+          window.dispatchEvent(new Event('erp_theme_updated'));
           setNotification("Theme updated.");
           setIsModalOpen(false);
           fetchThemes();
@@ -108,6 +111,7 @@ export default function ThemeManagement() {
     } else {
       axios.post('http://127.0.0.1:8000/api/core/ui-themes/', formData)
         .then(() => {
+          window.dispatchEvent(new Event('erp_theme_updated'));
           setNotification("New theme created.");
           setIsModalOpen(false);
           fetchThemes();

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { ProcessEngineAPI, CoreAPI, MastersAPI } from '../api';
 import Modal from '../components/Modal';
 import DynamicForm from '../components/DynamicForm';
+import GenericFormRenderer from '../components/GenericFormRenderer';
 import Pagination from '../components/Pagination';
 import SearchInput from '../components/ui/SearchInput';
-import { Cpu, Plus, Play, Trash2, Eye, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Cpu, Plus, Play, Trash2, Eye, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function ProcessEngine() {
   const [activeSubTab, setActiveSubTab] = useState('instances');
@@ -12,6 +14,8 @@ export default function ProcessEngine() {
   const [selectedType, setSelectedType] = useState(null);
   const [instances, setInstances] = useState([]);
   const [verifications, setVerifications] = useState([]);
+  const [uiForms, setUiForms] = useState([]);
+  const [useDynamicFormMode, setUseDynamicFormMode] = useState(true);
 
   const [plants, setPlants] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -34,6 +38,8 @@ export default function ProcessEngine() {
 
   useEffect(() => {
     loadEngineData();
+    window.addEventListener('erp_ui_metadata_updated', loadEngineData);
+    return () => window.removeEventListener('erp_ui_metadata_updated', loadEngineData);
   }, []);
 
   useEffect(() => {
@@ -43,15 +49,16 @@ export default function ProcessEngine() {
 
   async function loadEngineData() {
     try {
-      const [ptRes, instRes, verRes, plantRes, deptRes, empRes, itemRes, binRes] = await Promise.all([
-        ProcessEngineAPI.getProcessTypes(),
-        ProcessEngineAPI.getInstances(),
-        ProcessEngineAPI.getVerifications(),
-        CoreAPI.getPlants(),
-        CoreAPI.getDepartments(),
-        CoreAPI.getEmployees(),
-        MastersAPI.getItems(),
-        CoreAPI.getStorageLocations(),
+      const [ptRes, instRes, verRes, plantRes, deptRes, empRes, itemRes, binRes, formsRes] = await Promise.all([
+        ProcessEngineAPI.getProcessTypes().catch(() => ({ data: [] })),
+        ProcessEngineAPI.getInstances().catch(() => ({ data: [] })),
+        ProcessEngineAPI.getVerifications().catch(() => ({ data: [] })),
+        CoreAPI.getPlants().catch(() => ({ data: [] })),
+        CoreAPI.getDepartments().catch(() => ({ data: [] })),
+        CoreAPI.getEmployees().catch(() => ({ data: [] })),
+        MastersAPI.getItems().catch(() => ({ data: [] })),
+        CoreAPI.getStorageLocations().catch(() => ({ data: [] })),
+        axios.get('http://127.0.0.1:8000/api/core/ui-forms/').catch(() => ({ data: [] })),
       ]);
 
       const types = ptRes.data.results || ptRes.data || [];
@@ -64,6 +71,7 @@ export default function ProcessEngine() {
       setEmployees(empRes.data.results || empRes.data || []);
       setMasterItems(itemRes.data.results || itemRes.data || []);
       setStorageLocations(binRes.data.results || binRes.data || []);
+      setUiForms(formsRes.data?.results || formsRes.data || []);
 
       if (types.length > 0 && !selectedType) {
         setSelectedType(types[0]);
@@ -414,13 +422,19 @@ export default function ProcessEngine() {
           </div>
           {newAttr.data_type === 'reference' && (
             <div>
-              <label className="form-label">Target Reference Table</label>
-              <select value={newAttr.reference_table} onChange={(e) => setNewAttr({ ...newAttr, reference_table: e.target.value })} className="form-input">
-                <option value="employee">Employee</option>
-                <option value="vendor">Vendor</option>
-                <option value="master_item">Master Item</option>
-                <option value="master_item_version">Master Item Version</option>
-                <option value="storage_location">Storage Bin Location</option>
+              <label className="form-label">Target Reference Master Table</label>
+              <select value={newAttr.reference_table || 'employee'} onChange={(e) => setNewAttr({ ...newAttr, reference_table: e.target.value })} className="form-input">
+                <option value="companies">Companies / Legal Entities</option>
+                <option value="plants">Plants & Facilities</option>
+                <option value="departments">Departments</option>
+                <option value="designations">Designations</option>
+                <option value="employee">Employees / Workforce</option>
+                <option value="machine">Machines & Vehicles</option>
+                <option value="vendor">Vendors</option>
+                <option value="storage_location">Storage Bin Locations</option>
+                <option value="master_item">Master Items</option>
+                <option value="master_categories">Master Categories</option>
+                <option value="process_types">Process Types</option>
               </select>
             </div>
           )}
@@ -432,14 +446,54 @@ export default function ProcessEngine() {
       </Modal>
 
       <Modal isOpen={launchModalOpen} onClose={() => setLaunchModalOpen(false)} size="lg" title={`Execute ${selectedType?.name}`}>
-        <DynamicForm
-          definitions={selectedType?.attribute_definitions || []}
-          plants={plants}
-          departments={departments}
-          employees={employees}
-          onSubmit={handleExecuteProcess}
-          onCancel={() => setLaunchModalOpen(false)}
-        />
+        {uiForms.find(f => f.active && (f.form_name === `${selectedType?.code}_form` || f.form_name === selectedType?.code || f.form_name === 'process_engine_form' || f.module === 'process_engine' || f.module === selectedType?.code)) && (
+          <div className="p-3 mb-4 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-[#1B4E9B] font-semibold">
+              <Sparkles className="w-4 h-4 text-[#1B4E9B]" />
+              <span>Dynamic Form Linked from Form Builder</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setUseDynamicFormMode(!useDynamicFormMode)}
+              className="text-[#1B4E9B] font-bold hover:underline"
+            >
+              {useDynamicFormMode ? 'Switch to Standard Attributes' : 'Use Dynamic Form'}
+            </button>
+          </div>
+        )}
+
+        {useDynamicFormMode && uiForms.find(f => f.active && (f.form_name === `${selectedType?.code}_form` || f.form_name === selectedType?.code || f.form_name === 'process_engine_form' || f.module === 'process_engine' || f.module === selectedType?.code)) ? (
+          <GenericFormRenderer
+            formConfig={uiForms.find(f => f.active && (f.form_name === `${selectedType?.code}_form` || f.form_name === selectedType?.code || f.form_name === 'process_engine_form' || f.module === 'process_engine' || f.module === selectedType?.code))}
+            onSubmit={async (formData) => {
+              try {
+                await ProcessEngineAPI.createInstance({
+                  process_type: selectedType.id,
+                  plant: formData.plant || plants[0]?.id || null,
+                  department: formData.department || departments[0]?.id || null,
+                  performed_by: formData.performed_by || employees[0]?.id || null,
+                  status: selectedType.requires_approval ? 'pending' : 'completed',
+                  remarks: formData.remarks || 'Launched via Dynamic Form',
+                  values: formData,
+                });
+                setLaunchModalOpen(false);
+                loadEngineData();
+              } catch (err) {
+                alert("Execution failed: " + (err.response?.data?.detail || err.message));
+              }
+            }}
+            onCancel={() => setLaunchModalOpen(false)}
+          />
+        ) : (
+          <DynamicForm
+            definitions={selectedType?.attribute_definitions || []}
+            plants={plants}
+            departments={departments}
+            employees={employees}
+            onSubmit={handleExecuteProcess}
+            onCancel={() => setLaunchModalOpen(false)}
+          />
+        )}
       </Modal>
 
       <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} size="md" title="Process Execution Details">

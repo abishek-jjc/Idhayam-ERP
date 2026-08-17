@@ -71,6 +71,7 @@ export default function MenuManagement() {
     if (window.confirm("Delete this sidebar menu item?")) {
       axios.delete(`http://127.0.0.1:8000/api/core/ui-menus/${id}/`)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Menu item deleted.");
           fetchMenus();
           setTimeout(() => setNotification(''), 3000);
@@ -84,6 +85,7 @@ export default function MenuManagement() {
       active: !item.active
     })
       .then(() => {
+        window.dispatchEvent(new Event('erp_ui_metadata_updated'));
         setNotification(`Menu '${item.menu_name}' ${!item.active ? 'Activated' : 'Deactivated'}.`);
         fetchMenus();
         setTimeout(() => setNotification(''), 3000);
@@ -101,6 +103,7 @@ export default function MenuManagement() {
     if (editingId) {
       axios.put(`http://127.0.0.1:8000/api/core/ui-menus/${editingId}/`, payload)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Menu updated.");
           setIsModalOpen(false);
           fetchMenus();
@@ -110,6 +113,7 @@ export default function MenuManagement() {
     } else {
       axios.post('http://127.0.0.1:8000/api/core/ui-menus/', payload)
         .then(() => {
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("New menu created.");
           setIsModalOpen(false);
           fetchMenus();

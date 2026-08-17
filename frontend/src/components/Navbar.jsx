@@ -12,13 +12,10 @@ export default function Navbar({ title: defaultTitle }) {
 
   const [navbarConfig, setNavbarConfig] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadNavbarConfig = () => {
     const pageKey = location.pathname === '/' ? 'dashboard' : location.pathname.replace('/', '');
-
     axios.get(`http://127.0.0.1:8000/api/core/ui-navbars/?page_name=${pageKey}`)
       .then((res) => {
-        if (!isMounted) return;
         const results = res.data?.results || res.data || [];
         if (results.length > 0) {
           setNavbarConfig(results[0]);
@@ -27,10 +24,14 @@ export default function Navbar({ title: defaultTitle }) {
         }
       })
       .catch(() => {
-        if (isMounted) setNavbarConfig(null);
+        setNavbarConfig(null);
       });
+  };
 
-    return () => { isMounted = false; };
+  useEffect(() => {
+    loadNavbarConfig();
+    window.addEventListener('erp_ui_metadata_updated', loadNavbarConfig);
+    return () => window.removeEventListener('erp_ui_metadata_updated', loadNavbarConfig);
   }, [location.pathname]);
 
   const handleLogout = () => {

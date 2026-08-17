@@ -32,6 +32,7 @@ export const CoreAPI = {
 
   getDesignations: () => api.get('/core/designations/'),
   createDesignation: (data) => api.post('/core/designations/', data),
+  deleteDesignation: (id) => api.delete(`/core/designations/${id}/`),
   
   getEmployees: () => api.get('/core/employees/'),
   createEmployee: (data) => api.post('/core/employees/', data),
@@ -54,6 +55,8 @@ export const CoreAPI = {
 
   getStorageLocations: () => api.get('/core/storage-locations/'),
   createStorageLocation: (data) => api.post('/core/storage-locations/', data),
+  updateStorageLocation: (id, data) => api.patch(`/core/storage-locations/${id}/`, data),
+  deleteStorageLocation: (id) => api.delete(`/core/storage-locations/${id}/`),
   getStorageBlocks: () => api.get('/core/storage-blocks/'),
   createStorageBlock: (data) => api.post('/core/storage-blocks/', data),
 };
