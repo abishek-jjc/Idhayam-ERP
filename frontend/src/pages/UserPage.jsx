@@ -18,6 +18,9 @@ export default function UserPage() {
   const [createInstanceModal, setCreateInstanceModal] = useState(false);
   const [attrDefinitions, setAttrDefinitions] = useState([]);
   const [formValues, setFormValues] = useState({});
+  const [userSelectedIds, setUserSelectedIds] = useState([]);
+
+  const userInstances = instances.slice(0, 8);
 
   const [plants, setPlants] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -197,6 +200,17 @@ export default function UserPage() {
               <table className="custom-table text-xs">
                 <thead>
                   <tr>
+                    <th className="w-8 text-center">
+                      <input
+                        type="checkbox"
+                        checked={userInstances.length > 0 && userInstances.every(i => userSelectedIds.includes(i.id))}
+                        onChange={() => {
+                          if (userInstances.every(i => userSelectedIds.includes(i.id))) setUserSelectedIds([]);
+                          else setUserSelectedIds(userInstances.map(i => i.id));
+                        }}
+                        className="w-3.5 h-3.5 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                      />
+                    </th>
                     <th>Execution ID</th>
                     <th>Process Type</th>
                     <th>Status</th>
@@ -204,13 +218,24 @@ export default function UserPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {instances.length === 0 ? (
+                  {userInstances.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-6 text-[#6B7280] italic">No executions logged yet.</td>
+                      <td colSpan="5" className="text-center py-6 text-[#6B7280] italic">No executions logged yet.</td>
                     </tr>
                   ) : (
-                    instances.slice(0, 8).map((inst) => (
-                      <tr key={inst.id}>
+                    userInstances.map((inst) => (
+                      <tr key={inst.id} className={userSelectedIds.includes(inst.id) ? 'bg-[#F0F9FF]' : ''}>
+                        <td className="w-8 text-center">
+                          <input
+                            type="checkbox"
+                            checked={userSelectedIds.includes(inst.id)}
+                            onChange={() => {
+                              if (userSelectedIds.includes(inst.id)) setUserSelectedIds(userSelectedIds.filter(i => i !== inst.id));
+                              else setUserSelectedIds([...userSelectedIds, inst.id]);
+                            }}
+                            className="w-3.5 h-3.5 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                          />
+                        </td>
                         <td className="font-mono text-[#1B4E9B] font-semibold">{inst.id}</td>
                         <td className="font-medium text-[#1F2937]">{inst.process_type_name || inst.process_type}</td>
                         <td>

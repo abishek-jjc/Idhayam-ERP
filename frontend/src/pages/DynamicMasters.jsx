@@ -221,6 +221,56 @@ export default function DynamicMasters() {
     { id: 'item_templates', label: 'Master Item Templates (masters_masteritem)', icon: Database, count: activeItems.length },
   ];
 
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab, selectedCategory, currentPage]);
+
+  const handleSingleDelete = async (id) => {
+    if (!window.confirm(`Delete record (${id})?`)) return;
+    try {
+      if (activeTab === 'eav_instances') {
+        await axios.delete(`http://127.0.0.1:8000/api/masters/instances/${id}/`);
+      } else {
+        await MastersAPI.deleteItem(id);
+      }
+      loadMastersData();
+    } catch (err) { alert("Delete failed: " + err.message); }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected record(s)?`)) return;
+    try {
+      for (const id of selectedIds) {
+        if (activeTab === 'eav_instances') {
+          await axios.delete(`http://127.0.0.1:8000/api/masters/instances/${id}/`);
+        } else {
+          await MastersAPI.deleteItem(id);
+        }
+      }
+      setSelectedIds([]);
+      loadMastersData();
+    } catch (err) { alert("Bulk delete failed: " + err.message); }
+  };
+
+  const SelectAllHeader = (
+    <input
+      type="checkbox"
+      checked={paginatedList.length > 0 && paginatedList.every(i => selectedIds.includes(i.id))}
+      onChange={() => {
+        const pageIds = paginatedList.map(i => i.id);
+        if (pageIds.every(i => selectedIds.includes(i))) {
+          setSelectedIds(selectedIds.filter(id => !pageIds.includes(id)));
+        } else {
+          setSelectedIds(Array.from(new Set([...selectedIds, ...pageIds])));
+        }
+      }}
+      className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+    />
+  );
+
   // Helper to extract typed EAV attribute value for a row from masters_masterattributevalue
   const getEavAttributeValue = (instance, attribute) => {
     const valuesArray = instance.attribute_values || [];
@@ -358,11 +408,28 @@ export default function DynamicMasters() {
           searchPlaceholder={`Search ${activeCategoryObj?.name || 'master'} records...`}
         />
 
+        {selectedIds.length > 0 && (
+          <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-between animate-fade-in">
+            <span className="text-xs font-bold text-[#1B4E9B]">
+              {selectedIds.length} master record(s) selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setSelectedIds([])} className="text-xs text-[#6B7280] hover:text-[#1F2937] font-semibold underline px-2">
+                Clear Selection
+              </button>
+              <Button variant="danger" icon={Trash2} onClick={handleBulkDelete}>
+                Delete Selected ({selectedIds.length})
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="standard-card p-0 overflow-hidden">
           {activeTab === 'eav_instances' ? (
             // TAB 2: EAV Master Instances (Dynamic Columns from masters_masterattributevalue)
             <Table
               headers={[
+                SelectAllHeader,
                 'Code',
                 'Master Instance Name',
                 'Plant',
@@ -374,7 +441,7 @@ export default function DynamicMasters() {
             >
               {paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={6 + attributes.length}>
+                  <td colSpan={7 + attributes.length}>
                     <EmptyState
                       title="No master instance records found"
                       message={`No EAV MasterInstance rows for category '${activeCategoryObj?.name || selectedCategory}'.`}
@@ -383,7 +450,18 @@ export default function DynamicMasters() {
                 </tr>
               ) : (
                 paginatedList.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={selectedIds.includes(row.id) ? 'bg-[#F0F9FF]' : ''}>
+                    <td className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(row.id)}
+                        onChange={() => {
+                          if (selectedIds.includes(row.id)) setSelectedIds(selectedIds.filter(i => i !== row.id));
+                          else setSelectedIds([...selectedIds, row.id]);
+                        }}
+                        className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                      />
+                    </td>
                     <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{row.code}</td>
                     <td className="font-semibold text-[#1F2937]">{row.name}</td>
                     <td className="text-xs text-[#374151]">{row.plant_name || row.plant || '-'}</td>
@@ -415,6 +493,7 @@ export default function DynamicMasters() {
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <IconButton variant="view" icon={Eye} onClick={() => openInspectModal(row)} title="Inspect Instance" />
+                        <IconButton variant="delete" icon={Trash2} onClick={() => handleSingleDelete(row.id)} title="Delete Instance" />
                       </div>
                     </td>
                   </tr>
@@ -423,10 +502,10 @@ export default function DynamicMasters() {
             </Table>
           ) : (
             // TAB 1: Master Item Templates (JSON Schema in masters_masteritem)
-            <Table headers={['Code', 'Template Name', 'Category', 'Plant', 'Department', 'JSON Attributes', 'Status', { label: 'Actions', align: 'right' }]}>
+            <Table headers={[SelectAllHeader, 'Code', 'Template Name', 'Category', 'Plant', 'Department', 'JSON Attributes', 'Status', { label: 'Actions', align: 'right' }]}>
               {paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan="8">
+                  <td colSpan="9">
                     <EmptyState
                       title="No master item templates found"
                       message={`No MasterItem template records logged for '${activeCategoryObj?.name || selectedCategory}'.`}
@@ -435,7 +514,18 @@ export default function DynamicMasters() {
                 </tr>
               ) : (
                 paginatedList.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={selectedIds.includes(row.id) ? 'bg-[#F0F9FF]' : ''}>
+                    <td className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(row.id)}
+                        onChange={() => {
+                          if (selectedIds.includes(row.id)) setSelectedIds(selectedIds.filter(i => i !== row.id));
+                          else setSelectedIds([...selectedIds, row.id]);
+                        }}
+                        className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                      />
+                    </td>
                     <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{row.code}</td>
                     <td className="font-semibold text-[#1F2937]">{row.name}</td>
                     <td className="text-xs text-[#374151]">{row.category_name || row.category || '-'}</td>

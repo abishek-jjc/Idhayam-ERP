@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import serializers
 from .models import (
     Company, Plant, Department, Designation, Employee, EmployeeDetail,
@@ -37,19 +38,51 @@ class PlantSerializer(BaseSanitizingSerializer):
 
     def to_internal_value(self, data):
         if isinstance(data, dict):
+            data = dict(data)
+            # Sanitize plant_type choice
+            pt = data.get('plant_type')
+            if pt:
+                pt_str = str(pt).strip().lower()
+                valid_map = {
+                    'manufacturing': 'manufacturing',
+                    'processing': 'processing',
+                    'processing unit': 'processing',
+                    'packaging': 'packaging',
+                    'packaging warehouse': 'packaging',
+                    'storage': 'storage',
+                    'central cold storage': 'storage',
+                    'transport': 'transport',
+                }
+                mapped = valid_map.get(pt_str)
+                if not mapped:
+                    for k, v in valid_map.items():
+                        if k in pt_str or pt_str in k:
+                            mapped = v
+                            break
+                data['plant_type'] = mapped or 'processing'
+
+            # Sanitize company FK
             comp_val = data.get('company')
             if comp_val:
-                comp_obj = Company.objects.filter(id=comp_val).first() or Company.objects.filter(name=comp_val).first()
-                if not comp_obj:
+                import re
+                cmp_match = re.search(r'CMP-[\w-]+', str(comp_val))
+                if cmp_match:
+                    comp_obj = Company.objects.filter(id=cmp_match.group(0)).first()
+                else:
+                    clean_title = str(comp_val).split('(')[0].strip()
+                    comp_obj = Company.objects.filter(id=comp_val).first() or Company.objects.filter(name__icontains=clean_title).first()
+                
+                if comp_obj:
+                    data['company'] = comp_obj.id
+                else:
                     first_comp = Company.objects.first()
                     if first_comp:
-                        data = dict(data)
                         data['company'] = first_comp.id
-            elif not comp_val:
+            else:
                 first_comp = Company.objects.first()
                 if first_comp:
-                    data = dict(data)
                     data['company'] = first_comp.id
+
         return super().to_internal_value(data)
 
     def create(self, validated_data):
@@ -90,10 +123,41 @@ class EmployeeSerializer(BaseSanitizingSerializer):
     plant_name = serializers.ReadOnlyField(source='plant.name')
     details = EmployeeDetailSerializer(read_only=True)
     bank_accounts = EmployeeBankAccountSerializer(many=True, read_only=True)
+    role_id = serializers.CharField(write_only=False, required=False, allow_null=True, allow_blank=True)
+    role_names = serializers.SerializerMethodField()
+    role_ids = serializers.SerializerMethodField()
+
+    def get_role_names(self, obj):
+        return [er.role.name for er in obj.roles.select_related('role').all()]
+
+    def get_role_ids(self, obj):
+        return [er.role_id for er in obj.roles.all()]
 
     class Meta:
         model = Employee
         fields = '__all__'
+
+    def create(self, validated_data):
+        role_id = validated_data.pop('role_id', None) or self.initial_data.get('role_id') or self.initial_data.get('role')
+        employee = super().create(validated_data)
+        if role_id:
+            role_obj = Role.objects.filter(models.Q(id=role_id) | models.Q(name=role_id)).first()
+            if role_obj:
+                EmployeeRole.objects.get_or_create(employee=employee, role=role_obj)
+        return employee
+
+    def update(self, instance, validated_data):
+        role_id = validated_data.pop('role_id', None) or self.initial_data.get('role_id') or self.initial_data.get('role')
+        employee = super().update(instance, validated_data)
+        if role_id is not None:
+            if role_id:
+                role_obj = Role.objects.filter(models.Q(id=role_id) | models.Q(name=role_id)).first()
+                if role_obj:
+                    EmployeeRole.objects.filter(employee=employee).exclude(role=role_obj).delete()
+                    EmployeeRole.objects.get_or_create(employee=employee, role=role_obj)
+            else:
+                EmployeeRole.objects.filter(employee=employee).delete()
+        return employee
 
 class RoleSerializer(BaseSanitizingSerializer):
     class Meta:
@@ -116,7 +180,6 @@ class PermissionSerializer(BaseSanitizingSerializer):
     class Meta:
         model = Permission
         fields = '__all__'
-
 
 class VendorSerializer(BaseSanitizingSerializer):
     class Meta:
@@ -159,7 +222,6 @@ class StorageLocationSerializer(BaseSanitizingSerializer):
             validated_data['storage_location_block'] = blk
         return super().create(validated_data)
 
-
 class DocumentSerializer(BaseSanitizingSerializer):
     uploaded_by_name = serializers.ReadOnlyField(source='uploaded_by.name')
 
@@ -172,7 +234,6 @@ class ChartOfAccountSerializer(BaseSanitizingSerializer):
         model = ChartOfAccount
         fields = '__all__'
 
-
 # Dynamic UI Metadata Serializers
 
 class UIMenuSerializer(BaseSanitizingSerializer):
@@ -182,7 +243,6 @@ class UIMenuSerializer(BaseSanitizingSerializer):
         model = UIMenu
         fields = '__all__'
 
-
 class UIMenuPermissionSerializer(BaseSanitizingSerializer):
     menu_name = serializers.ReadOnlyField(source='menu.menu_name')
     role_name = serializers.ReadOnlyField(source='role.name')
@@ -191,18 +251,15 @@ class UIMenuPermissionSerializer(BaseSanitizingSerializer):
         model = UIMenuPermission
         fields = '__all__'
 
-
 class UINavbarSerializer(BaseSanitizingSerializer):
     class Meta:
         model = UINavbar
         fields = '__all__'
 
-
 class UIFormFieldSerializer(BaseSanitizingSerializer):
     class Meta:
         model = UIFormField
         fields = '__all__'
-
 
 class UIFormSerializer(BaseSanitizingSerializer):
     fields = UIFormFieldSerializer(many=True, read_only=True)
@@ -211,7 +268,6 @@ class UIFormSerializer(BaseSanitizingSerializer):
         model = UIForm
         fields = '__all__'
 
-
 class UIModalSerializer(BaseSanitizingSerializer):
     form_name = serializers.ReadOnlyField(source='form.form_name')
     form_title = serializers.ReadOnlyField(source='form.title')
@@ -219,7 +275,6 @@ class UIModalSerializer(BaseSanitizingSerializer):
     class Meta:
         model = UIModal
         fields = '__all__'
-
 
 class UIWidgetSerializer(BaseSanitizingSerializer):
     role_names = serializers.SerializerMethodField()
@@ -231,24 +286,20 @@ class UIWidgetSerializer(BaseSanitizingSerializer):
         model = UIWidget
         fields = '__all__'
 
-
 class UIThemeSerializer(BaseSanitizingSerializer):
     class Meta:
         model = UITheme
         fields = '__all__'
-
 
 class ConfigAuditLogSerializer(BaseSanitizingSerializer):
     class Meta:
         model = ConfigAuditLog
         fields = '__all__'
 
-
 class ConfigVersionSerializer(BaseSanitizingSerializer):
     class Meta:
         model = ConfigVersion
         fields = '__all__'
-
 
 class UIDashboardLayoutSerializer(BaseSanitizingSerializer):
     role_name = serializers.ReadOnlyField(source='role.name')
@@ -256,7 +307,6 @@ class UIDashboardLayoutSerializer(BaseSanitizingSerializer):
     class Meta:
         model = UIDashboardLayout
         fields = '__all__'
-
 
 class GlobalSearchConfigurationSerializer(BaseSanitizingSerializer):
     role_names = serializers.SerializerMethodField()
@@ -283,5 +333,3 @@ class GlobalSearchConfigurationSerializer(BaseSanitizingSerializer):
     class Meta:
         model = GlobalSearchConfiguration
         fields = '__all__'
-
-

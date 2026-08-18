@@ -49,11 +49,36 @@ export default function WorkflowApprovals() {
   const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
 
+  const [selectedIds, setSelectedIds] = useState([]);
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [quotationModalOpen, setQuotationModalOpen] = useState(false);
   const [amendmentModalOpen, setAmendmentModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab, searchQuery, currentPage]);
+
+  const handleDeleteProposal = async (id) => {
+    if (!window.confirm(`Delete workflow proposal (${id})?`)) return;
+    try {
+      await axios.delete(`http://127.0.0.1:8000/api/workflow/proposals/${id}/`);
+      loadWorkflowData();
+    } catch (err) { alert("Delete failed: " + err.message); }
+  };
+
+  const handleBulkDeleteProposals = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected proposal(s)?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await axios.delete(`http://127.0.0.1:8000/api/workflow/proposals/${id}/`);
+      }
+      setSelectedIds([]);
+      loadWorkflowData();
+    } catch (err) { alert("Bulk delete failed: " + err.message); }
+  };
 
   const [newProposal, setNewProposal] = useState({
     proposal_type: 'basic',
@@ -493,11 +518,41 @@ export default function WorkflowApprovals() {
               />
             </div>
           </div>
+          {selectedIds.length > 0 && (
+            <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-between animate-fade-in">
+              <span className="text-xs font-bold text-[#1B4E9B]">
+                {selectedIds.length} workflow proposal(s) selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSelectedIds([])} className="text-xs text-[#6B7280] hover:text-[#1F2937] font-semibold underline px-2">
+                  Clear Selection
+                </button>
+                <button onClick={handleBulkDeleteProposals} className="btn-danger flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[#DC2626] text-white">
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedIds.length})
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="overflow-x-auto custom-scrollbar">
             <table className="custom-table">
               <thead>
                 <tr>
+                  <th className="w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={paginatedProposals.length > 0 && paginatedProposals.every(p => selectedIds.includes(p.id))}
+                      onChange={() => {
+                        const pageIds = paginatedProposals.map(p => p.id);
+                        if (pageIds.every(p => selectedIds.includes(p))) {
+                          setSelectedIds(selectedIds.filter(id => !pageIds.includes(id)));
+                        } else {
+                          setSelectedIds(Array.from(new Set([...selectedIds, ...pageIds])));
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                    />
+                  </th>
                   <th>Proposal ID</th>
                   <th>Process / Type</th>
                   <th>Requested By</th>
@@ -510,11 +565,22 @@ export default function WorkflowApprovals() {
               <tbody>
                 {paginatedProposals.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-6 text-[#6B7280] italic">No workflow proposals logged.</td>
+                    <td colSpan="8" className="text-center py-6 text-[#6B7280] italic">No workflow proposals logged.</td>
                   </tr>
                 ) : (
                   paginatedProposals.map((prop) => (
-                    <tr key={prop.id}>
+                    <tr key={prop.id} className={selectedIds.includes(prop.id) ? 'bg-[#F0F9FF]' : ''}>
+                      <td className="w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(prop.id)}
+                          onChange={() => {
+                            if (selectedIds.includes(prop.id)) setSelectedIds(selectedIds.filter(i => i !== prop.id));
+                            else setSelectedIds([...selectedIds, prop.id]);
+                          }}
+                          className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                        />
+                      </td>
                       <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{prop.id}</td>
                       <td className="font-semibold text-[#1F2937]">
                         {prop.process_type_name || 'Workflow Proposal'}
@@ -600,6 +666,9 @@ export default function WorkflowApprovals() {
                           </button>
                           <button onClick={() => openAmendmentModal(prop)} title="Submit Amendment" className="btn-action-reset">
                             <FileText className="w-3.5 h-3.5" /> Edit
+                          </button>
+                          <button onClick={() => handleDeleteProposal(prop.id)} title="Delete Proposal" className="btn-action-delete">
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

@@ -29,6 +29,7 @@ export default function ProcessManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
 
+  const [selectedIds, setSelectedIds] = useState([]);
   const [launchModalOpen, setLaunchModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState(null);
@@ -42,7 +43,20 @@ export default function ProcessManagement() {
   useEffect(() => {
     setCurrentPage(1);
     setSearchQuery('');
+    setSelectedIds([]);
   }, [selectedType, activeSubTab, selectedPlantFilter, selectedDeptFilter]);
+
+  const handleBulkDeleteInstances = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected process instance(s)?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await ProcessEngineAPI.deleteInstance(id);
+      }
+      setSelectedIds([]);
+      loadEngineData();
+    } catch (err) { alert("Bulk delete failed: " + err.message); }
+  };
 
   async function loadEngineData() {
     try {
@@ -149,7 +163,65 @@ export default function ProcessManagement() {
   const totalPages = Math.ceil(filteredInstances.length / itemsPerPage) || 1;
   const paginatedInstances = filteredInstances.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const matchingForm = uiForms.find(f => f.active && (f.form_name === `${selectedType?.code}_form` || f.form_name === selectedType?.code || f.form_name === 'process_engine_execution_form' || f.module === 'process_management' || f.module === selectedType?.code));
+  const activeFormConfig = React.useMemo(() => {
+    if (!selectedType) return null;
+    const foundInContext = uiForms.find(
+      (f) =>
+        f.active &&
+        (f.form_name === `${selectedType.code}_form` ||
+          f.form_name === selectedType.code ||
+          f.title?.toLowerCase().includes(selectedType.name?.toLowerCase()))
+    );
+    if (foundInContext && foundInContext.fields && foundInContext.fields.length > 0) {
+      return foundInContext;
+    }
+
+    const dynamicFields = (selectedType.attribute_definitions || []).map((attr) => ({
+      id: attr.id,
+      field_name: attr.attribute_name,
+      field_code: attr.attribute_code,
+      field_type:
+        attr.data_type === 'number' || attr.data_type === 'decimal'
+          ? 'number'
+          : attr.data_type === 'datetime'
+          ? 'datetime'
+          : attr.data_type,
+      required: attr.is_required,
+      field_order: attr.sort_order,
+      options: attr.options || '',
+      reference_table: attr.reference_table || '',
+      help_text: attr.remarks || '',
+      active: true,
+    }));
+
+    return {
+      id: `auto-${selectedType.code}`,
+      form_name: `${selectedType.code}_form`,
+      title: `${selectedType.name} Execution Form`,
+      description: selectedType.remarks || `Auto-generated runtime process runner for ${selectedType.name}`,
+      fields: [
+        {
+          id: 'fld-plant',
+          field_name: 'Target Plant Facility',
+          field_code: 'plant',
+          field_type: 'reference',
+          reference_table: 'core_plant',
+          required: true,
+          field_order: 0,
+        },
+        {
+          id: 'fld-dept',
+          field_name: 'Executing Department',
+          field_code: 'department',
+          field_type: 'reference',
+          reference_table: 'core_department',
+          required: true,
+          field_order: 0.1,
+        },
+        ...dynamicFields,
+      ],
+    };
+  }, [selectedType, uiForms]);
 
   return (
     <div className="space-y-6 animate-fade-in font-sans">
@@ -168,15 +240,15 @@ export default function ProcessManagement() {
               Refresh
             </Button>
             <Button variant="primary" icon={Play} onClick={() => setLaunchModalOpen(true)}>
-              Run Process Execution
+              Execute Process ({selectedType?.code || 'RUN'})
             </Button>
           </>
         }
       />
 
-      {/* Process Type, Plant & Department Selector Bar */}
-      <div className="filter-search-toolbar flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Process Type Selector Tabs */}
+      <div className="standard-card space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E2E8F0] pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase text-[#1B4E9B] tracking-wider whitespace-nowrap">Process Type:</span>
             <select
@@ -283,10 +355,41 @@ export default function ProcessManagement() {
               </div>
             </div>
 
+            {selectedIds.length > 0 && (
+              <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-between animate-fade-in">
+                <span className="text-xs font-bold text-[#1B4E9B]">
+                  {selectedIds.length} execution instance(s) selected
+                </span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setSelectedIds([])} className="text-xs text-[#6B7280] hover:text-[#1F2937] font-semibold underline px-2">
+                    Clear Selection
+                  </button>
+                  <Button variant="danger" icon={Trash2} onClick={handleBulkDeleteInstances}>
+                    Delete Selected ({selectedIds.length})
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto custom-scrollbar">
               <table className="custom-table">
                 <thead>
                   <tr>
+                    <th className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={paginatedInstances.length > 0 && paginatedInstances.every(i => selectedIds.includes(i.id))}
+                        onChange={() => {
+                          const pageIds = paginatedInstances.map(i => i.id);
+                          if (pageIds.every(i => selectedIds.includes(i))) {
+                            setSelectedIds(selectedIds.filter(id => !pageIds.includes(id)));
+                          } else {
+                            setSelectedIds(Array.from(new Set([...selectedIds, ...pageIds])));
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                      />
+                    </th>
                     <th>Instance ID</th>
                     <th>Plant Unit</th>
                     <th>Department</th>
@@ -298,11 +401,22 @@ export default function ProcessManagement() {
                 <tbody>
                   {paginatedInstances.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-6 text-[#6B7280] italic">No execution instances recorded matching the current filters.</td>
+                      <td colSpan="7" className="text-center py-6 text-[#6B7280] italic">No execution instances recorded matching the current filters.</td>
                     </tr>
                   ) : (
                     paginatedInstances.map((inst) => (
-                      <tr key={inst.id}>
+                      <tr key={inst.id} className={selectedIds.includes(inst.id) ? 'bg-[#F0F9FF]' : ''}>
+                        <td className="w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(inst.id)}
+                            onChange={() => {
+                              if (selectedIds.includes(inst.id)) setSelectedIds(selectedIds.filter(i => i !== inst.id));
+                              else setSelectedIds([...selectedIds, inst.id]);
+                            }}
+                            className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                          />
+                        </td>
                         <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{inst.id}</td>
                         <td className="font-semibold text-[#1F2937]">{inst.plant_name || inst.plant || '-'}</td>
                         <td className="text-[#374151]">{inst.department_name || inst.department || '-'}</td>
@@ -387,21 +501,27 @@ export default function ProcessManagement() {
         )}
       </div>
 
-      {/* Execution Launcher Modal (No Toggle Switch) */}
+      {/* Execution Launcher Modal */}
       <Modal isOpen={launchModalOpen} onClose={() => setLaunchModalOpen(false)} size="lg" title={`Execute ${selectedType?.name}`}>
-        {matchingForm ? (
+        {activeFormConfig ? (
           <GenericFormRenderer
-            formConfig={matchingForm}
+            formConfig={activeFormConfig}
             onSubmit={async (formData) => {
               try {
+                const valuesPayload = { ...formData };
+                const plantId = valuesPayload.plant || plants[0]?.id || null;
+                const deptId = valuesPayload.department || departments[0]?.id || null;
+                delete valuesPayload.plant;
+                delete valuesPayload.department;
+
                 await ProcessEngineAPI.createInstance({
                   process_type: selectedType.id,
-                  plant: formData.plant || plants[0]?.id || null,
-                  department: formData.department || departments[0]?.id || null,
-                  performed_by: formData.performed_by || employees[0]?.id || null,
+                  plant: plantId,
+                  department: deptId,
+                  performed_by: employees[0]?.id || null,
                   status: selectedType.requires_approval ? 'pending' : 'completed',
-                  remarks: formData.remarks || 'Launched via Dynamic Form',
-                  values: formData,
+                  remarks: formData.remarks || `Execution instance for ${selectedType.name}`,
+                  values: valuesPayload,
                 });
                 setLaunchModalOpen(false);
                 loadEngineData();

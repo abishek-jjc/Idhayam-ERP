@@ -24,6 +24,7 @@ from .serializers import (
 from .permissions import create_access_token, configured_permissions
 from .search_service import search_erp_records
 
+
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all().order_by('id')
     serializer_class = CompanySerializer
@@ -71,6 +72,8 @@ class EmployeeBankAccountViewSet(viewsets.ModelViewSet):
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all().order_by('id')
     serializer_class = RoleSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'remarks']
 
 class EmployeeRoleViewSet(viewsets.ModelViewSet):
     queryset = EmployeeRole.objects.all().order_by('id')

@@ -32,6 +32,20 @@ export default function MenuManagement() {
     active: true,
   });
 
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const handleBulkDeleteMenus = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected menu item(s)?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await axios.delete(`http://127.0.0.1:8000/api/core/ui-menus/${id}/`);
+      }
+      setSelectedIds([]);
+      fetchMenus();
+    } catch (err) { alert("Bulk delete failed: " + err.message); }
+  };
+
   const fetchMenus = () => {
     setLoading(true);
     axios.get('http://127.0.0.1:8000/api/core/ui-menus/')
@@ -163,87 +177,130 @@ export default function MenuManagement() {
       )}
 
       {/* Main Table Content */}
-      <div className="table-container">
-        {loading ? (
-          <SkeletonLoader rows={6} columns={7} />
-        ) : menus.length === 0 ? (
-          <EmptyState
-            title="No Dynamic Menus Found"
-            description="Initialize your navigation structure by creating your first dynamic menu."
-            actionText="Create Menu"
-            onAction={handleOpenAdd}
-          />
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <th className="th-cell">Order</th>
-                <th className="th-cell">Menu Name</th>
-                <th className="th-cell">Path Route</th>
-                <th className="th-cell">Module Code</th>
-                <th className="th-cell">ERP Page</th>
-                <th className="th-cell">Icon Name</th>
-                <th className="th-cell">Parent Menu</th>
-                <th className="th-cell">Status</th>
-                <th className="th-cell text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F3F4F6]">
-              {menus.map((item) => (
-                <tr key={item.id} className="table-row-hover">
-                  <td className="td-cell font-mono text-[#4B5563] text-xs">#{item.display_order}</td>
-                  <td className="td-cell font-semibold text-[#1F2937]">{item.menu_name}</td>
-                  <td className="td-cell text-xs font-mono text-[#2563EB]">{item.menu_path}</td>
-                  <td className="td-cell">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-[#F3F4F6] text-[#374151]">
-                      {item.module_code}
-                    </span>
-                  </td>
-                  <td className="td-cell text-xs font-mono text-[#6B7280]">{item.page_key || item.module_code}</td>
-                  <td className="td-cell text-xs text-[#6B7280] font-mono">{item.menu_icon || 'LayoutDashboard'}</td>
-                  <td className="td-cell text-xs text-[#6B7280]">
-                    {item.parent_menu ? menus.find(m => m.id === item.parent_menu)?.menu_name || 'Submenu' : 'Top-Level'}
-                  </td>
-                  <td className="td-cell">
-                    <button onClick={() => handleToggleActive(item)} title="Click to toggle status">
-                      {item.active ? (
-                        <Badge variant="success" icon={Eye}>Active</Badge>
-                      ) : (
-                        <Badge variant="danger" icon={EyeOff}>Disabled</Badge>
-                      )}
-                    </button>
-                  </td>
-                  <td className="td-cell text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <IconButton
-                        icon={Network}
-                        variant="secondary"
-                        size="sm"
-                        title="Where Used & Impact"
-                        onClick={() => setWhereUsedState({ isOpen: true, itemId: item.id, itemName: item.menu_name })}
-                      />
-                      <IconButton
-                        icon={Edit3}
-                        variant="primary"
-                        size="sm"
-                        title="Edit Menu"
-                        onClick={() => handleOpenEdit(item)}
-                      />
-                      <IconButton
-                        icon={Trash2}
-                        variant="danger"
-                        size="sm"
-                        title="Delete Menu"
-                        onClick={() => handleDelete(item.id)}
-                      />
-                    </div>
-                  </td>
+      {loading ? (
+        <SkeletonLoader rows={6} columns={7} />
+      ) : menus.length === 0 ? (
+        <EmptyState
+          title="No Dynamic Menus Found"
+          description="Initialize your navigation structure by creating your first dynamic menu."
+          actionText="Create Menu"
+          onAction={handleOpenAdd}
+        />
+      ) : (
+        <>
+          {selectedIds.length > 0 && (
+            <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-between mb-3 animate-fade-in">
+              <span className="text-xs font-bold text-[#1B4E9B]">
+                {selectedIds.length} menu item(s) selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSelectedIds([])} className="text-xs text-[#6B7280] hover:text-[#1F2937] font-semibold underline px-2">
+                  Clear Selection
+                </button>
+                <Button variant="danger" icon={Trash2} onClick={handleBulkDeleteMenus}>
+                  Delete Selected ({selectedIds.length})
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="table-container">
+            <Table>
+              <thead>
+                <tr>
+                  <th className="th-cell w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={menus.length > 0 && menus.every(m => selectedIds.includes(m.id))}
+                      onChange={() => {
+                        if (menus.every(m => selectedIds.includes(m.id))) {
+                          setSelectedIds([]);
+                        } else {
+                          setSelectedIds(menus.map(m => m.id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                    />
+                  </th>
+                  <th className="th-cell">Order</th>
+                  <th className="th-cell">Menu Name</th>
+                  <th className="th-cell">Path Route</th>
+                  <th className="th-cell">Module Code</th>
+                  <th className="th-cell">ERP Page</th>
+                  <th className="th-cell">Icon Name</th>
+                  <th className="th-cell">Parent Menu</th>
+                  <th className="th-cell">Status</th>
+                  <th className="th-cell text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-      </div>
+              </thead>
+              <tbody className="divide-y divide-[#F3F4F6]">
+                {menus.map((item) => (
+                  <tr key={item.id} className={`table-row-hover ${selectedIds.includes(item.id) ? 'bg-[#F0F9FF]' : ''}`}>
+                    <td className="td-cell text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => {
+                          if (selectedIds.includes(item.id)) setSelectedIds(selectedIds.filter(i => i !== item.id));
+                          else setSelectedIds([...selectedIds, item.id]);
+                        }}
+                        className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                      />
+                    </td>
+                    <td className="td-cell font-mono text-[#4B5563] text-xs">#{item.display_order}</td>
+                    <td className="td-cell font-semibold text-[#1F2937]">{item.menu_name}</td>
+                    <td className="td-cell text-xs font-mono text-[#2563EB]">{item.menu_path}</td>
+                    <td className="td-cell">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-[#F3F4F6] text-[#374151]">
+                        {item.module_code}
+                      </span>
+                    </td>
+                    <td className="td-cell text-xs font-mono text-[#6B7280]">{item.page_key || item.module_code}</td>
+                    <td className="td-cell text-xs text-[#6B7280] font-mono">{item.menu_icon || 'LayoutDashboard'}</td>
+                    <td className="td-cell text-xs text-[#6B7280]">
+                      {item.parent_menu ? menus.find(m => m.id === item.parent_menu)?.menu_name || 'Submenu' : 'Top-Level'}
+                    </td>
+                    <td className="td-cell">
+                      <button onClick={() => handleToggleActive(item)} title="Click to toggle status">
+                        {item.active ? (
+                          <Badge variant="success" icon={Eye}>Active</Badge>
+                        ) : (
+                          <Badge variant="danger" icon={EyeOff}>Disabled</Badge>
+                        )}
+                      </button>
+                    </td>
+                    <td className="td-cell text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <IconButton
+                          icon={Network}
+                          variant="secondary"
+                          size="sm"
+                          title="Where Used & Impact"
+                          onClick={() => setWhereUsedState({ isOpen: true, itemId: item.id, itemName: item.menu_name })}
+                        />
+                        <IconButton
+                          icon={Edit3}
+                          variant="primary"
+                          size="sm"
+                          title="Edit Menu"
+                          onClick={() => handleOpenEdit(item)}
+                        />
+                        <IconButton
+                          icon={Trash2}
+                          variant="danger"
+                          size="sm"
+                          title="Delete Menu"
+                          onClick={() => handleDelete(item.id)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Add / Edit Menu Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="md" title={editingId ? "Edit Sidebar Menu" : "Create Sidebar Menu"}>

@@ -50,10 +50,25 @@ export default function JournalStock() {
     };
   }, []);
 
+  const [selectedIds, setSelectedIds] = useState([]);
+
   useEffect(() => {
     setCurrentPage(1);
     setSearchQuery('');
+    setSelectedIds([]);
   }, [activeTab]);
+
+  const handleBulkDeleteJournal = async () => {
+    if (!selectedIds.length) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected record(s)?`)) return;
+    try {
+      for (const id of selectedIds) {
+        if (activeTab === 'journal') await JournalAPI.deleteEntry(id);
+      }
+      setSelectedIds([]);
+      loadLedgerData();
+    } catch (err) { alert("Bulk delete failed: " + err.message); }
+  };
 
   async function loadLedgerData() {
     try {
@@ -219,11 +234,42 @@ export default function JournalStock() {
           </div>
         </div>
 
+        {selectedIds.length > 0 && (
+          <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-between animate-fade-in">
+            <span className="text-xs font-bold text-[#1B4E9B]">
+              {selectedIds.length} {activeTab === 'journal' ? 'entry' : 'stock record'}(s) selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setSelectedIds([])} className="text-xs text-[#6B7280] hover:text-[#1F2937] font-semibold underline px-2">
+                Clear Selection
+              </button>
+              <button onClick={handleBulkDeleteJournal} className="btn-danger flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[#DC2626] text-white">
+                <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedIds.length})
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'journal' ? (
           <div className="overflow-x-auto custom-scrollbar">
             <table className="custom-table">
               <thead>
                 <tr>
+                  <th className="w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={paginatedList.length > 0 && paginatedList.every(i => selectedIds.includes(i.id))}
+                      onChange={() => {
+                        const pageIds = paginatedList.map(i => i.id);
+                        if (pageIds.every(i => selectedIds.includes(i))) {
+                          setSelectedIds(selectedIds.filter(id => !pageIds.includes(id)));
+                        } else {
+                          setSelectedIds(Array.from(new Set([...selectedIds, ...pageIds])));
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                    />
+                  </th>
                   <th>Entry ID</th>
                   <th>Movement Type</th>
                   <th>Material Item</th>
@@ -237,11 +283,22 @@ export default function JournalStock() {
               <tbody>
                 {paginatedList.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-6 text-[#6B7280] italic">No universal journal movement entries recorded.</td>
+                    <td colSpan="9" className="text-center py-6 text-[#6B7280] italic">No universal journal movement entries recorded.</td>
                   </tr>
                 ) : (
                   paginatedList.map((e) => (
-                    <tr key={e.id}>
+                    <tr key={e.id} className={selectedIds.includes(e.id) ? 'bg-[#F0F9FF]' : ''}>
+                      <td className="w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(e.id)}
+                          onChange={() => {
+                            if (selectedIds.includes(e.id)) setSelectedIds(selectedIds.filter(i => i !== e.id));
+                            else setSelectedIds([...selectedIds, e.id]);
+                          }}
+                          className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB] cursor-pointer"
+                        />
+                      </td>
                       <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{e.id}</td>
                       <td className="capitalize text-[#374151] font-semibold">{e.movement_type?.replace('_', ' ')}</td>
                       <td className="font-semibold text-[#0F172A] text-xs">

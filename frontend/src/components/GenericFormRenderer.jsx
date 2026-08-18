@@ -80,9 +80,22 @@ const MASTER_TABLE_MAP = {
   master_items: { endpoint: '/api/masters/items/', label: 'Master Items' },
   items: { endpoint: '/api/masters/items/', label: 'Master Items' },
   item: { endpoint: '/api/masters/items/', label: 'Master Items' },
+  master_item: { endpoint: '/api/masters/items/', label: 'Master Items' },
   master_item_id: { endpoint: '/api/masters/items/', label: 'Master Items' },
   'masters.masteritem': { endpoint: '/api/masters/items/', label: 'Master Items' },
   masters_masteritem: { endpoint: '/api/masters/items/', label: 'Master Items' },
+
+  // Master Item Versions (masters_masteritemversion)
+  master_item_version: { endpoint: '/api/masters/versions/', label: 'Master Item Versions' },
+  master_item_versions: { endpoint: '/api/masters/versions/', label: 'Master Item Versions' },
+  'masters.masteritemversion': { endpoint: '/api/masters/versions/', label: 'Master Item Versions' },
+  masters_masteritemversion: { endpoint: '/api/masters/versions/', label: 'Master Item Versions' },
+
+  // Process Instances (process_engine_processinstance)
+  process_instance: { endpoint: '/api/process/instances/', label: 'Process Instances' },
+  process_instances: { endpoint: '/api/process/instances/', label: 'Process Instances' },
+  'process_engine.processinstance': { endpoint: '/api/process/instances/', label: 'Process Instances' },
+  process_engine_processinstance: { endpoint: '/api/process/instances/', label: 'Process Instances' },
 
   // Process Types (process_engine_processtype)
   process_types: { endpoint: '/api/process/types/', label: 'Process Types' },

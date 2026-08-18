@@ -39,6 +39,7 @@ export const CoreAPI = {
 
   getDesignations: () => api.get('/core/designations/'),
   createDesignation: (data) => api.post('/core/designations/', data),
+  updateDesignation: (id, data) => api.patch(`/core/designations/${id}/`, data),
   deleteDesignation: (id) => api.delete(`/core/designations/${id}/`),
   
   getEmployees: () => api.get('/core/employees/'),
@@ -47,9 +48,18 @@ export const CoreAPI = {
   deleteEmployee: (id) => api.delete(`/core/employees/${id}/`),
 
   getPermissions: (params) => api.get('/core/permissions/', { params }),
-  getRoles: () => api.get('/core/roles/'),
   createPermission: (data) => api.post('/core/permissions/', data),
+  updatePermission: (id, data) => api.patch(`/core/permissions/${id}/`, data),
   deletePermission: (id) => api.delete(`/core/permissions/${id}/`),
+
+  getRoles: () => api.get('/core/roles/'),
+  createRole: (data) => api.post('/core/roles/', data),
+  updateRole: (id, data) => api.patch(`/core/roles/${id}/`, data),
+  deleteRole: (id) => api.delete(`/core/roles/${id}/`),
+
+  getEmployeeRoles: (params) => api.get('/core/employee-roles/', { params }),
+  createEmployeeRole: (data) => api.post('/core/employee-roles/', data),
+  deleteEmployeeRole: (id) => api.delete(`/core/employee-roles/${id}/`),
 
   getVendors: () => api.get('/core/vendors/'),
   createVendor: (data) => api.post('/core/vendors/', data),
