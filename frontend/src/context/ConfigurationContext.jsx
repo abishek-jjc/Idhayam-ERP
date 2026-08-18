@@ -108,10 +108,12 @@ export function ConfigurationProvider({ children }) {
     window.addEventListener('erp_ui_metadata_updated', refresh);
     window.addEventListener('erp_theme_updated', refresh);
     window.addEventListener('erp_auth_changed', refresh);
+    window.addEventListener('erp_permissions_updated', refresh);
     return () => {
       window.removeEventListener('erp_ui_metadata_updated', refresh);
       window.removeEventListener('erp_theme_updated', refresh);
       window.removeEventListener('erp_auth_changed', refresh);
+      window.removeEventListener('erp_permissions_updated', refresh);
     };
   }, [refreshConfiguration]);
 

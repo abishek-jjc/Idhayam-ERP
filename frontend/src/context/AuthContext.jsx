@@ -33,6 +33,27 @@ export function AuthProvider({ children }) {
 
   const isSuperAdmin = user?.is_superadmin || designation?.id === 'DSG-SUPERADMIN' || designation?.hierarchy_level >= 99;
 
+  const refreshPermissions = async () => {
+    const token = localStorage.getItem('erp_v2_token');
+    if (!token) return;
+    try {
+      const res = await axios.get('http://127.0.0.1:8000/api/core/permissions/');
+      const permList = res.data?.results || res.data || [];
+      const userPerms = isSuperAdmin 
+        ? permList 
+        : permList.filter(p => !designation?.id || p.designation === designation.id || p.designation_id === designation.id);
+      setPermissions(userPerms);
+      localStorage.setItem('erp_v2_permissions', JSON.stringify(userPerms));
+    } catch (err) {
+      console.error("Error refreshing active permissions:", err);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('erp_permissions_updated', refreshPermissions);
+    return () => window.removeEventListener('erp_permissions_updated', refreshPermissions);
+  }, [user, designation, isSuperAdmin]);
+
   const login = async (loginPayload) => {
     setLoading(true);
     try {
@@ -118,6 +139,7 @@ export function AuthProvider({ children }) {
         logout,
         hasPermission,
         updatePermissionsState,
+        refreshPermissions,
       }}
     >
       {children}

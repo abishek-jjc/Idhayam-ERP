@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ShieldCheck, Menu, PanelsTopLeft, Maximize2, FilePenLine, Grid2X2, Palette,
-  SlidersHorizontal, GitBranch, LockKeyhole, RefreshCw, History, RotateCcw, Search
+  SlidersHorizontal, GitBranch, LockKeyhole, RefreshCw, History, RotateCcw, Search, Cpu
 } from 'lucide-react';
 import MenuManagement from './MenuManagement';
 import NavbarManagement from './NavbarManagement';
@@ -9,6 +9,7 @@ import ModalDesigner from './ModalDesigner';
 import FormBuilder from './FormBuilder';
 import WidgetManagement from './WidgetManagement';
 import ThemeManagement from './ThemeManagement';
+import ProcessTypeConfig from './ProcessTypeConfig';
 import ProcessAttributeValues from './ProcessAttributeValues';
 import ProcessLinks from './ProcessLinks';
 import PermissionMapping from './PermissionMapping';
@@ -30,7 +31,8 @@ export default function AdminConsole() {
     { id: 'form_builder', label: 'Form Builder', icon: FilePenLine },
     { id: 'widget_management', label: 'Widget Management', icon: Grid2X2 },
     { id: 'theme_management', label: 'Theme Management', icon: Palette },
-    { id: 'process_attribute_values', label: 'Process Attributes', icon: SlidersHorizontal },
+    { id: 'process_type_config', label: 'Process Attributes', icon: Cpu },
+    { id: 'process_attribute_values', label: 'Process Values', icon: SlidersHorizontal },
     { id: 'process_links', label: 'Process Links', icon: GitBranch },
     { id: 'permission_mapping', label: 'Permissions', icon: LockKeyhole },
     { id: 'audit_log', label: 'Change Audit Log', icon: History },
@@ -44,7 +46,7 @@ export default function AdminConsole() {
       {/* Page Header */}
       <PageHeader
         title="Admin Console & Dynamic Control Center"
-        description="Centralized source of truth for ERP menus, navbar, dynamic forms, modals, themes, widgets, and permission mappings."
+        description="Centralized source of truth for ERP menus, navbar, dynamic forms, process schemas, links, themes, widgets, and permissions."
         icon={ShieldCheck}
         breadcrumbItems={[
           { label: 'Admin Console', path: '/admin-console' },
@@ -69,6 +71,7 @@ export default function AdminConsole() {
         {activeTab === 'form_builder' && <FormBuilder />}
         {activeTab === 'widget_management' && <WidgetManagement />}
         {activeTab === 'theme_management' && <ThemeManagement />}
+        {activeTab === 'process_type_config' && <ProcessTypeConfig />}
         {activeTab === 'process_attribute_values' && <ProcessAttributeValues />}
         {activeTab === 'process_links' && <ProcessLinks />}
         {activeTab === 'permission_mapping' && <PermissionMapping />}
@@ -78,3 +81,4 @@ export default function AdminConsole() {
     </div>
   );
 }
+

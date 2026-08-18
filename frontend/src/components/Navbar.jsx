@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, LogOut, Search, ArrowRight, X, Database, Loader2, Menu } from 'lucide-react';
+import { Search, ArrowRight, X, Database, Loader2, Menu } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConfiguration } from '../context/ConfigurationContext';
 import Breadcrumb from './ui/Breadcrumb';
 import { CoreAPI } from '../api';
+import NotificationPopover from './NotificationPopover';
+import UserProfilePopover from './UserProfilePopover';
 
 export default function Navbar() {
   const { user, isSuperAdmin, hasPermission, logout } = useAuth();
@@ -152,27 +154,10 @@ export default function Navbar() {
 
       <div className="navbar-right">
         {(navbarConfig?.show_notification !== false) && (
-          <button type="button" className="navbar-notification-btn" title="Notifications">
-            <Bell style={{ width: 16, height: 16 }} />
-            <span className="navbar-notification-dot" />
-          </button>
+          <NotificationPopover />
         )}
         {(navbarConfig?.show_profile !== false) && (
-          <div className="navbar-user-container">
-            <div className="navbar-user-card">
-              <div className="navbar-avatar">{avatarText}</div>
-              <div className="navbar-user-details">
-                <span className="navbar-user-name">{displayName}</span>
-                <span className="navbar-user-role">{roleTitle}</span>
-              </div>
-            </div>
-            {(navbarConfig?.show_logout !== false) && (
-              <button type="button" onClick={handleLogout} className="navbar-logout-button" title="Logout of ERP">
-                <LogOut style={{ width: 15, height: 15 }} />
-                <span>Logout</span>
-              </button>
-            )}
-          </div>
+          <UserProfilePopover />
         )}
       </div>
     </header>

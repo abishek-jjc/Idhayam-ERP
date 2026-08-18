@@ -144,7 +144,7 @@ export default function ProcessLinks() {
         title="Process Links & Flow Visualizer"
         description="Configure and visualize parent-child process relationships and workflow flow."
         breadcrumbItems={[
-          { label: 'Process Engine', path: '/process-engine' },
+          { label: 'Admin Console', path: '/admin-console' },
           { label: 'Process Links', path: '/process-links' }
         ]}
         actions={

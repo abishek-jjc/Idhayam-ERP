@@ -298,18 +298,41 @@ export default function ModalDesigner() {
             </div>
           </div>
 
-          <div>
-            <label className="form-label">Assign Dynamic Form</label>
-            <select
-              value={formData.form}
-              onChange={(e) => setFormData({ ...formData, form: e.target.value })}
-              className="form-input"
-            >
-              <option value="">Select UI Form (Optional)</option>
-              {forms.map(f => (
-                <option key={f.id} value={f.id}>{f.title} ({f.form_name})</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Assign Dynamic Form *</label>
+              <select
+                value={formData.form}
+                onChange={(e) => setFormData({ ...formData, form: e.target.value })}
+                className="form-input"
+                required
+              >
+                <option value="">Select UI Form...</option>
+                {forms.map(f => (
+                  <option key={f.id} value={f.id}>{f.title} ({f.form_name})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Target Module / Trigger Point</label>
+              <select
+                value={formData.target_module || ''}
+                onChange={(e) => setFormData({ ...formData, target_module: e.target.value })}
+                className="form-input"
+              >
+                <option value="">-- General Modal --</option>
+                <option value="core_company">core_company (Add Company)</option>
+                <option value="core_plant">core_plant (Add Plant)</option>
+                <option value="core_department">core_department (Add Department)</option>
+                <option value="core_designation">core_designation (Add Designation)</option>
+                <option value="core_employee">core_employee (Add Employee)</option>
+                <option value="core_machine">core_machine (Add Machine)</option>
+                <option value="core_vendor">core_vendor (Add Vendor)</option>
+                <option value="core_storagelocation">core_storagelocation (Add Storage Bin)</option>
+                <option value="masters_masterinstance">masters_masterinstance (Add EAV Master Item)</option>
+                <option value="process_engine_processinstance">process_engine_processinstance (Create Process Instance)</option>
+              </select>
+            </div>
           </div>
 
           <div className="modal-footer">

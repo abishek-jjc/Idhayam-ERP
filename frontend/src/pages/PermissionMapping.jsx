@@ -53,6 +53,8 @@ export default function PermissionMapping() {
     if (window.confirm("Remove this menu permission rule?")) {
       axios.delete(`http://127.0.0.1:8000/api/core/ui-menu-permissions/${id}/`)
         .then(() => {
+          window.dispatchEvent(new Event('erp_permissions_updated'));
+          window.dispatchEvent(new Event('erp_ui_metadata_updated'));
           setNotification("Permission mapping removed.");
           fetchData();
           setTimeout(() => setNotification(''), 3000);
@@ -65,6 +67,8 @@ export default function PermissionMapping() {
     e.preventDefault();
     axios.post('http://127.0.0.1:8000/api/core/ui-menu-permissions/', formData)
       .then(() => {
+        window.dispatchEvent(new Event('erp_permissions_updated'));
+        window.dispatchEvent(new Event('erp_ui_metadata_updated'));
         setNotification("Menu permission mapping created.");
         setIsModalOpen(false);
         fetchData();

@@ -5,7 +5,7 @@ import Pagination from '../components/Pagination';
 import SearchInput from '../components/ui/SearchInput';
 import GenericFormRenderer from '../components/GenericFormRenderer';
 import { useConfiguration } from '../context/ConfigurationContext';
-import { BookOpenCheck, Boxes, Plus, Trash2, Eye } from 'lucide-react';
+import { BookOpenCheck, Boxes, Plus, Trash2, Eye, ArrowRight } from 'lucide-react';
 
 export default function JournalStock() {
   const { forms } = useConfiguration();
@@ -41,6 +41,13 @@ export default function JournalStock() {
 
   useEffect(() => {
     loadLedgerData();
+    const interval = setInterval(loadLedgerData, 10000); // 10s auto poll
+    const handleJournalEvent = () => loadLedgerData();
+    window.addEventListener('erp_journal_updated', handleJournalEvent);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('erp_journal_updated', handleJournalEvent);
+    };
   }, []);
 
   useEffect(() => {
@@ -117,6 +124,7 @@ export default function JournalStock() {
       }
       setModalOpen(false);
       setEditingEntry(null);
+      window.dispatchEvent(new Event('erp_journal_updated'));
       loadLedgerData();
     } catch (err) {
       alert("Failed to save ledger entry: " + (err.response?.data?.detail || err.message));
@@ -127,6 +135,7 @@ export default function JournalStock() {
     if (!window.confirm("Are you sure you want to delete this movement ledger entry?")) return;
     try {
       await JournalAPI.deleteEntry(id);
+      window.dispatchEvent(new Event('erp_journal_updated'));
       loadLedgerData();
     } catch (err) {
       alert("Failed to delete entry: " + (err.response?.data?.detail || err.message));
@@ -159,7 +168,7 @@ export default function JournalStock() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <BookOpenCheck className="w-6 h-6 text-[#1B4E9B]" /> Universal Movement Journal & Stock
+            <BookOpenCheck className="w-6 h-6 text-[#1B4E9B]" /> Universal Movement Journal & Stock Ledger
           </h1>
           <p className="text-xs text-[#6B7280]">Integrated material & financial transaction postings and live bin balance caches.</p>
         </div>
@@ -217,9 +226,10 @@ export default function JournalStock() {
                 <tr>
                   <th>Entry ID</th>
                   <th>Movement Type</th>
-                  <th>Material ID</th>
+                  <th>Material Item</th>
+                  <th>Source Routing</th>
+                  <th>Target Routing</th>
                   <th>Quantity</th>
-                  <th>Unit</th>
                   <th>Timestamp</th>
                   <th>Actions</th>
                 </tr>
@@ -227,17 +237,34 @@ export default function JournalStock() {
               <tbody>
                 {paginatedList.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-6 text-[#6B7280] italic">No universal journal movement entries recorded.</td>
+                    <td colSpan="8" className="text-center py-6 text-[#6B7280] italic">No universal journal movement entries recorded.</td>
                   </tr>
                 ) : (
                   paginatedList.map((e) => (
                     <tr key={e.id}>
                       <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{e.id}</td>
                       <td className="capitalize text-[#374151] font-semibold">{e.movement_type?.replace('_', ' ')}</td>
-                      <td className="font-mono text-xs text-[#374151]">{e.material_id}</td>
-                      <td className="font-semibold text-[#1F2937]">{Number(e.quantity).toLocaleString()}</td>
-                      <td className="font-mono text-[#1B4E9B] font-semibold">{e.unit || 'KG'}</td>
-                      <td className="text-xs text-[#6B7280]">{new Date(e.created_at || Date.now()).toLocaleString()}</td>
+                      <td className="font-semibold text-[#0F172A] text-xs">
+                        {e.material_name || e.material_id}
+                      </td>
+                      <td className="text-xs text-[#475569]">
+                        {e.from_plant_name || e.from_department_name ? (
+                          <span>{e.from_plant_name || 'Plant'} • {e.from_department_name || 'Dept'}</span>
+                        ) : (
+                          <span className="text-[#94A3B8] italic">External Supplier / Start</span>
+                        )}
+                      </td>
+                      <td className="text-xs text-[#475569]">
+                        {e.to_plant_name || e.to_department_name ? (
+                          <span>{e.to_plant_name || 'Plant'} • {e.to_department_name || 'Dept'}</span>
+                        ) : (
+                          <span className="text-[#94A3B8] italic">Customer / Dispatch</span>
+                        )}
+                      </td>
+                      <td className="font-semibold text-[#1F2937]">
+                        {Number(e.quantity).toLocaleString()} <span className="font-mono text-[#1B4E9B] text-xs font-semibold">{e.unit || 'KG'}</span>
+                      </td>
+                      <td className="text-xs text-[#6B7280]">{new Date(e.created_at || e.entry_date || Date.now()).toLocaleString()}</td>
                       <td>
                         <div className="flex items-center gap-2">
                           <button onClick={() => openInspectModal(e)} className="btn-action-view" title="Inspect Record">
@@ -262,24 +289,28 @@ export default function JournalStock() {
                   <th>Stock ID</th>
                   <th>Plant Unit</th>
                   <th>Department</th>
+                  <th>Bin / Location</th>
                   <th>Material ID</th>
-                  <th>Current Stock Quantity</th>
+                  <th>Live Stock Quantity</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedList.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-6 text-[#6B7280] italic">No live stock balances tracked.</td>
+                    <td colSpan="7" className="text-center py-6 text-[#6B7280] italic">No live stock balances tracked.</td>
                   </tr>
                 ) : (
                   paginatedList.map((s) => (
                     <tr key={s.id}>
                       <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{s.id}</td>
-                      <td>{s.plant_name || s.plant || '-'}</td>
+                      <td className="font-semibold text-[#0F172A]">{s.plant_name || s.plant || '-'}</td>
                       <td>{s.department_name || s.department || '-'}</td>
+                      <td className="font-mono text-xs text-[#1B4E9B]">{s.bin_code || s.storage_location || 'DEFAULT-BIN'}</td>
                       <td className="font-mono text-xs text-[#374151]">{s.material_id}</td>
-                      <td className="font-semibold text-[#1F2937]">{Number(s.quantity).toLocaleString()} KG</td>
+                      <td className="font-bold text-[#0F172A]">
+                        {Number(s.quantity).toLocaleString()} <span className="text-xs font-mono text-[#6B7280]">{s.unit_id || 'KG'}</span>
+                      </td>
                       <td>
                         <span className={`badge ${s.stock_status === 'available' ? 'badge-success' : 'badge-warning'}`}>
                           {s.stock_status || 'Available'}
@@ -298,105 +329,46 @@ export default function JournalStock() {
           totalPages={totalPages}
           onPageChange={setCurrentPage}
           totalItems={filteredList.length}
-          itemsPerPage={10}
         />
       </div>
 
-      {/* Modals */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} size="md" title="Post Universal Movement Entry">
-        {journalForm ? (
-          <GenericFormRenderer
-            formConfig={journalForm}
-            initialValues={formData}
-            onSubmit={handleSaveEntry}
-            onCancel={() => setModalOpen(false)}
-          />
-        ) : (
-        <form onSubmit={handleSaveEntry} className="space-y-4">
-          <div>
-            <label className="form-label">Movement Type *</label>
-            <select value={formData.movement_type} onChange={(e) => setFormData({ ...formData, movement_type: e.target.value })} className="form-input">
-              <option value="external_in">External Receipt (Inward)</option>
-              <option value="external_out">External Dispatch (Outward)</option>
-              <option value="internal">Internal Plant/Dept Transfer</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="form-label">Material Item *</label>
-            <select value={formData.material_id} onChange={(e) => setFormData({ ...formData, material_id: e.target.value })} className="form-input">
-              {masterItems.map((item) => (
-                <option key={item.id} value={item.id}>{item.name} ({item.code})</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">From Department</label>
-              <select value={formData.from_department} onChange={(e) => setFormData({ ...formData, from_department: e.target.value })} className="form-input">
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="form-label">To Department</label>
-              <select value={formData.to_department} onChange={(e) => setFormData({ ...formData, to_department: e.target.value })} className="form-input">
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Quantity *</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                required
-                value={formData.quantity}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '' || Number(val) >= 0) setFormData({ ...formData, quantity: parseFloat(val) || 0 });
-                }}
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="form-label">Unit *</label>
-              <select
-                value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                className="form-input"
-              >
-                <option value="KG">KG (Kilograms)</option>
-                <option value="MT">MT (Metric Tons)</option>
-                <option value="LITERS">LITERS (Ltrs)</option>
-                <option value="BAGS">BAGS (Bags)</option>
-                <option value="PCS">PCS (Pieces)</option>
-                <option value="BOXES">BOXES (Boxes)</option>
-                <option value="METERS">METERS (Mtr)</option>
-              </select>
-            </div>
-          </div>
-
-          <div><label className="form-label">Movement Remarks</label><textarea value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="form-input h-20" placeholder="Ledger remarks..."></textarea></div>
-
-          <div className="modal-footer">
-            <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" className="btn-primary">Post Entry</button>
-          </div>
-        </form>
-        )}
+      {/* Post Movement Modal */}
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingEntry ? "Edit Ledger Entry" : "Post Universal Movement Entry"} size="md">
+        <GenericFormRenderer
+          formConfig={
+            journalForm || {
+              title: 'Financial & Inventory Journal Movement Form',
+              module: 'journal',
+              fields: [
+                { field_name: 'Movement Type', field_code: 'movement_type', field_type: 'select', options: 'external_in,external_out,internal', required: true, field_order: 1 },
+                { field_name: 'Material Item', field_code: 'material_id', field_type: 'reference', reference_table: 'masters_items', required: true, field_order: 2 },
+                { field_name: 'Source Department', field_code: 'from_department', field_type: 'reference', reference_table: 'departments', required: false, field_order: 3 },
+                { field_name: 'Target Department', field_code: 'to_department', field_type: 'reference', reference_table: 'departments', required: false, field_order: 4 },
+                { field_name: 'Quantity Amount', field_code: 'quantity', field_type: 'number', required: true, field_order: 5 },
+                { field_name: 'Unit Code', field_code: 'unit', field_type: 'text', required: true, field_order: 6 },
+                { field_name: 'Justification & Remarks', field_code: 'remarks', field_type: 'textarea', required: false, field_order: 7 },
+              ]
+            }
+          }
+          initialValues={formData}
+          onSubmit={handleSaveEntry}
+          onCancel={() => setModalOpen(false)}
+        />
       </Modal>
 
-      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} size="md" title="Universal Journal Entry Inspection">
+      {/* Inspect View Modal */}
+      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Journal Entry Specification" size="sm">
         {selectedEntry && (
-          <div className="space-y-4">
-            <div><span className="text-xs text-[#6B7280]">Entry ID:</span><p className="font-mono text-[#1B4E9B] font-bold">{selectedEntry.id}</p></div>
-            <div><span className="text-xs text-[#6B7280]">Movement Type:</span><p className="text-[#1F2937] font-bold capitalize">{selectedEntry.movement_type}</p></div>
-            <div><span className="text-xs text-[#6B7280]">Quantity:</span><p className="text-[#16A34A] font-bold font-mono">{Number(selectedEntry.quantity).toLocaleString()}</p></div>
-            <div><span className="text-xs text-[#6B7280]">Unit:</span><p className="text-[#1B4E9B] font-bold font-mono">{selectedEntry.unit || 'KG'}</p></div>
+          <div className="space-y-3 text-xs">
+            <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-1">
+              <p className="font-mono text-[#1B4E9B] font-bold">ID: {selectedEntry.id}</p>
+              <p><strong className="text-[#374151]">Movement:</strong> {selectedEntry.movement_type}</p>
+              <p><strong className="text-[#374151]">Material:</strong> {selectedEntry.material_name || selectedEntry.material_id}</p>
+              <p><strong className="text-[#374151]">Quantity:</strong> {selectedEntry.quantity} {selectedEntry.unit}</p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" onClick={() => setViewModalOpen(false)} className="btn-secondary">Close</button>
+            </div>
           </div>
         )}
       </Modal>

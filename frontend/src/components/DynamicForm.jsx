@@ -5,30 +5,70 @@ import { Database, Loader2 } from 'lucide-react';
 const API_BASE = 'http://127.0.0.1:8000';
 
 const MASTER_TABLE_MAP = {
+  // Companies (core_company)
   companies: { endpoint: '/api/core/companies/', label: 'Companies' },
   company: { endpoint: '/api/core/companies/', label: 'Companies' },
+  company_id: { endpoint: '/api/core/companies/', label: 'Companies' },
+
+  // Plants (core_plant)
   plants: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
   plant: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
+  plant_id: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
+
+  // Departments (core_department)
   departments: { endpoint: '/api/core/departments/', label: 'Departments' },
   department: { endpoint: '/api/core/departments/', label: 'Departments' },
+  department_id: { endpoint: '/api/core/departments/', label: 'Departments' },
+  owning_department: { endpoint: '/api/core/departments/', label: 'Owning Department' },
+  owning_department_id: { endpoint: '/api/core/departments/', label: 'Owning Department' },
+
+  // Designations (core_designation)
   designations: { endpoint: '/api/core/designations/', label: 'Designations' },
   designation: { endpoint: '/api/core/designations/', label: 'Designations' },
+  designation_id: { endpoint: '/api/core/designations/', label: 'Designations' },
+
+  // Employees (core_employee)
   employees: { endpoint: '/api/core/employees/', label: 'Employees' },
   employee: { endpoint: '/api/core/employees/', label: 'Employees' },
+  employee_id: { endpoint: '/api/core/employees/', label: 'Employees' },
+  performed_by: { endpoint: '/api/core/employees/', label: 'Performed By Employee' },
+  performed_by_id: { endpoint: '/api/core/employees/', label: 'Performed By Employee' },
+
+  // Machines (core_machine)
   machines: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
   machine: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
+  machine_id: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
+
+  // Vendors (core_vendor)
   vendors: { endpoint: '/api/core/vendors/', label: 'Vendors' },
   vendor: { endpoint: '/api/core/vendors/', label: 'Vendors' },
+  vendor_id: { endpoint: '/api/core/vendors/', label: 'Vendors' },
+
+  // Storage Locations & Blocks (core_storagelocation)
   storage_locations: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
   storage_location: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  storage_location_id: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
   storage: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
+  storage_location_block: { endpoint: '/api/core/storage-locations/', label: 'Storage Location Block' },
+  storage_location_block_id: { endpoint: '/api/core/storage-locations/', label: 'Storage Location Block' },
+
+  // Master Categories (masters_mastercategory)
   master_categories: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
   categories: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
   category: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+  category_id: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+  master_category_id: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
+
+  // Master Items (masters_masteritem)
   master_items: { endpoint: '/api/masters/items/', label: 'Master Items' },
   items: { endpoint: '/api/masters/items/', label: 'Master Items' },
   item: { endpoint: '/api/masters/items/', label: 'Master Items' },
+  master_item_id: { endpoint: '/api/masters/items/', label: 'Master Items' },
+
+  // Process Types (process_engine_processtype)
   process_types: { endpoint: '/api/process/types/', label: 'Process Types' },
+  process_type: { endpoint: '/api/process/types/', label: 'Process Types' },
+  process_type_id: { endpoint: '/api/process/types/', label: 'Process Types' },
 };
 
 export default function DynamicForm({ definitions = [], onSubmit, onCancel, plants = [], departments = [], employees = [] }) {

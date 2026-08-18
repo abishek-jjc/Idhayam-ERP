@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MastersAPI } from '../api';
+import { MastersAPI, CoreAPI } from '../api';
 import { useConfiguration } from '../context/ConfigurationContext';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
@@ -15,41 +15,17 @@ import EmptyState from '../components/ui/EmptyState';
 import GenericFormRenderer from '../components/GenericFormRenderer';
 import { Layers, Plus, Trash2, Eye, Sliders, Database, ArrowRightLeft, FolderPlus, Sparkles } from 'lucide-react';
 
-const API_BASE = 'http://127.0.0.1:8000';
-
-const MASTER_TABLE_MAP = {
-  companies: { endpoint: '/api/core/companies/', label: 'Companies' },
-  company: { endpoint: '/api/core/companies/', label: 'Companies' },
-  plants: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
-  plant: { endpoint: '/api/core/plants/', label: 'Plants & Facilities' },
-  departments: { endpoint: '/api/core/departments/', label: 'Departments' },
-  department: { endpoint: '/api/core/departments/', label: 'Departments' },
-  designations: { endpoint: '/api/core/designations/', label: 'Designations' },
-  designation: { endpoint: '/api/core/designations/', label: 'Designations' },
-  employees: { endpoint: '/api/core/employees/', label: 'Employees' },
-  employee: { endpoint: '/api/core/employees/', label: 'Employees' },
-  machines: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
-  machine: { endpoint: '/api/core/machines/', label: 'Machines & Vehicles' },
-  vendors: { endpoint: '/api/core/vendors/', label: 'Vendors' },
-  vendor: { endpoint: '/api/core/vendors/', label: 'Vendors' },
-  storage_locations: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
-  storage_location: { endpoint: '/api/core/storage-locations/', label: 'Storage Bins' },
-  master_categories: { endpoint: '/api/masters/categories/', label: 'Master Categories' },
-  master_items: { endpoint: '/api/masters/items/', label: 'Master Items' },
-  process_types: { endpoint: '/api/process/types/', label: 'Process Types' },
-};
-
 export default function DynamicMasters() {
   const { forms: uiForms } = useConfiguration();
-  const [activeTab, setActiveTab] = useState('legacy_json'); // 'legacy_json' | 'eav_converted'
+  const [activeTab, setActiveTab] = useState('eav_instances'); // 'eav_instances' | 'item_templates'
 
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [versions, setVersions] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [instances, setInstances] = useState([]);
-  const [useDynamicFormMode, setUseDynamicFormMode] = useState(true);
-  const [masterOptions, setMasterOptions] = useState({});
+  const [departments, setDepartments] = useState([]);
+  const [plants, setPlants] = useState([]);
 
   const [selectedCategory, setSelectedCategory] = useState('');
 
@@ -65,7 +41,7 @@ export default function DynamicMasters() {
 
   const [selectedInspectRecord, setSelectedInspectRecord] = useState(null);
 
-  const [newCat, setNewCat] = useState({ code: '', name: '', remarks: '' });
+  const [newCat, setNewCat] = useState({ code: '', name: '', owning_department: '', remarks: '' });
   const [newAttr, setNewAttr] = useState({
     attribute_code: '',
     attribute_name: '',
@@ -75,10 +51,6 @@ export default function DynamicMasters() {
     sort_order: 1,
     remarks: '',
   });
-
-  const [newItem, setNewItem] = useState({ code: '', name: '', attributes: '' });
-  const [dynamicFormValues, setDynamicFormValues] = useState({});
-  const [customAttrPairs, setCustomAttrPairs] = useState([{ key: '', value: '' }]);
 
   const [newVersion, setNewVersion] = useState({
     master_item: '',
@@ -101,35 +73,23 @@ export default function DynamicMasters() {
     }
   }, [selectedCategory, categories]);
 
-  useEffect(() => {
-    const refAttrs = attributes.filter(a => a.data_type === 'reference' && a.reference_table);
-    refAttrs.forEach(a => {
-      const tableKey = a.reference_table?.toLowerCase().trim();
-      const config = MASTER_TABLE_MAP[tableKey];
-      if (config && !masterOptions[tableKey]) {
-        axios.get(`${API_BASE}${config.endpoint}`)
-          .then(res => {
-            const list = res.data?.results || res.data || [];
-            setMasterOptions(prev => ({ ...prev, [tableKey]: list }));
-          })
-          .catch(() => {});
-      }
-    });
-  }, [attributes]);
-
   async function loadMastersData() {
     try {
-      const [catRes, itemRes, verRes, instRes] = await Promise.all([
+      const [catRes, itemRes, verRes, instRes, deptRes, plantRes] = await Promise.all([
         MastersAPI.getCategories().catch(() => ({ data: [] })),
         MastersAPI.getItems().catch(() => ({ data: [] })),
         MastersAPI.getVersions().catch(() => ({ data: [] })),
         MastersAPI.getInstances().catch(() => ({ data: [] })),
+        CoreAPI.getDepartments().catch(() => ({ data: [] })),
+        CoreAPI.getPlants().catch(() => ({ data: [] })),
       ]);
-      const loadedCats = catRes.data.results || catRes.data || [];
+      const loadedCats = catRes.data?.results || catRes.data || [];
       setCategories(loadedCats);
-      setItems(itemRes.data.results || itemRes.data || []);
-      setVersions(verRes.data.results || verRes.data || []);
-      setInstances(instRes.data.results || instRes.data || []);
+      setItems(itemRes.data?.results || itemRes.data || []);
+      setVersions(verRes.data?.results || verRes.data || []);
+      setInstances(instRes.data?.results || instRes.data || []);
+      setDepartments(deptRes.data?.results || deptRes.data || []);
+      setPlants(plantRes.data?.results || plantRes.data || []);
 
       if (loadedCats.length > 0 && !selectedCategory) {
         setSelectedCategory(loadedCats[0].code);
@@ -140,11 +100,11 @@ export default function DynamicMasters() {
   }
 
   async function loadCategoryAttributes(catCode) {
-    const activeCat = categories.find((c) => c.code === catCode);
+    const activeCat = categories.find((c) => c.code === catCode || c.id === catCode);
     if (!activeCat) return;
     try {
       const attrRes = await MastersAPI.getAttributes({ master_category: activeCat.id });
-      const attrs = attrRes.data.results || attrRes.data || [];
+      const attrs = attrRes.data?.results || attrRes.data || [];
       setAttributes(attrs);
     } catch (err) {
       console.error("Error loading category attributes:", err);
@@ -156,7 +116,7 @@ export default function DynamicMasters() {
     try {
       await MastersAPI.createCategory(newCat);
       setCategoryModalOpen(false);
-      setNewCat({ code: '', name: '', remarks: '' });
+      setNewCat({ code: '', name: '', owning_department: '', remarks: '' });
       loadMastersData();
     } catch (err) {
       alert("Failed to create category: " + (err.response?.data?.detail || err.message));
@@ -188,37 +148,6 @@ export default function DynamicMasters() {
       loadCategoryAttributes(selectedCategory);
     } catch (err) {
       alert("Failed to create attribute: " + (err.response?.data?.detail || err.message));
-    }
-  };
-
-  const handleSaveItem = async (e) => {
-    e.preventDefault();
-    try {
-      const catObj = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory) || categories[0];
-      const finalAttrs = { ...dynamicFormValues };
-
-      customAttrPairs.forEach((pair) => {
-        if (pair.key.trim() && pair.value.trim()) {
-          const formattedKey = pair.key.trim().toLowerCase().replace(/\s+/g, '_');
-          finalAttrs[formattedKey] = pair.value.trim();
-        }
-      });
-
-      await MastersAPI.createItem({
-        category: catObj?.id || selectedCategory,
-        code: newItem.code,
-        name: newItem.name,
-        attributes: finalAttrs,
-        values: finalAttrs,
-      });
-
-      setItemModalOpen(false);
-      setNewItem({ code: '', name: '', attributes: '' });
-      setDynamicFormValues({});
-      setCustomAttrPairs([{ key: '', value: '' }]);
-      loadMastersData();
-    } catch (err) {
-      alert("Failed to save item: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -261,10 +190,6 @@ export default function DynamicMasters() {
   };
 
   const openCreateItemModal = () => {
-    setNewItem({ code: '', name: '', attributes: '' });
-    const initialDyn = {};
-    attributes.forEach(d => { initialDyn[d.attribute_code] = ''; });
-    setDynamicFormValues(initialDyn);
     setItemModalOpen(true);
   };
 
@@ -273,61 +198,93 @@ export default function DynamicMasters() {
     setViewModalOpen(true);
   };
 
-  const activeCategoryObj = categories.find((c) => c.code === selectedCategory);
-  
-  const activeItems = items.filter((i) => i.category_code === selectedCategory || (activeCategoryObj && i.category === activeCategoryObj.id));
-  const filteredItems = activeItems.filter(i => 
-    i.code?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const activeCategoryObj = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory);
+
+  const activeItems = items.filter((i) => i.category_code === selectedCategory || i.category === selectedCategory || (activeCategoryObj && i.category === activeCategoryObj.id));
+  const filteredItems = activeItems.filter(i =>
+    i.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeInstances = instances.filter((inst) => inst.category_code === selectedCategory || (activeCategoryObj && inst.master_category === activeCategoryObj.id));
-  const filteredInstances = activeInstances.filter(inst => 
-    inst.code?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const activeInstances = instances.filter((inst) => inst.category_code === selectedCategory || inst.master_category === selectedCategory || (activeCategoryObj && inst.master_category === activeCategoryObj.id));
+  const filteredInstances = activeInstances.filter(inst =>
+    inst.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     inst.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentDisplayList = activeTab === 'legacy_json' ? filteredItems : filteredInstances;
+  const currentDisplayList = activeTab === 'item_templates' ? filteredItems : filteredInstances;
   const totalPages = Math.ceil(currentDisplayList.length / itemsPerPage) || 1;
   const paginatedList = currentDisplayList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const storeTabs = [
-    { id: 'legacy_json', label: 'JSON Store (3-Table)', icon: Database, count: items.length },
-    { id: 'eav_converted', label: 'Converted EAV (3-Table)', icon: ArrowRightLeft, count: instances.length },
+    { id: 'eav_instances', label: 'EAV Master Instances (masters_masterinstance)', icon: ArrowRightLeft, count: activeInstances.length },
+    { id: 'item_templates', label: 'Master Item Templates (masters_masteritem)', icon: Database, count: activeItems.length },
   ];
+
+  // Helper to extract typed EAV attribute value for a row from masters_masterattributevalue
+  const getEavAttributeValue = (instance, attribute) => {
+    const valuesArray = instance.attribute_values || [];
+    const foundVal = valuesArray.find(
+      (v) =>
+        v.attribute_code === attribute.attribute_code ||
+        v.master_attribute === attribute.id
+    );
+
+    if (foundVal) {
+      if (attribute.data_type === 'boolean' || (foundVal.value_boolean !== null && foundVal.value_boolean !== undefined)) {
+        return foundVal.value_boolean ? 'true' : 'false';
+      }
+      if (foundVal.value_number !== null && foundVal.value_number !== undefined) {
+        return String(foundVal.value_number);
+      }
+      if (foundVal.value_date) return String(foundVal.value_date);
+      if (foundVal.value_datetime) return String(foundVal.value_datetime);
+      if (foundVal.value_text) return String(foundVal.value_text);
+      if (foundVal.value_reference_id) return String(foundVal.value_reference_id);
+    }
+
+    // Fallback: check raw attributes dictionary on instance or item
+    if (instance.attributes && typeof instance.attributes === 'object') {
+      const rawVal = instance.attributes[attribute.attribute_code];
+      if (rawVal !== undefined && rawVal !== null) {
+        return typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal);
+      }
+    }
+
+    return '-';
+  };
 
   return (
     <div className="space-y-6 animate-fade-in font-sans">
-      {/* Page Header (Section 9 Specs) */}
       <PageHeader
-        title="Dynamic Masters"
-        description="Manage master categories, extracted EAV attributes, and configurable master data records."
+        title="Dynamic Masters (EAV Engine)"
+        description="Manage master categories, extracted EAV attributes, template items, and typed attribute instance records."
         icon={Layers}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" icon={FolderPlus} onClick={() => setCategoryModalOpen(false)} onClickCapture={() => setCategoryModalOpen(true)}>
+            <Button variant="secondary" icon={FolderPlus} onClick={() => setCategoryModalOpen(true)}>
               + Add Category
             </Button>
             <Button variant="secondary" icon={Sliders} onClick={() => setAttrModalOpen(true)}>
               + Add Attribute
             </Button>
             <Button variant="primary" icon={Plus} onClick={openCreateItemModal}>
-              + Add Master Item
+              + Add Master Instance
             </Button>
           </div>
         }
       />
 
-      {/* Action Bar / Store View Selector */}
+      {/* Tab Switcher: EAV Instances vs Master Item Templates */}
       <div className="standard-card p-2">
         <Tabs tabs={storeTabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
-      {/* Step 1: Category Selection */}
+      {/* Step 1: Category Selector (masters_mastercategory) */}
       <div className="standard-card space-y-3">
         <div className="flex items-center justify-between">
-          <label className="form-label text-xs uppercase tracking-wider text-[#1B4E9B] mb-0 font-bold">
-            1. Select Master Category
+          <label className="form-label text-xs uppercase tracking-wider text-[#1B4E9B] mb-0 font-bold flex items-center gap-1.5">
+            <Database className="w-4 h-4" /> 1. Select Category (masters_mastercategory)
           </label>
           <span className="helper-text">{categories.length} Categories Registered</span>
         </div>
@@ -338,7 +295,7 @@ export default function DynamicMasters() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="form-input font-bold text-xs max-w-xs"
           >
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <option key={cat.id} value={cat.code}>
                 {cat.name} ({cat.code})
               </option>
@@ -353,7 +310,7 @@ export default function DynamicMasters() {
                 onClick={() => setSelectedCategory(cat.code)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
                   selectedCategory === cat.code
-                    ? 'bg-[#EFF6FF] border-[#1B4E9B] text-[#1B4E9B] font-bold'
+                    ? 'bg-[#EFF6FF] border-[#1B4E9B] text-[#1B4E9B] font-bold shadow-sm'
                     : 'bg-[#F8FAFC] border-[#E5E7EB] text-[#6B7280] hover:bg-[#E5E7EB]'
                 }`}
               >
@@ -364,11 +321,11 @@ export default function DynamicMasters() {
         </div>
       </div>
 
-      {/* Step 2: Attribute Definitions */}
+      {/* Step 2: Attribute Definitions (masters_masterattribute) */}
       <div className="standard-card space-y-3">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
           <span className="text-xs font-bold uppercase tracking-wider text-[#1B4E9B] flex items-center gap-1.5">
-            <Sliders className="w-4 h-4" /> 2. Extracted MasterAttribute Definitions
+            <Sliders className="w-4 h-4" /> 2. Extracted Attributes (masters_masterattribute)
           </span>
           <span className="badge badge-info">{attributes.length} definitions</span>
         </div>
@@ -376,20 +333,24 @@ export default function DynamicMasters() {
         <div className="flex flex-wrap gap-2">
           {attributes.length === 0 ? (
             <div className="text-xs text-[#6B7280] italic py-2">
-              No attribute definitions created for {activeCategoryObj?.name || 'this category'} yet. Click "+ Add Attribute" above.
+              No attribute definitions created for {activeCategoryObj?.name || 'this category'} yet. Click "+ Add Attribute" to define fields.
             </div>
           ) : (
             attributes.map((attr) => (
-              <span key={attr.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] text-xs font-mono">
+              <span
+                key={attr.id}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] text-xs font-mono shadow-2xs"
+              >
                 <span className="text-[#1F2937] font-bold">{attr.attribute_name}</span>
-                <span className="text-[#1B4E9B]">({attr.data_type})</span>
+                <span className="text-[#1B4E9B] font-semibold">({attr.data_type})</span>
+                {attr.is_required && <span className="text-[#DC2626] font-bold">*</span>}
               </span>
             ))
           )}
         </div>
       </div>
 
-      {/* Step 3: Master Data Table */}
+      {/* Step 3: Master Data Table with Dynamic Columns */}
       <div className="space-y-4">
         <FilterBar
           searchValue={searchQuery}
@@ -398,57 +359,109 @@ export default function DynamicMasters() {
         />
 
         <div className="standard-card p-0 overflow-hidden">
-          <Table headers={['Code', 'Master Item Name', activeTab === 'legacy_json' ? 'JSON Attributes' : 'Converted EAV Attributes', 'Status', { label: 'Actions', align: 'right' }]}>
-            {paginatedList.length === 0 ? (
-              <tr>
-                <td colSpan="5">
-                  <EmptyState
-                    title="No master data records found"
-                    message={`No ${activeTab === 'legacy_json' ? 'MasterItem' : 'MasterInstance'} rows for ${activeCategoryObj?.name || 'category'}.`}
-                  />
-                </td>
-              </tr>
-            ) : (
-              paginatedList.map((row) => (
-                <tr key={row.id}>
-                  <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{row.code}</td>
-                  <td className="font-semibold text-[#1F2937]">{row.name}</td>
-                  <td>
-                    {activeTab === 'legacy_json' ? (
+          {activeTab === 'eav_instances' ? (
+            // TAB 2: EAV Master Instances (Dynamic Columns from masters_masterattributevalue)
+            <Table
+              headers={[
+                'Code',
+                'Master Instance Name',
+                'Plant',
+                'Department',
+                ...attributes.map((attr) => attr.attribute_name),
+                'Status',
+                { label: 'Actions', align: 'right' },
+              ]}
+            >
+              {paginatedList.length === 0 ? (
+                <tr>
+                  <td colSpan={6 + attributes.length}>
+                    <EmptyState
+                      title="No master instance records found"
+                      message={`No EAV MasterInstance rows for category '${activeCategoryObj?.name || selectedCategory}'.`}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                paginatedList.map((row) => (
+                  <tr key={row.id}>
+                    <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{row.code}</td>
+                    <td className="font-semibold text-[#1F2937]">{row.name}</td>
+                    <td className="text-xs text-[#374151]">{row.plant_name || row.plant || '-'}</td>
+                    <td className="text-xs text-[#374151]">{row.department_name || row.department || '-'}</td>
+                    
+                    {/* Render Typed Values for Dynamic Attribute Columns */}
+                    {attributes.map((attr) => {
+                      const valStr = getEavAttributeValue(row, attr);
+                      return (
+                        <td key={attr.id} className="font-mono text-xs">
+                          {valStr === 'true' ? (
+                            <Badge variant="success">True</Badge>
+                          ) : valStr === 'false' ? (
+                            <Badge variant="neutral">False</Badge>
+                          ) : (
+                            <span className="bg-[#EFF6FF] text-[#1B4E9B] border border-[#BFDBFE] px-2 py-0.5 rounded">
+                              {valStr}
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
+
+                    <td>
+                      <Badge variant={row.is_active !== false ? 'success' : 'danger'}>
+                        {row.is_active !== false ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <IconButton variant="view" icon={Eye} onClick={() => openInspectModal(row)} title="Inspect Instance" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </Table>
+          ) : (
+            // TAB 1: Master Item Templates (JSON Schema in masters_masteritem)
+            <Table headers={['Code', 'Template Name', 'Category', 'Plant', 'Department', 'JSON Attributes', 'Status', { label: 'Actions', align: 'right' }]}>
+              {paginatedList.length === 0 ? (
+                <tr>
+                  <td colSpan="8">
+                    <EmptyState
+                      title="No master item templates found"
+                      message={`No MasterItem template records logged for '${activeCategoryObj?.name || selectedCategory}'.`}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                paginatedList.map((row) => (
+                  <tr key={row.id}>
+                    <td className="font-mono text-xs text-[#1B4E9B] font-semibold">{row.code}</td>
+                    <td className="font-semibold text-[#1F2937]">{row.name}</td>
+                    <td className="text-xs text-[#374151]">{row.category_name || row.category || '-'}</td>
+                    <td className="text-xs text-[#374151]">{row.plant_name || row.plant || '-'}</td>
+                    <td className="text-xs text-[#374151]">{row.department_name || row.department || '-'}</td>
+                    <td>
                       <span className="font-mono text-xs text-[#16A34A] bg-[#F8FAFC] px-2 py-1 rounded border border-[#E5E7EB]">
                         {row.attributes ? JSON.stringify(row.attributes) : 'Null'}
                       </span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {row.attribute_values && row.attribute_values.length > 0 ? (
-                          row.attribute_values.map((v) => (
-                            <span key={v.id} className="text-[11px] font-mono bg-[#EFF6FF] border border-[#BFDBFE] px-2 py-0.5 rounded text-[#1B4E9B]">
-                              {v.attribute_code}: {v.value_text || v.value_number || (v.value_boolean !== null ? String(v.value_boolean) : '')}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-[#6B7280] italic">No EAV rows</span>
-                        )}
+                    </td>
+                    <td>
+                      <Badge variant={row.is_active !== false ? 'success' : 'danger'}>
+                        {row.is_active !== false ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <IconButton variant="view" icon={Eye} onClick={() => openInspectModal(row)} title="Inspect Template" />
+                        <IconButton variant="delete" icon={Trash2} onClick={() => handleDeleteItem(row.id)} title="Delete Template" />
                       </div>
-                    )}
-                  </td>
-                  <td>
-                    <Badge variant={row.is_active !== false ? 'success' : 'danger'}>
-                      {row.is_active !== false ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <IconButton variant="view" icon={Eye} onClick={() => openInspectModal(row)} title="Inspect Record" />
-                      {activeTab === 'legacy_json' && (
-                        <IconButton variant="delete" icon={Trash2} onClick={() => handleDeleteItem(row.id)} title="Delete Record" />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </Table>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </Table>
+          )}
 
           <div className="p-4 border-t border-[#E5E7EB]">
             <Pagination
@@ -462,11 +475,11 @@ export default function DynamicMasters() {
         </div>
       </div>
 
-      {/* Statutory Rule Versions Section */}
+      {/* Statutory Rule Versions Section (masters_masteritemversion) */}
       <div className="standard-card space-y-4">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
           <div>
-            <h3 className="section-title">Statutory Rule Versions (MasterItemVersion)</h3>
+            <h3 className="section-title">Statutory Rule Versions (masters_masteritemversion)</h3>
             <p className="helper-text">Historical rate revisions and statutory audit versioning.</p>
           </div>
           <Button variant="secondary" icon={Plus} onClick={() => setVersionModalOpen(true)}>
@@ -499,11 +512,54 @@ export default function DynamicMasters() {
         </Table>
       </div>
 
-      {/* MODAL 1: Create MasterCategory */}
-      <Modal isOpen={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} size="md" title="Create MasterCategory">
+      {/* MODAL 1: Create MasterCategory (masters_mastercategory) */}
+      <Modal isOpen={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} size="md" title="Create Master Category (masters_mastercategory)">
         <form onSubmit={handleCreateCategory} className="space-y-4">
-          <div><label className="form-label">Category Code *</label><input type="text" required value={newCat.code} onChange={(e) => setNewCat({ ...newCat, code: e.target.value })} className="form-input" placeholder="e.g. cat_raw_materials" /></div>
-          <div><label className="form-label">Category Name *</label><input type="text" required value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} className="form-input" placeholder="e.g. Raw Chemical Materials" /></div>
+          <div>
+            <label className="form-label">Category Code *</label>
+            <input
+              type="text"
+              required
+              value={newCat.code}
+              onChange={(e) => setNewCat({ ...newCat, code: e.target.value })}
+              className="form-input"
+              placeholder="e.g. cat_raw_materials"
+            />
+          </div>
+          <div>
+            <label className="form-label">Category Name *</label>
+            <input
+              type="text"
+              required
+              value={newCat.name}
+              onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
+              className="form-input"
+              placeholder="e.g. Raw Chemical Materials"
+            />
+          </div>
+          <div>
+            <label className="form-label">Owning Department (core_department)</label>
+            <select
+              value={newCat.owning_department}
+              onChange={(e) => setNewCat({ ...newCat, owning_department: e.target.value })}
+              className="form-input"
+            >
+              <option value="">-- General / Unassigned --</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Remarks</label>
+            <textarea
+              value={newCat.remarks}
+              onChange={(e) => setNewCat({ ...newCat, remarks: e.target.value })}
+              className="form-input"
+              rows="2"
+              placeholder="Description of category scope"
+            ></textarea>
+          </div>
           <div className="modal-footer">
             <Button type="button" variant="secondary" onClick={() => setCategoryModalOpen(false)}>Cancel</Button>
             <Button type="submit" variant="primary">Create Category</Button>
@@ -511,25 +567,71 @@ export default function DynamicMasters() {
         </form>
       </Modal>
 
-      {/* MODAL 2: Create MasterAttribute */}
-      <Modal isOpen={attrModalOpen} onClose={() => setAttrModalOpen(false)} size="md" title={`Add MasterAttribute to Category: ${activeCategoryObj?.name}`}>
+      {/* MODAL 2: Create MasterAttribute (masters_masterattribute) */}
+      <Modal isOpen={attrModalOpen} onClose={() => setAttrModalOpen(false)} size="md" title={`Add Master Attribute to: ${activeCategoryObj?.name}`}>
         <form onSubmit={handleCreateAttribute} className="space-y-4">
-          <div><label className="form-label">Attribute Code *</label><input type="text" required value={newAttr.attribute_code} onChange={(e) => setNewAttr({ ...newAttr, attribute_code: e.target.value })} className="form-input" placeholder="e.g. purity_rating" /></div>
-          <div><label className="form-label">Attribute Name *</label><input type="text" required value={newAttr.attribute_name} onChange={(e) => setNewAttr({ ...newAttr, attribute_name: e.target.value })} className="form-input" placeholder="e.g. Min Purity Rating" /></div>
-          <div>
-            <label className="form-label">Data Type *</label>
-            <select value={newAttr.data_type} onChange={(e) => setNewAttr({ ...newAttr, data_type: e.target.value, reference_table: e.target.value === 'reference' ? 'master_items' : '' })} className="form-input">
-              <option value="text">Text</option>
-              <option value="number">Number</option>
-              <option value="date">Date</option>
-              <option value="boolean">Boolean</option>
-              <option value="reference">Reference Foreign Key (FK)</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Attribute Code *</label>
+              <input
+                type="text"
+                required
+                value={newAttr.attribute_code}
+                onChange={(e) => setNewAttr({ ...newAttr, attribute_code: e.target.value })}
+                className="form-input"
+                placeholder="e.g. purity_rating"
+              />
+            </div>
+            <div>
+              <label className="form-label">Attribute Name *</label>
+              <input
+                type="text"
+                required
+                value={newAttr.attribute_name}
+                onChange={(e) => setNewAttr({ ...newAttr, attribute_name: e.target.value })}
+                className="form-input"
+                placeholder="e.g. Min Purity Rating"
+              />
+            </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Data Type *</label>
+              <select
+                value={newAttr.data_type}
+                onChange={(e) => setNewAttr({ ...newAttr, data_type: e.target.value, reference_table: e.target.value === 'reference' ? 'master_items' : '' })}
+                className="form-input"
+              >
+                <option value="text">Text</option>
+                <option value="textarea">Textarea</option>
+                <option value="number">Number / Decimal</option>
+                <option value="date">Date</option>
+                <option value="datetime">DateTime</option>
+                <option value="boolean">Boolean</option>
+                <option value="select">Dropdown Select</option>
+                <option value="reference">Reference Foreign Key (FK)</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Sort Order</label>
+              <input
+                type="number"
+                value={newAttr.sort_order}
+                onChange={(e) => setNewAttr({ ...newAttr, sort_order: parseInt(e.target.value) || 1 })}
+                className="form-input"
+              />
+            </div>
+          </div>
+
           {newAttr.data_type === 'reference' && (
             <div>
-              <label className="form-label">Target Reference Master Table *</label>
-              <select value={newAttr.reference_table} onChange={(e) => setNewAttr({ ...newAttr, reference_table: e.target.value })} className="form-input" required>
+              <label className="form-label">Target Reference Table *</label>
+              <select
+                value={newAttr.reference_table}
+                onChange={(e) => setNewAttr({ ...newAttr, reference_table: e.target.value })}
+                className="form-input"
+                required
+              >
                 <option value="companies">Companies / Entities</option>
                 <option value="plants">Plants & Facilities</option>
                 <option value="departments">Departments</option>
@@ -544,6 +646,20 @@ export default function DynamicMasters() {
               </select>
             </div>
           )}
+
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="attr_is_required"
+              checked={newAttr.is_required}
+              onChange={(e) => setNewAttr({ ...newAttr, is_required: e.target.checked })}
+              className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
+            />
+            <label htmlFor="attr_is_required" className="text-xs text-[#374151] cursor-pointer font-medium">
+              Is Required Field
+            </label>
+          </div>
+
           <div className="modal-footer">
             <Button type="button" variant="secondary" onClick={() => setAttrModalOpen(false)}>Cancel</Button>
             <Button type="submit" variant="primary">Save Attribute</Button>
@@ -551,193 +667,52 @@ export default function DynamicMasters() {
         </form>
       </Modal>
 
-      {/* MODAL 3: Create MasterItem */}
-      <Modal isOpen={itemModalOpen} onClose={() => setItemModalOpen(false)} size="md" title="Create MasterItem & Sync to MasterInstance">
-        {uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters')) && (
-          <div className="p-3 mb-4 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-[#1B4E9B] font-semibold">
-              <Sparkles className="w-4 h-4 text-[#1B4E9B]" />
-              <span>Dynamic Form Available from Form Builder</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setUseDynamicFormMode(!useDynamicFormMode)}
-              className="text-[#1B4E9B] font-bold hover:underline"
-            >
-              {useDynamicFormMode ? 'Switch to Standard Form' : 'Use Dynamic Form'}
-            </button>
-          </div>
-        )}
-
-        {useDynamicFormMode && uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters')) ? (
-          <GenericFormRenderer
-            formConfig={uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters'))}
-            onSubmit={async (formData) => {
-              try {
-                const catObj = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory) || categories[0];
-                await MastersAPI.createItem({
-                  category: catObj?.id || selectedCategory,
-                  code: formData.code || `ITM-${Date.now().toString().slice(-4)}`,
-                  name: formData.name || formData.title || 'Dynamic Master Item',
-                  attributes: formData,
-                  values: formData,
-                });
-                setItemModalOpen(false);
-                loadMastersData();
-              } catch (err) {
-                alert("Submission failed: " + (err.response?.data?.detail || err.message));
-              }
-            }}
-            onCancel={() => setItemModalOpen(false)}
-          />
-        ) : (
-          <form onSubmit={handleSaveItem} className="space-y-4">
-            <div><label className="form-label">Item Code *</label><input type="text" required value={newItem.code} onChange={(e) => setNewItem({ ...newItem, code: e.target.value })} className="form-input" placeholder="e.g. RAW-CHEM-POLY-03" /></div>
-            <div><label className="form-label">Item Name *</label><input type="text" required value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="form-input" placeholder="e.g. High-Grade Chemical Compound" /></div>
-
-            {/* Dynamic Master Attributes Inputs */}
-            {attributes.length > 0 ? (
-              <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-3">
-                <p className="text-xs font-bold text-[#1B4E9B] uppercase">Category Attributes</p>
-                {attributes.map((attr) => {
-                  const val = dynamicFormValues[attr.attribute_code] || '';
-                  const refTable = attr.reference_table?.toLowerCase().trim();
-                  const options = masterOptions[refTable] || [];
-
-                  if (attr.data_type === 'reference') {
-                    return (
-                      <div key={attr.id} className="space-y-1">
-                        <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
-                        <select
-                          value={val}
-                          onChange={(e) => setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: e.target.value })}
-                          className="form-input"
-                          required={attr.is_required}
-                        >
-                          <option value="">-- Select {attr.attribute_name} --</option>
-                          {options.map((opt) => (
-                            <option key={opt.id || opt.code} value={opt.id || opt.code}>
-                              {opt.name || opt.title || opt.code || opt.id}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  }
-
-                  if (attr.data_type === 'boolean') {
-                    return (
-                      <div key={attr.id} className="flex items-center gap-2 pt-1">
-                        <input
-                          type="checkbox"
-                          id={attr.attribute_code}
-                          checked={val === true || val === 'true'}
-                          onChange={(e) => setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: e.target.checked })}
-                          className="w-4 h-4 rounded text-[#1B4E9B] border-[#D1D5DB]"
-                        />
-                        <label htmlFor={attr.attribute_code} className="text-xs text-[#374151] cursor-pointer font-medium">
-                          {attr.attribute_name} {attr.is_required && '*'}
-                        </label>
-                      </div>
-                    );
-                  }
-
-                  if (attr.data_type === 'date') {
-                    return (
-                      <div key={attr.id} className="space-y-1">
-                        <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
-                        <input
-                          type="date"
-                          value={val}
-                          onChange={(e) => setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: e.target.value })}
-                          className="form-input"
-                          required={attr.is_required}
-                        />
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={attr.id} className="space-y-1">
-                      <label className="form-label">{attr.attribute_name} {attr.is_required && '*'}</label>
-                      <input
-                        type={attr.data_type === 'number' ? 'number' : 'text'}
-                        min={attr.data_type === 'number' ? '0' : undefined}
-                        step="any"
-                        value={val}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (attr.data_type !== 'number' || value === '' || Number(value) >= 0) {
-                            setDynamicFormValues({ ...dynamicFormValues, [attr.attribute_code]: value });
-                          }
-                        }}
-                        className="form-input"
-                        placeholder={`Enter ${attr.attribute_name}`}
-                        required={attr.is_required}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-            <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E5E7EB] space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-[#1B4E9B] uppercase">Custom Master Attributes</p>
-                <button
-                  type="button"
-                  onClick={() => setCustomAttrPairs([...customAttrPairs, { key: '', value: '' }])}
-                  className="text-xs text-[#1B4E9B] hover:underline font-semibold"
-                >
-                  + Add Attribute Field
-                </button>
-              </div>
-              {customAttrPairs.map((pair, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="Attribute Name (e.g. Grade)"
-                    value={pair.key}
-                    onChange={(e) => {
-                      const copy = [...customAttrPairs];
-                      copy[idx].key = e.target.value;
-                      setCustomAttrPairs(copy);
-                    }}
-                    className="form-input text-xs w-1/2"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Attribute Value (e.g. Grade A)"
-                    value={pair.value}
-                    onChange={(e) => {
-                      const copy = [...customAttrPairs];
-                      copy[idx].value = e.target.value;
-                      setCustomAttrPairs(copy);
-                    }}
-                    className="form-input text-xs w-1/2"
-                  />
-                  {customAttrPairs.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setCustomAttrPairs(customAttrPairs.filter((_, i) => i !== idx))}
-                      className="text-[#DC2626] font-bold px-2 py-1"
-                    >
-                      &times;
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="modal-footer">
-            <Button type="button" variant="secondary" onClick={() => setItemModalOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Create Item</Button>
-          </div>
-        </form>
-        )}
+      {/* MODAL 3: Create Master Instance & Attribute Values */}
+      <Modal isOpen={itemModalOpen} onClose={() => setItemModalOpen(false)} size="md" title={`Create Master Instance [${activeCategoryObj?.name || selectedCategory}]`}>
+        <GenericFormRenderer
+          formConfig={
+            uiForms.find(f => f.active && (f.form_name === `${selectedCategory}_form` || f.form_name === 'master_item_form' || f.form_name === 'add_item_form' || f.module === 'masters')) || {
+              title: `Add Master Instance [${selectedCategory?.toUpperCase() || 'GENERAL'}]`,
+              module: 'masters',
+              fields: [
+                { field_name: 'Instance Code', field_code: 'code', field_type: 'text', required: true, field_order: 1 },
+                { field_name: 'Instance Name', field_code: 'name', field_type: 'text', required: true, field_order: 2 },
+                { field_name: 'Plant Facility', field_code: 'plant', field_type: 'reference', reference_table: 'plants', required: false, field_order: 3 },
+                { field_name: 'Department Unit', field_code: 'department', field_type: 'reference', reference_table: 'departments', required: false, field_order: 4 },
+                ...attributes.map((attr, idx) => ({
+                  field_name: attr.attribute_name,
+                  field_code: attr.attribute_code,
+                  field_type: attr.data_type === 'reference' ? 'reference' : attr.data_type === 'number' ? 'number' : attr.data_type === 'boolean' ? 'boolean' : attr.data_type === 'date' ? 'date' : 'text',
+                  reference_table: attr.reference_table,
+                  required: Boolean(attr.is_required),
+                  field_order: idx + 5,
+                })),
+              ]
+            }
+          }
+          onSubmit={async (formData) => {
+            try {
+              const catObj = categories.find((c) => c.code === selectedCategory || c.id === selectedCategory) || categories[0];
+              await MastersAPI.createItem({
+                category: catObj?.id || selectedCategory,
+                code: formData.code || `MSC-${Date.now().toString().slice(-4)}`,
+                name: formData.name || formData.title || 'Dynamic Master Instance',
+                plant: formData.plant || null,
+                department: formData.department || null,
+                attributes: formData,
+                values: formData,
+              });
+              setItemModalOpen(false);
+              loadMastersData();
+            } catch (err) {
+              alert("Submission failed: " + (err.response?.data?.detail || err.message));
+            }
+          }}
+          onCancel={() => setItemModalOpen(false)}
+        />
       </Modal>
 
-      {/* MODAL 4: Create Version */}
+      {/* MODAL 4: Create Version (masters_masteritemversion) */}
       <Modal isOpen={versionModalOpen} onClose={() => setVersionModalOpen(false)} size="md" title="Create Statutory Rule Version">
         <form onSubmit={handleCreateVersion} className="space-y-4">
           <div>
@@ -749,11 +724,23 @@ export default function DynamicMasters() {
               ))}
             </select>
           </div>
-          <div><label className="form-label">Version Number *</label><input type="number" min="1" required value={newVersion.version_no} onChange={(e) => setNewVersion({ ...newVersion, version_no: parseInt(e.target.value) || 1 })} className="form-input" /></div>
-          <div><label className="form-label">Rule Value (JSON) *</label><textarea required value={newVersion.value} onChange={(e) => setNewVersion({ ...newVersion, value: e.target.value })} className="form-input font-mono text-xs h-20"></textarea></div>
+          <div>
+            <label className="form-label">Version Number *</label>
+            <input type="number" min="1" required value={newVersion.version_no} onChange={(e) => setNewVersion({ ...newVersion, version_no: parseInt(e.target.value) || 1 })} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label">Rule Value (JSON) *</label>
+            <textarea required value={newVersion.value} onChange={(e) => setNewVersion({ ...newVersion, value: e.target.value })} className="form-input font-mono text-xs h-20"></textarea>
+          </div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="form-label">Effective From *</label><input type="date" required value={newVersion.effective_from} onChange={(e) => setNewVersion({ ...newVersion, effective_from: e.target.value })} className="form-input" /></div>
-            <div><label className="form-label">Effective To</label><input type="date" value={newVersion.effective_to || ''} onChange={(e) => setNewVersion({ ...newVersion, effective_to: e.target.value })} className="form-input" /></div>
+            <div>
+              <label className="form-label">Effective From *</label>
+              <input type="date" required value={newVersion.effective_from} onChange={(e) => setNewVersion({ ...newVersion, effective_from: e.target.value })} className="form-input" />
+            </div>
+            <div>
+              <label className="form-label">Effective To</label>
+              <input type="date" value={newVersion.effective_to || ''} onChange={(e) => setNewVersion({ ...newVersion, effective_to: e.target.value })} className="form-input" />
+            </div>
           </div>
           <div className="modal-footer">
             <Button type="button" variant="secondary" onClick={() => setVersionModalOpen(false)}>Cancel</Button>

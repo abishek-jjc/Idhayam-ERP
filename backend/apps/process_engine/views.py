@@ -61,6 +61,44 @@ class ProcessInstanceViewSet(viewsets.ModelViewSet):
         allowed_ids = allowed_process_type_ids(self.request)
         return queryset if allowed_ids is None else queryset.filter(process_type_id__in=allowed_ids)
 
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        try:
+            from apps.journal.services import create_automated_journal_entry
+            m_type = 'production_output' if instance.status == 'completed' else 'internal'
+            create_automated_journal_entry(
+                movement_type=m_type,
+                process_instance=instance,
+                from_plant=instance.plant,
+                from_department=instance.department,
+                to_plant=instance.plant,
+                to_department=instance.department,
+                quantity=100.0,
+                unit='KG',
+                remarks=f"Automated journal entry from Process Execution {instance.id} ({instance.status})"
+            )
+        except Exception as e:
+            print("Journal automation warning:", e)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        try:
+            from apps.journal.services import create_automated_journal_entry
+            m_type = 'production_output' if instance.status == 'completed' else 'internal'
+            create_automated_journal_entry(
+                movement_type=m_type,
+                process_instance=instance,
+                from_plant=instance.plant,
+                from_department=instance.department,
+                to_plant=instance.plant,
+                to_department=instance.department,
+                quantity=100.0,
+                unit='KG',
+                remarks=f"Automated journal entry from Process Update {instance.id} ({instance.status})"
+            )
+        except Exception as e:
+            print("Journal automation warning:", e)
+
 class ProcessAttributeValueViewSet(viewsets.ModelViewSet):
     queryset = ProcessAttributeValue.objects.all().order_by('-created_at')
     serializer_class = ProcessAttributeValueSerializer

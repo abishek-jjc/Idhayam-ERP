@@ -91,7 +91,6 @@ export const MastersAPI = {
   getAttributeValues: (params) => api.get('/masters/attribute-values/', { params }),
 };
 
-
 export const ProcessEngineAPI = {
   getProcessTypes: () => api.get('/process/types/'),
   createProcessType: (data) => api.post('/process/types/', data),
@@ -131,3 +130,9 @@ export const JournalAPI = {
   createStock: (data) => api.post('/journal/stocks/', data),
 };
 
+export const NotificationAPI = {
+  getNotifications: (params) => api.get('/notifications/system-notifications/', { params }),
+  createNotification: (data) => api.post('/notifications/system-notifications/', data),
+  markRead: (id) => api.patch(`/notifications/system-notifications/${id}/mark-read/`),
+  markAllRead: () => api.post('/notifications/system-notifications/mark-all-read/'),
+};

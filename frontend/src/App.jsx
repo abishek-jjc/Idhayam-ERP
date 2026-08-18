@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import StructuralMasters from './pages/StructuralMasters';
 import DynamicMasters from './pages/DynamicMasters';
-import ProcessEngine from './pages/ProcessEngine';
+import ProcessManagement from './pages/ProcessManagement';
 import WorkflowApprovals from './pages/WorkflowApprovals';
 import JournalStock from './pages/JournalStock';
 import AdminConsole from './pages/AdminConsole';
@@ -60,7 +60,8 @@ function ProtectedLayout() {
     admin: AdminConsole,
     structural_masters: StructuralMasters,
     dynamic_masters: DynamicMasters,
-    process_engine: ProcessEngine,
+    process_management: ProcessManagement,
+    process_engine: ProcessManagement,
     workflow: WorkflowApprovals,
     journal: JournalStock,
     process_attribute_values: ProcessAttributeValues,
@@ -87,11 +88,12 @@ function ProtectedLayout() {
               <Route path="/admin-console" element={<AuthorizedPage moduleCode="admin" Component={AdminConsole} />} />
               <Route path="/structural-masters" element={<AuthorizedPage moduleCode="structural_masters" Component={StructuralMasters} />} />
               <Route path="/dynamic-masters" element={<AuthorizedPage moduleCode="dynamic_masters" Component={DynamicMasters} />} />
-              <Route path="/process-engine" element={<AuthorizedPage moduleCode="process_engine" Component={ProcessEngine} />} />
+              <Route path="/process-management" element={<AuthorizedPage moduleCode="process_management" Component={ProcessManagement} />} />
+              <Route path="/process-engine" element={<Navigate to="/process-management" replace />} />
               <Route path="/workflow-approvals" element={<AuthorizedPage moduleCode="workflow" Component={WorkflowApprovals} />} />
               <Route path="/journal-stock" element={<AuthorizedPage moduleCode="journal" Component={JournalStock} />} />
-              <Route path="/process-attribute-values" element={<AuthorizedPage moduleCode="process_engine" Component={ProcessAttributeValues} />} />
-              <Route path="/process-links" element={<AuthorizedPage moduleCode="process_engine" Component={ProcessLinks} />} />
+              <Route path="/process-attribute-values" element={<AuthorizedPage moduleCode="admin" Component={ProcessAttributeValues} />} />
+              <Route path="/process-links" element={<AuthorizedPage moduleCode="admin" Component={ProcessLinks} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </ErrorBoundary>
